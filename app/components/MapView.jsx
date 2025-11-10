@@ -1,25 +1,20 @@
 "use client"
 import dynamic from "next/dynamic"
-import { useState, useEffect } from "react"
 import "leaflet/dist/leaflet.css"
+import BoundaryLayer from "./BoundaryLayer"
+import useBoundary from "@/hooks/useBoundary"
+import { MAP_CENTER, MAP_ZOOM, MAP_STYLE } from "@/lib/mapConfig"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
-const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 
 export default function MapView() {
-    const [boundary, setBoundary] = useState(null)
-
-    useEffect(() => {
-        fetch("/data/boundary_4326.geojson")
-            .then(res => res.json())
-            .then(setBoundary)
-    }, [])
+    const boundary = useBoundary()
 
     return (
-        <MapContainer center={[40.0, -74.5]} zoom={10} style={{ height: "90vh", width: "100%" }}>
+        <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {boundary && <GeoJSON data={boundary} style={{ color: "black", weight: 2, fillOpacity: 0 }} />}
+            {boundary && <BoundaryLayer data={boundary} />}
         </MapContainer>
     )
 }
