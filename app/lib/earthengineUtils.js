@@ -1,5 +1,21 @@
 import { ee, initEarthEngine } from "@/app/lib/earthengine"
 
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+function getMonthDateRange(year, month) {
+    const start = `${year}-${String(month).padStart(2, "0")}-01`
+    const lastDay = new Date(year, month, 0).getDate()
+    const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+    return { start, end }
+}
+
+function getPreviousMonth(year, month) {
+    if (month === 1) {
+        return { year: year - 1, month: 12 }
+    }
+    return { year, month: month - 1 }
+}
+
 export async function countAvailableImages(start, end, bbox, cloud = 30) {
     await initEarthEngine()
 
@@ -22,7 +38,8 @@ export async function countAvailableImages(start, end, bbox, cloud = 30) {
     return await new Promise((resolve, reject) => {
         collection.size().getInfo((size, err) => {
             if (err) {
-                reject(err)
+                const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
+                reject(new Error(errorMsg))
                 return
             }
             resolve(size)
@@ -39,38 +56,44 @@ export async function findAvailableMonth(bbox, cloud = 30) {
         ? `${bbox[0][1]},${bbox[0][0]},${bbox[1][1]},${bbox[1][0]}`
         : bbox
 
-    const currentStart = `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`
-    const currentEnd = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${new Date(currentYear, currentMonth + 1, 0).getDate()}`
-
-    let count = await countAvailableImages(currentStart, currentEnd, bboxStr, cloud)
+    const currentDateRange = getMonthDateRange(currentYear, currentMonth)
+    
+    let count
+    try {
+        count = await countAvailableImages(currentDateRange.start, currentDateRange.end, bboxStr, cloud)
+    } catch (error) {
+        const errorMsg = error?.message || error?.toString() || "Unknown error"
+        throw new Error(`Failed to count images for current month: ${errorMsg}`)
+    }
     
     if (count > 0) {
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
         return {
             year: currentYear,
             month: currentMonth,
-            monthName: monthNames[currentMonth - 1],
+            monthName: MONTH_NAMES[currentMonth - 1],
             count,
-            start: currentStart,
-            end: currentEnd
+            start: currentDateRange.start,
+            end: currentDateRange.end
         }
     }
 
-    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
-    const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
-    const prevStart = `${prevYear}-${String(prevMonth).padStart(2, "0")}-01`
-    const prevEnd = `${prevYear}-${String(prevMonth).padStart(2, "0")}-${new Date(prevYear, prevMonth + 1, 0).getDate()}`
+    const { year: prevYear, month: prevMonth } = getPreviousMonth(currentYear, currentMonth)
+    const prevDateRange = getMonthDateRange(prevYear, prevMonth)
 
-    count = await countAvailableImages(prevStart, prevEnd, bboxStr, cloud)
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    try {
+        count = await countAvailableImages(prevDateRange.start, prevDateRange.end, bboxStr, cloud)
+    } catch (error) {
+        const errorMsg = error?.message || error?.toString() || "Unknown error"
+        throw new Error(`Failed to count images for previous month: ${errorMsg}`)
+    }
     
     return {
         year: prevYear,
         month: prevMonth,
-        monthName: monthNames[prevMonth - 1],
+        monthName: MONTH_NAMES[prevMonth - 1],
         count,
-        start: prevStart,
-        end: prevEnd
+        start: prevDateRange.start,
+        end: prevDateRange.end
     }
 }
 
@@ -110,4 +133,3 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
         })
     })
 }
-

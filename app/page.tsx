@@ -83,7 +83,7 @@ export default function Page() {
                                 </div>
                             ) : endMonth && imageCount !== null ? (
                                 <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
-                                    Average NDVI for {endMonth} (based on {imageCount} images)
+                                    Average NDVI for {endMonth} (based on {imageCount} image(s))
                                 </div>
                             ) : null}
                             <div style={{ marginTop: "10px" }}>

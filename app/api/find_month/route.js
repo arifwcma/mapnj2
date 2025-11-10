@@ -26,7 +26,10 @@ export async function GET(request) {
         return NextResponse.json(result)
     } catch (error) {
         console.error("Error finding available month:", error)
-        return NextResponse.json({ error: "Failed to find available month" }, { status: 500 })
+        return NextResponse.json(
+            { error: "Failed to find available month", details: error.message },
+            { status: 500 }
+        )
     }
 }
 
