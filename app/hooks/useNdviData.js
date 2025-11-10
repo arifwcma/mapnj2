@@ -58,6 +58,10 @@ export default function useNdviData() {
         setError(null)
     }, [])
 
+    const isImageAvailable = useCallback(() => {
+        return imageCount !== null && imageCount > 0
+    }, [imageCount])
+
     return {
         ndviTileUrl,
         endMonth,
@@ -67,7 +71,8 @@ export default function useNdviData() {
         cloudTolerance,
         loadNdviData,
         updateCloudTolerance,
-        clearNdvi
+        clearNdvi,
+        isImageAvailable
     }
 }
 

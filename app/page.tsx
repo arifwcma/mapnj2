@@ -24,7 +24,8 @@ export default function Page() {
         cloudTolerance,
         loadNdviData,
         updateCloudTolerance,
-        clearNdvi
+        clearNdvi,
+        isImageAvailable
     } = useNdviData()
 
     const debounceTimeoutRef = useRef(null)
@@ -135,7 +136,7 @@ export default function Page() {
                                     Loading NDVI data...
                                 </div>
                             ) : endMonth && imageCount !== null ? (
-                                imageCount === 0 ? (
+                                !isImageAvailable() ? (
                                     <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
                                         No image found for {endMonth}. <span style={{ color: "red" }}>Consider increasing cloud tolerance</span>.
                                     </div>
@@ -207,7 +208,7 @@ export default function Page() {
                 onUpdate={updateBounds}
                 onEnd={handleFinalize}
                 onReset={resetRectangle}
-                ndviTileUrl={imageCount === 0 ? null : ndviTileUrl}
+                ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
             />
         </div>
     )
