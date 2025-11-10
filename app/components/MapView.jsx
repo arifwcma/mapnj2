@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css"
 import BoundaryLayer from "./BoundaryLayer"
 import RectangleDrawHandler from "./RectangleDrawHandler"
 import useBoundary from "@/app/hooks/useBoundary"
-import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_URL, RECTANGLE_STYLE } from "@/app/lib/mapConfig"
+import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_URL, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE } from "@/app/lib/mapConfig"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
@@ -44,7 +44,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             {currentBounds && <Rectangle bounds={currentBounds} pathOptions={RECTANGLE_STYLE} />}
             {rectangleBounds && (
                 <>
-                    <Rectangle bounds={rectangleBounds} pathOptions={RECTANGLE_STYLE} />
+                    <Rectangle bounds={rectangleBounds} pathOptions={RECTANGLE_BORDER_STYLE} />
                     <ZoomToRectangle bounds={rectangleBounds} />
                 </>
             )}

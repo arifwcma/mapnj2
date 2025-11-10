@@ -5,4 +5,5 @@ export const TILE_LAYER_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
 export const BOUNDARY_FILE_PATH = "/data/boundary_4326.geojson"
 export const BOUNDARY_STYLE = { color: "black", weight: 2, fillOpacity: 0 }
 export const RECTANGLE_STYLE = { color: "blue", fillColor: "blue", fillOpacity: 0.3, weight: 2 }
+export const RECTANGLE_BORDER_STYLE = { color: "blue", fillOpacity: 0, weight: 2 }
 
