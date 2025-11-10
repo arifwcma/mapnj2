@@ -31,7 +31,11 @@ export default function useNdviData() {
 
             setEndMonth(`${monthData.monthName} ${monthData.year}`)
             setImageCount(monthData.count)
-            setNdviTileUrl(tileData.tileUrl)
+            if (monthData.count > 0) {
+                setNdviTileUrl(tileData.tileUrl)
+            } else {
+                setNdviTileUrl(null)
+            }
         } catch (err) {
             setError(err.message)
             setNdviTileUrl(null)

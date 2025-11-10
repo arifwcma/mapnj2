@@ -135,9 +135,15 @@ export default function Page() {
                                     Loading NDVI data...
                                 </div>
                             ) : endMonth && imageCount !== null ? (
-                                <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
-                                    Average NDVI for {endMonth} (based on {imageCount} image(s))
-                                </div>
+                                imageCount === 0 ? (
+                                    <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
+                                        No image found for {endMonth}. <span style={{ color: "red" }}>Consider increasing cloud tolerance</span>.
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
+                                        Average NDVI for {endMonth} (based on {imageCount} image(s))
+                                    </div>
+                                )
                             ) : null}
                             <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
                                 <button
@@ -201,7 +207,7 @@ export default function Page() {
                 onUpdate={updateBounds}
                 onEnd={handleFinalize}
                 onReset={resetRectangle}
-                ndviTileUrl={ndviTileUrl}
+                ndviTileUrl={imageCount === 0 ? null : ndviTileUrl}
             />
         </div>
     )
