@@ -146,56 +146,58 @@ export default function Page() {
                                     </div>
                                 )
                             ) : null}
-                            <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                                <button
-                                    onClick={() => handleCloudButtonClick(-1)}
-                                    onMouseUp={handleCloudButtonRelease}
-                                    disabled={localCloudTolerance === 0}
-                                    style={{
-                                        width: "30px",
-                                        height: "30px",
-                                        fontSize: "18px",
-                                        cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
-                                        opacity: localCloudTolerance === 0 ? 0.5 : 1,
-                                        border: "1px solid #ccc",
-                                        borderRadius: "4px",
-                                        background: "white"
-                                    }}
-                                >
-                                    -
-                                </button>
-                                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                    <label style={{ fontSize: "14px", display: "block" }}>
-                                        Cloud tolerance (%): {localCloudTolerance}
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={localCloudTolerance}
-                                        onChange={(e) => handleCloudChange(parseInt(e.target.value))}
+                            {!loading && endMonth && imageCount !== null && (
+                                <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                                    <button
+                                        onClick={() => handleCloudButtonClick(-1)}
                                         onMouseUp={handleCloudButtonRelease}
-                                        style={{ width: "200px" }}
-                                    />
+                                        disabled={localCloudTolerance === 0}
+                                        style={{
+                                            width: "30px",
+                                            height: "30px",
+                                            fontSize: "18px",
+                                            cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
+                                            opacity: localCloudTolerance === 0 ? 0.5 : 1,
+                                            border: "1px solid #ccc",
+                                            borderRadius: "4px",
+                                            background: "white"
+                                        }}
+                                    >
+                                        -
+                                    </button>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                                        <label style={{ fontSize: "14px", display: "block" }}>
+                                            Cloud tolerance (%): {localCloudTolerance}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={localCloudTolerance}
+                                            onChange={(e) => handleCloudChange(parseInt(e.target.value))}
+                                            onMouseUp={handleCloudButtonRelease}
+                                            style={{ width: "200px" }}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => handleCloudButtonClick(1)}
+                                        onMouseUp={handleCloudButtonRelease}
+                                        disabled={localCloudTolerance === 100}
+                                        style={{
+                                            width: "30px",
+                                            height: "30px",
+                                            fontSize: "18px",
+                                            cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
+                                            opacity: localCloudTolerance === 100 ? 0.5 : 1,
+                                            border: "1px solid #ccc",
+                                            borderRadius: "4px",
+                                            background: "white"
+                                        }}
+                                    >
+                                        +
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => handleCloudButtonClick(1)}
-                                    onMouseUp={handleCloudButtonRelease}
-                                    disabled={localCloudTolerance === 100}
-                                    style={{
-                                        width: "30px",
-                                        height: "30px",
-                                        fontSize: "18px",
-                                        cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
-                                        opacity: localCloudTolerance === 100 ? 0.5 : 1,
-                                        border: "1px solid #ccc",
-                                        borderRadius: "4px",
-                                        background: "white"
-                                    }}
-                                >
-                                    +
-                                </button>
-                            </div>
+                            )}
                         </>
                     )}
                 </div>
