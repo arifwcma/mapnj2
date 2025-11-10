@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { countAvailableImages } from "@/app/lib/earthengineUtils"
+import { getAverageNdviTile } from "@/app/lib/earthengineUtils"
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url)
@@ -24,14 +24,11 @@ export async function GET(request) {
     }
 
     try {
-        const count = await countAvailableImages(start, end, bbox, cloud)
-        return NextResponse.json({ count, start, end, bbox, cloud })
+        const tileUrl = await getAverageNdviTile(start, end, bbox, cloud)
+        return NextResponse.json({ tileUrl, start, end, bbox, cloud })
     } catch (error) {
-        console.error("Error counting available images:", error)
-        if (error.message.includes("Invalid bbox")) {
-            return NextResponse.json({ error: error.message }, { status: 400 })
-        }
-        return NextResponse.json({ error: "Failed to query images" }, { status: 500 })
+        console.error("Error getting NDVI tile:", error)
+        return NextResponse.json({ error: "Failed to get NDVI tile" }, { status: 500 })
     }
 }
 

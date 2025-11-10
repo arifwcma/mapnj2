@@ -5,6 +5,7 @@ import { useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import BoundaryLayer from "./BoundaryLayer"
 import RectangleDrawHandler from "./RectangleDrawHandler"
+import NdviOverlay from "./NdviOverlay"
 import useBoundary from "@/app/hooks/useBoundary"
 import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_URL, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE } from "@/app/lib/mapConfig"
 
@@ -22,7 +23,7 @@ function ZoomToRectangle({ bounds }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl }) {
     const { boundary, loading, error } = useBoundary()
 
     if (error) {
@@ -47,6 +48,9 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     <Rectangle bounds={rectangleBounds} pathOptions={RECTANGLE_BORDER_STYLE} />
                     <ZoomToRectangle bounds={rectangleBounds} />
                 </>
+            )}
+            {ndviTileUrl && rectangleBounds && (
+                <NdviOverlay tileUrl={ndviTileUrl} bounds={rectangleBounds} />
             )}
         </MapContainer>
     )
