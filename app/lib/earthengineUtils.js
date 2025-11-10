@@ -2,7 +2,7 @@ import { ee, initEarthEngine } from "@/app/lib/earthengine"
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
-function getMonthDateRange(year, month) {
+export function getMonthDateRange(year, month) {
     const start = `${year}-${String(month).padStart(2, "0")}-01`
     const lastDay = new Date(year, month, 0).getDate()
     const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`

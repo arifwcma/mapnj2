@@ -19,19 +19,30 @@ export default function Page() {
     const {
         ndviTileUrl,
         endMonth,
+        endYear,
+        endMonthNum,
         imageCount,
         loading,
         cloudTolerance,
+        selectedYear,
+        selectedMonth,
         loadNdviData,
         updateCloudTolerance,
+        updateSelectedMonth,
         clearNdvi,
-        isImageAvailable
+        isImageAvailable,
+        getMaxSliderValue,
+        getCurrentSliderValue,
+        sliderValueToMonthYear,
+        monthYearToSliderValue
     } = useNdviData()
 
     const debounceTimeoutRef = useRef(null)
     const sliderDebounceTimeoutRef = useRef(null)
+    const timeSliderDebounceTimeoutRef = useRef(null)
     const cloudToleranceRef = useRef(cloudTolerance)
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
+    const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
 
     useEffect(() => {
         setLocalCloudTolerance(cloudTolerance)
@@ -40,11 +51,29 @@ export default function Page() {
 
     useEffect(() => {
         if (rectangleBounds) {
-            loadNdviData(rectangleBounds, cloudTolerance)
+            if (selectedYear && selectedMonth) {
+                loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth)
+            } else {
+                loadNdviData(rectangleBounds, cloudTolerance)
+            }
         } else {
             clearNdvi()
         }
-    }, [rectangleBounds, cloudTolerance, loadNdviData, clearNdvi])
+    }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, loadNdviData, clearNdvi])
+
+    useEffect(() => {
+        if (selectedYear && selectedMonth) {
+            const sliderValue = getCurrentSliderValue()
+            setLocalTimeSliderValue(sliderValue)
+        }
+    }, [selectedYear, selectedMonth, getCurrentSliderValue])
+
+    useEffect(() => {
+        if (endYear && endMonthNum && !selectedYear && !selectedMonth) {
+            const sliderValue = monthYearToSliderValue(endYear, endMonthNum)
+            setLocalTimeSliderValue(sliderValue)
+        }
+    }, [endYear, endMonthNum, selectedYear, selectedMonth])
 
     const handleButtonClick = () => {
         if (rectangleBounds) {
@@ -102,6 +131,49 @@ export default function Page() {
         console.log("Cloud tolerance:", cloudToleranceRef.current)
     }
 
+    const handleTimeChange = (newValue) => {
+        setLocalTimeSliderValue(newValue)
+        
+        if (timeSliderDebounceTimeoutRef.current) {
+            clearTimeout(timeSliderDebounceTimeoutRef.current)
+        }
+        
+        timeSliderDebounceTimeoutRef.current = setTimeout(() => {
+            const { year, month } = sliderValueToMonthYear(newValue)
+            updateSelectedMonth(year, month)
+        }, 1000)
+    }
+
+    const handleTimeButtonClick = (delta) => {
+        const currentValue = getCurrentSliderValue()
+        const maxValue = getMaxSliderValue()
+        const newValue = Math.max(0, Math.min(maxValue, currentValue + delta))
+        setLocalTimeSliderValue(newValue)
+
+        if (timeSliderDebounceTimeoutRef.current) {
+            clearTimeout(timeSliderDebounceTimeoutRef.current)
+        }
+
+        timeSliderDebounceTimeoutRef.current = setTimeout(() => {
+            const { year, month } = sliderValueToMonthYear(newValue)
+            updateSelectedMonth(year, month)
+        }, 1000)
+    }
+
+    const handleTimeButtonRelease = () => {
+        if (timeSliderDebounceTimeoutRef.current) {
+            clearTimeout(timeSliderDebounceTimeoutRef.current)
+        }
+        const { year, month } = sliderValueToMonthYear(localTimeSliderValue)
+        updateSelectedMonth(year, month)
+    }
+
+    const getMonthYearLabel = (sliderValue) => {
+        const { year, month } = sliderValueToMonthYear(sliderValue)
+        const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        return `${MONTH_NAMES[month - 1]} ${year}`
+    }
+
     return (
         <div>
             {isDrawing ? (
@@ -147,56 +219,110 @@ export default function Page() {
                                 )
                             ) : null}
                             {!loading && endMonth && imageCount !== null && (
-                                <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                                    <button
-                                        onClick={() => handleCloudButtonClick(-1)}
-                                        onMouseUp={handleCloudButtonRelease}
-                                        disabled={localCloudTolerance === 0}
-                                        style={{
-                                            width: "30px",
-                                            height: "30px",
-                                            fontSize: "18px",
-                                            cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
-                                            opacity: localCloudTolerance === 0 ? 0.5 : 1,
-                                            border: "1px solid #ccc",
-                                            borderRadius: "4px",
-                                            background: "white"
-                                        }}
-                                    >
-                                        -
-                                    </button>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                        <label style={{ fontSize: "14px", display: "block" }}>
-                                            Cloud tolerance (%): {localCloudTolerance}
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            value={localCloudTolerance}
-                                            onChange={(e) => handleCloudChange(parseInt(e.target.value))}
+                                <>
+                                    <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                                        <button
+                                            onClick={() => handleCloudButtonClick(-1)}
                                             onMouseUp={handleCloudButtonRelease}
-                                            style={{ width: "200px" }}
-                                        />
+                                            disabled={localCloudTolerance === 0}
+                                            style={{
+                                                width: "30px",
+                                                height: "30px",
+                                                fontSize: "18px",
+                                                cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
+                                                opacity: localCloudTolerance === 0 ? 0.5 : 1,
+                                                border: "1px solid #ccc",
+                                                borderRadius: "4px",
+                                                background: "white"
+                                            }}
+                                        >
+                                            -
+                                        </button>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                                            <label style={{ fontSize: "14px", display: "block" }}>
+                                                Cloud tolerance (%): {localCloudTolerance}
+                                            </label>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={localCloudTolerance}
+                                                onChange={(e) => handleCloudChange(parseInt(e.target.value))}
+                                                onMouseUp={handleCloudButtonRelease}
+                                                style={{ width: "200px" }}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => handleCloudButtonClick(1)}
+                                            onMouseUp={handleCloudButtonRelease}
+                                            disabled={localCloudTolerance === 100}
+                                            style={{
+                                                width: "30px",
+                                                height: "30px",
+                                                fontSize: "18px",
+                                                cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
+                                                opacity: localCloudTolerance === 100 ? 0.5 : 1,
+                                                border: "1px solid #ccc",
+                                                borderRadius: "4px",
+                                                background: "white"
+                                            }}
+                                        >
+                                            +
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => handleCloudButtonClick(1)}
-                                        onMouseUp={handleCloudButtonRelease}
-                                        disabled={localCloudTolerance === 100}
-                                        style={{
-                                            width: "30px",
-                                            height: "30px",
-                                            fontSize: "18px",
-                                            cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
-                                            opacity: localCloudTolerance === 100 ? 0.5 : 1,
-                                            border: "1px solid #ccc",
-                                            borderRadius: "4px",
-                                            background: "white"
-                                        }}
-                                    >
-                                        +
-                                    </button>
-                                </div>
+                                    {selectedYear && selectedMonth && (
+                                        <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                                            <button
+                                                onClick={() => handleTimeButtonClick(-1)}
+                                                onMouseUp={handleTimeButtonRelease}
+                                                disabled={localTimeSliderValue === 0}
+                                                style={{
+                                                    width: "30px",
+                                                    height: "30px",
+                                                    fontSize: "18px",
+                                                    cursor: localTimeSliderValue === 0 ? "not-allowed" : "pointer",
+                                                    opacity: localTimeSliderValue === 0 ? 0.5 : 1,
+                                                    border: "1px solid #ccc",
+                                                    borderRadius: "4px",
+                                                    background: "white"
+                                                }}
+                                            >
+                                                -
+                                            </button>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                                                <label style={{ fontSize: "14px", display: "block" }}>
+                                                    Time: {getMonthYearLabel(localTimeSliderValue)}
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max={getMaxSliderValue()}
+                                                    value={localTimeSliderValue}
+                                                    onChange={(e) => handleTimeChange(parseInt(e.target.value))}
+                                                    onMouseUp={handleTimeButtonRelease}
+                                                    style={{ width: "200px" }}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleTimeButtonClick(1)}
+                                                onMouseUp={handleTimeButtonRelease}
+                                                disabled={localTimeSliderValue >= getMaxSliderValue()}
+                                                style={{
+                                                    width: "30px",
+                                                    height: "30px",
+                                                    fontSize: "18px",
+                                                    cursor: localTimeSliderValue >= getMaxSliderValue() ? "not-allowed" : "pointer",
+                                                    opacity: localTimeSliderValue >= getMaxSliderValue() ? 0.5 : 1,
+                                                    border: "1px solid #ccc",
+                                                    borderRadius: "4px",
+                                                    background: "white"
+                                                }}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </>
                     )}
