@@ -1,5 +1,5 @@
 "use client"
-import { useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import MapView from "@/app/components/MapView"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
@@ -27,13 +27,20 @@ export default function Page() {
         clearNdvi
     } = useNdviData()
 
+    const debounceTimeoutRef = useRef(null)
+    const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
+
+    useEffect(() => {
+        setLocalCloudTolerance(cloudTolerance)
+    }, [cloudTolerance])
+
     useEffect(() => {
         if (rectangleBounds) {
             loadNdviData(rectangleBounds, cloudTolerance)
         } else {
             clearNdvi()
         }
-    }, [rectangleBounds, loadNdviData, clearNdvi])
+    }, [rectangleBounds, cloudTolerance, loadNdviData, clearNdvi])
 
     const handleButtonClick = () => {
         if (rectangleBounds) {
@@ -46,6 +53,31 @@ export default function Page() {
 
     const handleFinalize = () => {
         finalizeRectangle()
+    }
+
+    const handleCloudChange = (newValue) => {
+        setLocalCloudTolerance(newValue)
+        updateCloudTolerance(newValue)
+    }
+
+    const handleCloudButtonClick = (delta) => {
+        const newValue = Math.max(0, Math.min(100, localCloudTolerance + delta))
+        handleCloudChange(newValue)
+
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current)
+        }
+
+        debounceTimeoutRef.current = setTimeout(() => {
+            console.log("Cloud tolerance:", newValue)
+        }, 300)
+    }
+
+    const handleCloudButtonRelease = () => {
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current)
+        }
+        console.log("Cloud tolerance:", localCloudTolerance)
     }
 
     return (
@@ -86,18 +118,55 @@ export default function Page() {
                                     Average NDVI for {endMonth} (based on {imageCount} image(s))
                                 </div>
                             ) : null}
-                            <div style={{ marginTop: "10px" }}>
-                                <label style={{ fontSize: "14px", display: "block", marginBottom: "5px" }}>
-                                    Cloud tolerance (%): {cloudTolerance}
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={cloudTolerance}
-                                    onChange={(e) => updateCloudTolerance(parseInt(e.target.value))}
-                                    style={{ width: "200px" }}
-                                />
+                            <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                                <button
+                                    onClick={() => handleCloudButtonClick(-1)}
+                                    onMouseUp={handleCloudButtonRelease}
+                                    disabled={localCloudTolerance === 0}
+                                    style={{
+                                        width: "30px",
+                                        height: "30px",
+                                        fontSize: "18px",
+                                        cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
+                                        opacity: localCloudTolerance === 0 ? 0.5 : 1,
+                                        border: "1px solid #ccc",
+                                        borderRadius: "4px",
+                                        background: "white"
+                                    }}
+                                >
+                                    -
+                                </button>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                                    <label style={{ fontSize: "14px", display: "block" }}>
+                                        Cloud tolerance (%): {localCloudTolerance}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={localCloudTolerance}
+                                        onChange={(e) => handleCloudChange(parseInt(e.target.value))}
+                                        onMouseUp={handleCloudButtonRelease}
+                                        style={{ width: "200px" }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => handleCloudButtonClick(1)}
+                                    onMouseUp={handleCloudButtonRelease}
+                                    disabled={localCloudTolerance === 100}
+                                    style={{
+                                        width: "30px",
+                                        height: "30px",
+                                        fontSize: "18px",
+                                        cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
+                                        opacity: localCloudTolerance === 100 ? 0.5 : 1,
+                                        border: "1px solid #ccc",
+                                        borderRadius: "4px",
+                                        background: "white"
+                                    }}
+                                >
+                                    +
+                                </button>
                             </div>
                         </>
                     )}
