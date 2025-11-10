@@ -1,9 +1,15 @@
 import { useState, useCallback, useRef } from "react"
-import { getMonthDateRange } from "@/app/lib/earthengineUtils"
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 const MIN_YEAR = 2019
 const MIN_MONTH = 1
+
+function getMonthDateRange(year, month) {
+    const start = `${year}-${String(month).padStart(2, "0")}-01`
+    const lastDay = new Date(year, month, 0).getDate()
+    const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+    return { start, end }
+}
 
 function monthYearToSliderValue(year, month) {
     return (year - MIN_YEAR) * 12 + (month - MIN_MONTH)
