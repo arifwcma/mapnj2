@@ -27,6 +27,8 @@ export default function useNdviData() {
     const [endMonth, setEndMonth] = useState(null)
     const [endYear, setEndYear] = useState(null)
     const [endMonthNum, setEndMonthNum] = useState(null)
+    const [initialEndYear, setInitialEndYear] = useState(null)
+    const [initialEndMonthNum, setInitialEndMonthNum] = useState(null)
     const [imageCount, setImageCount] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
@@ -80,6 +82,12 @@ export default function useNdviData() {
             if (!year || !month) {
                 setSelectedYear(monthData.year)
                 setSelectedMonth(monthData.month)
+                if (!initialEndYear || !initialEndMonthNum) {
+                    setInitialEndYear(monthData.year)
+                    setInitialEndMonthNum(monthData.month)
+                }
+            } else {
+                setEndMonth(`${monthData.monthName} ${monthData.year}`)
             }
             
             if (monthData.count > 0) {
@@ -94,6 +102,8 @@ export default function useNdviData() {
             setEndYear(null)
             setEndMonthNum(null)
             setImageCount(null)
+            setInitialEndYear(null)
+            setInitialEndMonthNum(null)
         } finally {
             setLoading(false)
             loadingRef.current = false
@@ -117,6 +127,8 @@ export default function useNdviData() {
         setImageCount(null)
         setSelectedYear(null)
         setSelectedMonth(null)
+        setInitialEndYear(null)
+        setInitialEndMonthNum(null)
         setError(null)
     }, [])
 
@@ -125,9 +137,9 @@ export default function useNdviData() {
     }, [imageCount])
 
     const getMaxSliderValue = useCallback(() => {
-        if (!endYear || !endMonthNum) return 0
-        return monthYearToSliderValue(endYear, endMonthNum)
-    }, [endYear, endMonthNum])
+        if (!initialEndYear || !initialEndMonthNum) return 0
+        return monthYearToSliderValue(initialEndYear, initialEndMonthNum)
+    }, [initialEndYear, initialEndMonthNum])
 
     const getCurrentSliderValue = useCallback(() => {
         if (!selectedYear || !selectedMonth) return 0

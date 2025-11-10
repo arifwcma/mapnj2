@@ -41,6 +41,7 @@ export default function Page() {
     const sliderDebounceTimeoutRef = useRef(null)
     const timeSliderDebounceTimeoutRef = useRef(null)
     const cloudToleranceRef = useRef(cloudTolerance)
+    const isInitialLoadRef = useRef(false)
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
 
@@ -51,13 +52,17 @@ export default function Page() {
 
     useEffect(() => {
         if (rectangleBounds) {
-            if (selectedYear && selectedMonth) {
+            if (!selectedYear || !selectedMonth) {
+                isInitialLoadRef.current = true
+                loadNdviData(rectangleBounds, cloudTolerance)
+            } else if (!isInitialLoadRef.current) {
                 loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth)
             } else {
-                loadNdviData(rectangleBounds, cloudTolerance)
+                isInitialLoadRef.current = false
             }
         } else {
             clearNdvi()
+            isInitialLoadRef.current = false
         }
     }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, loadNdviData, clearNdvi])
 
@@ -67,13 +72,6 @@ export default function Page() {
             setLocalTimeSliderValue(sliderValue)
         }
     }, [selectedYear, selectedMonth, getCurrentSliderValue])
-
-    useEffect(() => {
-        if (endYear && endMonthNum && !selectedYear && !selectedMonth) {
-            const sliderValue = monthYearToSliderValue(endYear, endMonthNum)
-            setLocalTimeSliderValue(sliderValue)
-        }
-    }, [endYear, endMonthNum, selectedYear, selectedMonth])
 
     const handleButtonClick = () => {
         if (rectangleBounds) {
