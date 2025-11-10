@@ -28,10 +28,13 @@ export default function Page() {
     } = useNdviData()
 
     const debounceTimeoutRef = useRef(null)
+    const sliderDebounceTimeoutRef = useRef(null)
+    const cloudToleranceRef = useRef(cloudTolerance)
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
 
     useEffect(() => {
         setLocalCloudTolerance(cloudTolerance)
+        cloudToleranceRef.current = cloudTolerance
     }, [cloudTolerance])
 
     useEffect(() => {
@@ -56,13 +59,24 @@ export default function Page() {
     }
 
     const handleCloudChange = (newValue) => {
+        cloudToleranceRef.current = newValue
         setLocalCloudTolerance(newValue)
-        updateCloudTolerance(newValue)
+        
+        if (sliderDebounceTimeoutRef.current) {
+            clearTimeout(sliderDebounceTimeoutRef.current)
+        }
+        
+        sliderDebounceTimeoutRef.current = setTimeout(() => {
+            updateCloudTolerance(newValue)
+        }, 1000)
     }
 
     const handleCloudButtonClick = (delta) => {
-        const newValue = Math.max(0, Math.min(100, localCloudTolerance + delta))
-        handleCloudChange(newValue)
+        const currentValue = cloudToleranceRef.current
+        const newValue = Math.max(0, Math.min(100, currentValue + delta))
+        cloudToleranceRef.current = newValue
+        setLocalCloudTolerance(newValue)
+        updateCloudTolerance(newValue)
 
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current)
@@ -70,14 +84,14 @@ export default function Page() {
 
         debounceTimeoutRef.current = setTimeout(() => {
             console.log("Cloud tolerance:", newValue)
-        }, 300)
+        }, 1000)
     }
 
     const handleCloudButtonRelease = () => {
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current)
         }
-        console.log("Cloud tolerance:", localCloudTolerance)
+        console.log("Cloud tolerance:", cloudToleranceRef.current)
     }
 
     return (
