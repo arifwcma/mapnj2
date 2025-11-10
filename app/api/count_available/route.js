@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
-import { ee, initEarthEngine } from "@/app/lib/earthengine"
+import { countAvailableImages } from "@/app/lib/earthengineUtils"
 
 export async function GET(request) {
-    await initEarthEngine()
     const { searchParams } = new URL(request.url)
     const start = searchParams.get("start")
     const end = searchParams.get("end")
@@ -15,34 +14,15 @@ export async function GET(request) {
         )
     }
 
-    const [minLng, minLat, maxLng, maxLat] = bbox.split(",").map(parseFloat)
-
-    if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
-        return NextResponse.json(
-            { error: "Invalid bbox format. Expected: minLng,minLat,maxLng,maxLat" },
-            { status: 400 }
-        )
+    try {
+        const count = await countAvailableImages(start, end, bbox)
+        return NextResponse.json({ count, start, end, bbox })
+    } catch (error) {
+        console.error("Error counting available images:", error)
+        if (error.message.includes("Invalid bbox")) {
+            return NextResponse.json({ error: error.message }, { status: 400 })
+        }
+        return NextResponse.json({ error: "Failed to query images" }, { status: 500 })
     }
-
-    const startDate = ee.Date(start)
-    const endDate = ee.Date(end).advance(1, "day")
-
-    const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
-
-    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-        .filterBounds(rectangle)
-        .filterDate(startDate, endDate)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 10))
-
-    return await new Promise((resolve, reject) => {
-        collection.size().getInfo((size, err) => {
-            if (err) {
-                console.error("Earth Engine error:", err)
-                resolve(NextResponse.json({ error: "Failed to query images" }, { status: 500 }))
-                return
-            }
-            resolve(NextResponse.json({ count: size, start, end, bbox }))
-        })
-    })
 }
 
