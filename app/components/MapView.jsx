@@ -31,7 +31,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
 
     return (
         <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
-            <TileLayer url={TILE_LAYER_URL} />
+            <TileLayer url={TILE_LAYER_URL} attribution='&copy; <a href="https://www.esri.com/">Esri</a>' />
             {boundary && <BoundaryLayer data={boundary} />}
             {isDrawing && (
                 <RectangleDrawHandler
