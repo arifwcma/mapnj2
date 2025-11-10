@@ -76,7 +76,14 @@ export default function Page() {
         const newValue = Math.max(0, Math.min(100, currentValue + delta))
         cloudToleranceRef.current = newValue
         setLocalCloudTolerance(newValue)
-        updateCloudTolerance(newValue)
+
+        if (sliderDebounceTimeoutRef.current) {
+            clearTimeout(sliderDebounceTimeoutRef.current)
+        }
+
+        sliderDebounceTimeoutRef.current = setTimeout(() => {
+            updateCloudTolerance(newValue)
+        }, 1000)
 
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current)
