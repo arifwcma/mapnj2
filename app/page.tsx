@@ -1,4 +1,4 @@
-import MapView from "./components/MapView"
+import MapView from "@/app/components/MapView"
 
 export default function Page() {
     return (

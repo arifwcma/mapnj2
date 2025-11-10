@@ -1,11 +1,12 @@
 "use client"
 import dynamic from "next/dynamic"
 import { useEffect } from "react"
+import { useMap } from "react-leaflet"
+import { BOUNDARY_STYLE } from "@/app/lib/mapConfig"
 
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 
 export default function BoundaryLayer({ data }) {
-    const { useMap } = require("react-leaflet")
     const map = useMap()
     useEffect(() => {
         if (data) {
@@ -14,6 +15,6 @@ export default function BoundaryLayer({ data }) {
             map.fitBounds(layer.getBounds())
         }
     }, [data, map])
-    return <GeoJSON data={data} style={{ color: "black", weight: 2, fillOpacity: 0 }} />
+    return <GeoJSON data={data} style={BOUNDARY_STYLE} />
 }
 
