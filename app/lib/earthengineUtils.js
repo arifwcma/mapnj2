@@ -1,6 +1,6 @@
 import { ee, initEarthEngine } from "@/app/lib/earthengine"
 
-export async function countAvailableImages(start, end, bbox) {
+export async function countAvailableImages(start, end, bbox, cloud = 10) {
     await initEarthEngine()
 
     const [minLng, minLat, maxLng, maxLat] = bbox.split(",").map(parseFloat)
@@ -17,7 +17,7 @@ export async function countAvailableImages(start, end, bbox) {
     const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
         .filterBounds(rectangle)
         .filterDate(startDate, endDate)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 10))
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
 
     return await new Promise((resolve, reject) => {
         collection.size().getInfo((size, err) => {

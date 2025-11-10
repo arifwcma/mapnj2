@@ -6,6 +6,8 @@ export async function GET(request) {
     const start = searchParams.get("start")
     const end = searchParams.get("end")
     const bbox = searchParams.get("bbox")
+    const cloudParam = searchParams.get("cloud")
+    const cloud = cloudParam ? parseFloat(cloudParam) : 10
 
     if (!start || !end || !bbox) {
         return NextResponse.json(
@@ -14,9 +16,16 @@ export async function GET(request) {
         )
     }
 
+    if (cloudParam && (isNaN(cloud) || cloud < 0 || cloud > 100)) {
+        return NextResponse.json(
+            { error: "Invalid cloud parameter. Must be a number between 0 and 100" },
+            { status: 400 }
+        )
+    }
+
     try {
-        const count = await countAvailableImages(start, end, bbox)
-        return NextResponse.json({ count, start, end, bbox })
+        const count = await countAvailableImages(start, end, bbox, cloud)
+        return NextResponse.json({ count, start, end, bbox, cloud })
     } catch (error) {
         console.error("Error counting available images:", error)
         if (error.message.includes("Invalid bbox")) {
