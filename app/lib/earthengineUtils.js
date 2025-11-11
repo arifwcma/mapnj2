@@ -183,7 +183,10 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
                 reject(new Error("No NDVI value found at this point"))
                 return
             }
-            console.log("NDVI value retrieved:", ndviValue)
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+            const startDate = new Date(start)
+            const monthYear = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`
+            console.log(`NDVI value retrieved for ${monthYear}:`, ndviValue)
             resolve(ndviValue)
         })
     })

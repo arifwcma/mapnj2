@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import MapView from "@/app/components/MapView"
 import InfoPanel from "@/app/components/InfoPanel"
+import PointInfoPanel from "@/app/components/PointInfoPanel"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
 
@@ -45,6 +46,7 @@ export default function Page() {
     const cloudToleranceRef = useRef(cloudTolerance)
     const timeSliderValueRef = useRef(0)
     const isInitialLoadRef = useRef(false)
+    const justSetPointRef = useRef(false)
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
     const [basemap, setBasemap] = useState("street")
@@ -110,6 +112,9 @@ export default function Page() {
 
     useEffect(() => {
         if (pointLoaded && !loading && isImageAvailable() && selectedPoint.lat !== null && selectedPoint.lon !== null) {
+            if (justSetPointRef.current) {
+                return
+            }
             const refetchNdvi = async () => {
                 const ndvi = await fetchPointNdvi(selectedPoint.lat, selectedPoint.lon)
                 if (ndvi !== null) {
@@ -246,6 +251,7 @@ export default function Page() {
         
         console.log("Setting loading state")
         setPointLoading(true)
+        justSetPointRef.current = true
         const ndvi = await fetchPointNdvi(lat, lon)
         if (ndvi !== null) {
             console.log("Setting selected point:", { lat, lon, ndvi })
@@ -254,6 +260,9 @@ export default function Page() {
             setSelectedPoint({ lat, lon, ndvi: null })
         }
         setPointLoading(false)
+        setTimeout(() => {
+            justSetPointRef.current = false
+        }, 100)
     }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, fetchPointNdvi])
 
     return (
@@ -354,11 +363,13 @@ export default function Page() {
                                     ) : endMonth && imageCount !== null ? (
                                         !isImageAvailable() ? (
                                             <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
-                                                No image found for {endMonth}. <span style={{ color: "red" }}>Consider increasing cloud tolerance</span>.
+                                                <div>No image found for {endMonth}.</div>
+                                                <div><span style={{ color: "red" }}>Consider increasing cloud tolerance</span>.</div>
                                             </div>
                                         ) : (
                                             <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
-                                                Average NDVI for {endMonth} (based on {imageCount} image(s))
+                                                <div>NDVI for <strong>{endMonth}</strong></div>
+                                                <div>Based on <strong>{imageCount}</strong> image(s)</div>
                                             </div>
                                         )
                                     ) : null}
@@ -479,7 +490,26 @@ export default function Page() {
                     )}
                 </div>
                 <div style={{ borderTop: "1px solid #ccc", padding: "20px", flex: "0 0 auto" }}>
-                    <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} isReloading={loading && pointLoaded} />
+                    <InfoPanel 
+                        lat={selectedPoint.lat} 
+                        lon={selectedPoint.lon} 
+                        pointInfoPanel={
+                            pointLoaded ? (
+                                <PointInfoPanel
+                                    lat={selectedPoint.lat}
+                                    lon={selectedPoint.lon}
+                                    ndvi={selectedPoint.ndvi}
+                                    isReloading={loading && pointLoaded}
+                                    selectedYear={selectedYear}
+                                    selectedMonth={selectedMonth}
+                                    endYear={endYear}
+                                    endMonthNum={endMonthNum}
+                                    rectangleBounds={rectangleBounds}
+                                    cloudTolerance={cloudTolerance}
+                                />
+                            ) : null
+                        }
+                    />
                 </div>
             </div>
         </div>
