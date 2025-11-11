@@ -120,7 +120,7 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
     const mean = collection.mean().clip(rectangle)
-    const vis = { min: -1, max: 1, palette: ["blue", "white", "yellow", "green", "darkgreen"] }
+    const vis = { min: -1, max: 1, palette: ["red", "yellow", "green"] }
 
     return await new Promise((resolve, reject) => {
         mean.getMap(vis, (mapObj, err) => {
