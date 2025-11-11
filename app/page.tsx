@@ -49,6 +49,42 @@ export default function Page() {
     const [basemap, setBasemap] = useState("street")
     const [selectedPoint, setSelectedPoint] = useState({ lat: null, lon: null, ndvi: null })
     const [pointLoading, setPointLoading] = useState(false)
+    const pointLoaded = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
+
+    const fetchPointNdvi = useCallback(async (lat, lon) => {
+        if (!rectangleBounds || !selectedYear || !selectedMonth) {
+            return null
+        }
+        
+        const dateRange = getCurrentDateRange()
+        if (!dateRange) {
+            return null
+        }
+        
+        const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+        
+        try {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 30000)
+            
+            const response = await fetch(`/api/ndvi/point?lat=${lat}&lon=${lon}&start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`, {
+                signal: controller.signal
+            })
+            clearTimeout(timeoutId)
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                throw new Error(errorData.error || "Failed to get NDVI")
+            }
+            const data = await response.json()
+            return data.ndvi
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error("Error fetching point NDVI:", error)
+            }
+            return null
+        }
+    }, [rectangleBounds, selectedYear, selectedMonth, getCurrentDateRange, cloudTolerance])
 
     useEffect(() => {
         setLocalCloudTolerance(cloudTolerance)
@@ -70,6 +106,20 @@ export default function Page() {
             isInitialLoadRef.current = false
         }
     }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, loadNdviData, clearNdvi])
+
+    useEffect(() => {
+        if (pointLoaded && !loading && isImageAvailable() && selectedPoint.lat !== null && selectedPoint.lon !== null) {
+            const refetchNdvi = async () => {
+                const ndvi = await fetchPointNdvi(selectedPoint.lat, selectedPoint.lon)
+                if (ndvi !== null) {
+                    setSelectedPoint(prev => ({ ...prev, ndvi }))
+                } else {
+                    setSelectedPoint(prev => ({ ...prev, ndvi: null }))
+                }
+            }
+            refetchNdvi()
+        }
+    }, [loading, pointLoaded, isImageAvailable, selectedPoint.lat, selectedPoint.lon, fetchPointNdvi])
 
     useEffect(() => {
         if (selectedYear && selectedMonth) {
@@ -173,7 +223,7 @@ export default function Page() {
         }, 1000)
     }
 
-    const showInfoPanel = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
+    const showInfoPanel = pointLoaded
 
     const getMonthYearLabel = (sliderValue) => {
         const { year, month } = sliderValueToMonthYear(sliderValue)
@@ -197,49 +247,15 @@ export default function Page() {
         
         console.log("Setting loading state")
         setPointLoading(true)
-        const dateRange = getCurrentDateRange()
-        console.log("Date range:", dateRange)
-        if (!dateRange) {
-            console.log("No date range")
-            setPointLoading(false)
-            return
+        const ndvi = await fetchPointNdvi(lat, lon)
+        if (ndvi !== null) {
+            console.log("Setting selected point:", { lat, lon, ndvi })
+            setSelectedPoint({ lat, lon, ndvi })
+        } else {
+            setSelectedPoint({ lat, lon, ndvi: null })
         }
-        
-        const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
-        
-        try {
-            console.log("Fetching NDVI:", { lat, lon, start: dateRange.start, end: dateRange.end, bbox: bboxStr, cloud: cloudTolerance })
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 30000)
-            
-            const response = await fetch(`/api/ndvi/point?lat=${lat}&lon=${lon}&start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`, {
-                signal: controller.signal
-            })
-            clearTimeout(timeoutId)
-            
-            console.log("Response status:", response.status)
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-                console.log("Error response:", errorData)
-                throw new Error(errorData.error || "Failed to get NDVI")
-            }
-            const data = await response.json()
-            console.log("NDVI data received:", data)
-            console.log("Setting selected point:", { lat, lon, ndvi: data.ndvi })
-            setSelectedPoint({ lat, lon, ndvi: data.ndvi })
-            console.log("Selected point set")
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.error("Request timeout")
-                alert("Request timed out. The Earth Engine operation is taking too long.")
-            } else {
-                console.error("Error fetching point NDVI:", error)
-                alert(`Error: ${error.message}`)
-            }
-        } finally {
-            setPointLoading(false)
-        }
-    }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, getCurrentDateRange, cloudTolerance])
+        setPointLoading(false)
+    }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, fetchPointNdvi])
 
     return (
         <div>
@@ -268,7 +284,7 @@ export default function Page() {
             </div>
             {isDrawing ? (
                 <span style={{ padding: "10px 0", margin: "10px", fontSize: "16px", display: "inline-block", color: "red" }}>
-                    Click and drag to draw area ...
+                    Click and drag to draw area
                 </span>
             ) : (
                 <div style={{ padding: "10px", margin: "10px" }}>
@@ -416,7 +432,7 @@ export default function Page() {
                                     )}
                                     {isImageAvailable() && (
                                         <div style={{ marginTop: "10px", fontSize: "14px", color: "red" }}>
-                                            Click a point to analyse ...
+                                            Click a point to analyse
                                         </div>
                                     )}
                                 </>
@@ -441,7 +457,7 @@ export default function Page() {
                         onPointClick={handlePointClick}
                     />
                 </div>
-                {showInfoPanel && <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} />}
+                {showInfoPanel && <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} isReloading={loading && pointLoaded} />}
             </div>
         </div>
     )
