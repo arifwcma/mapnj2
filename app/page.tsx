@@ -9,7 +9,6 @@ export default function Page() {
         isDrawing,
         rectangleBounds,
         currentBounds,
-        startDrawing,
         resetRectangle,
         setStart,
         updateBounds,
@@ -87,12 +86,8 @@ export default function Page() {
     }, [endYear, endMonthNum, selectedYear, selectedMonth, monthYearToSliderValue])
 
     const handleButtonClick = () => {
-        if (rectangleBounds) {
-            resetRectangle()
-            clearNdvi()
-        } else {
-            startDrawing()
-        }
+        resetRectangle()
+        clearNdvi()
     }
 
     const handleFinalize = () => {
@@ -211,25 +206,27 @@ export default function Page() {
                 </span>
             ) : (
                 <div style={{ padding: "10px", margin: "10px" }}>
-                    <button
-                        onClick={handleButtonClick}
-                        style={{
-                            background: "none",
-                            border: "none",
-                            padding: "10px 0",
-                            margin: "0 0 10px 0",
-                            cursor: "pointer",
-                            fontSize: "16px",
-                            color: "#0066cc",
-                            textDecoration: "none",
-                            fontFamily: "inherit",
-                            display: "block"
-                        }}
-                        onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-                        onMouseLeave={(e) => e.target.style.textDecoration = "none"}
-                    >
-                        {rectangleBounds ? "Reset area of interest" : "Select area of interest"}
-                    </button>
+                    {rectangleBounds && (
+                        <button
+                            onClick={handleButtonClick}
+                            style={{
+                                background: "none",
+                                border: "none",
+                                padding: "10px 0",
+                                margin: "0 0 10px 0",
+                                cursor: "pointer",
+                                fontSize: "16px",
+                                color: "#0066cc",
+                                textDecoration: "none",
+                                fontFamily: "inherit",
+                                display: "block"
+                            }}
+                            onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
+                            onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                        >
+                            Reset area of interest
+                        </button>
+                    )}
                     {rectangleBounds && (
                         <>
                             {loading ? (

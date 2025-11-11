@@ -21,7 +21,7 @@ export default function useRectangleDraw() {
 
     const resetRectangle = useCallback(() => {
         setRectangleBounds(null)
-        setIsDrawing(false)
+        setIsDrawing(true)
         setStartPoint(null)
         setCurrentBounds(null)
     }, [])
