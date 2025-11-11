@@ -403,11 +403,17 @@ export default function Page() {
                                     </button>
                                     {loading ? (
                                         <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px" }}>
-                                            {endMonth ? (
-                                                <>Loading NDVI data for <strong>{endMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
-                                            ) : (
-                                                <>Loading NDVI data ...</>
-                                            )}
+                                            {(() => {
+                                                const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                                                const displayMonth = selectedYear && selectedMonth 
+                                                    ? `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
+                                                    : endMonth
+                                                return displayMonth ? (
+                                                    <>Loading NDVI data for <strong>{displayMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
+                                                ) : (
+                                                    <>Loading NDVI data ...</>
+                                                )
+                                            })()}
                                         </div>
                                     ) : endMonth && imageCount !== null ? (
                                         !isImageAvailable() ? (
