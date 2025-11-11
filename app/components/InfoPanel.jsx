@@ -9,17 +9,13 @@ export default function InfoPanel({ lat, lon, ndvi }) {
 
     return (
         <div style={{
-            position: "fixed",
-            right: 0,
-            top: 0,
             width: "33.33%",
-            height: "100vh",
+            height: "90vh",
             backgroundColor: "white",
             borderLeft: "1px solid #ccc",
             padding: "20px",
             boxSizing: "border-box",
-            overflowY: "auto",
-            zIndex: 1000
+            overflowY: "auto"
         }}>
             <div style={{ fontSize: "16px", marginBottom: "10px" }}>
                 Analyse: {lat.toFixed(6)},{lon.toFixed(6)}

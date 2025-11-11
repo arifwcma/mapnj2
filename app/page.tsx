@@ -173,6 +173,7 @@ export default function Page() {
         }, 1000)
     }
 
+    const showInfoPanel = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
 
     const getMonthYearLabel = (sliderValue) => {
         const { year, month } = sliderValueToMonthYear(sliderValue)
@@ -424,21 +425,24 @@ export default function Page() {
                     )}
                 </div>
             )}
-            <MapView
-                isDrawing={isDrawing}
-                rectangleBounds={rectangleBounds}
-                currentBounds={currentBounds}
-                onStart={setStart}
-                onUpdate={updateBounds}
-                onEnd={handleFinalize}
-                onReset={resetRectangle}
-                ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
-                basemap={basemap}
-                isPointAnalysisMode={isImageAvailable()}
-                showInfoPanel={selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null}
-                onPointClick={handlePointClick}
-            />
-            <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} />
+            <div style={{ display: "flex", width: "100%" }}>
+                <div style={{ width: showInfoPanel ? "66.67%" : "100%" }}>
+                    <MapView
+                        isDrawing={isDrawing}
+                        rectangleBounds={rectangleBounds}
+                        currentBounds={currentBounds}
+                        onStart={setStart}
+                        onUpdate={updateBounds}
+                        onEnd={handleFinalize}
+                        onReset={resetRectangle}
+                        ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
+                        basemap={basemap}
+                        isPointAnalysisMode={isImageAvailable()}
+                        onPointClick={handlePointClick}
+                    />
+                </div>
+                {showInfoPanel && <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} />}
+            </div>
         </div>
     )
 }

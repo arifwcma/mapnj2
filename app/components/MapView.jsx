@@ -7,7 +7,7 @@ import BoundaryLayer from "./BoundaryLayer"
 import RectangleDrawHandler from "./RectangleDrawHandler"
 import NdviOverlay from "./NdviOverlay"
 import useBoundary from "@/app/hooks/useBoundary"
-import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, MAP_STYLE_WITH_PANEL, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE } from "@/app/lib/mapConfig"
+import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE } from "@/app/lib/mapConfig"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
@@ -50,20 +50,19 @@ function PointClickHandler({ isActive, onPointClick }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, basemap = "street", isPointAnalysisMode = false, onPointClick, showInfoPanel = false }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, basemap = "street", isPointAnalysisMode = false, onPointClick }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
         ? '&copy; <a href="https://www.esri.com/">Esri</a>'
         : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    const mapStyle = showInfoPanel ? MAP_STYLE_WITH_PANEL : MAP_STYLE
 
     if (error) {
         return <div>Error loading boundary: {error.message}</div>
     }
 
     return (
-        <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={mapStyle}>
+        <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
             {!isDrawing && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
             {boundary && <BoundaryLayer data={boundary} />}
