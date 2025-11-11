@@ -70,7 +70,7 @@ function getNextMonth(year, month) {
     return { year, month: month + 1 }
 }
 
-export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance, secondPoint = null }) {
+export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance, secondPoint = null, onSecondPointLoadingChange = null }) {
     const [plotData, setPlotData] = useState([])
     const [secondPlotData, setSecondPlotData] = useState([])
     const [loading, setLoading] = useState(false)
@@ -165,6 +165,10 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     
     useEffect(() => {
         if (!secondPoint || !secondPoint.lat || !secondPoint.lon || !rectangleBounds || plotData.length === 0 || secondFetchingRef.current) {
+            if (!secondPoint || !secondPoint.lat || !secondPoint.lon) {
+                setSecondPlotData([])
+                setSecondLoading(false)
+            }
             return
         }
         
@@ -199,6 +203,12 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             secondFetchingRef.current = false
         })
     }, [secondPoint, plotData, rectangleBounds, cloudTolerance])
+    
+    useEffect(() => {
+        if (onSecondPointLoadingChange) {
+            onSecondPointLoadingChange(secondLoading)
+        }
+    }, [secondLoading, onSecondPointLoadingChange])
     
     const chartData = {
         labels: plotData.map(d => d.label),
@@ -445,11 +455,24 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                         const average = validNdviValues.length > 0 
                             ? validNdviValues.reduce((sum, val) => sum + val, 0) / validNdviValues.length 
                             : null
-                        return average !== null ? (
-                            <div style={{ fontSize: "14px", color: "#666", marginTop: "10px", textAlign: "center" }}>
-                                Average: {average.toFixed(2)}
-                            </div>
-                        ) : null
+                        const validSecondNdviValues = secondPlotData.filter(d => d.ndvi !== null && d.ndvi !== undefined).map(d => d.ndvi)
+                        const secondAverage = validSecondNdviValues.length > 0 
+                            ? validSecondNdviValues.reduce((sum, val) => sum + val, 0) / validSecondNdviValues.length 
+                            : null
+                        return (
+                            <>
+                                {average !== null ? (
+                                    <div style={{ fontSize: "14px", color: "#666", marginTop: "10px", textAlign: "center" }}>
+                                        Average: {average.toFixed(2)}
+                                    </div>
+                                ) : null}
+                                {secondAverage !== null ? (
+                                    <div style={{ fontSize: "14px", color: "#666", marginTop: "5px", textAlign: "center" }}>
+                                        Average (second point): {secondAverage.toFixed(2)}
+                                    </div>
+                                ) : null}
+                            </>
+                        )
                     })()}
                 </>
             )}

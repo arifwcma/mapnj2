@@ -54,6 +54,7 @@ export default function Page() {
     const [pointLoading, setPointLoading] = useState(false)
     const [secondPointSelection, setSecondPointSelection] = useState(false)
     const [secondPoint, setSecondPoint] = useState({ lat: null, lon: null })
+    const [secondPointLoading, setSecondPointLoading] = useState(false)
     const pointLoaded = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
 
     const fetchPointNdvi = useCallback(async (lat, lon) => {
@@ -547,11 +548,18 @@ export default function Page() {
                                                 </>
                                             )}
                                             {isImageAvailable() && secondPointSelection && (
-                                                <div style={{ marginTop: "10px", fontSize: "14px", color: secondPoint.lat !== null && secondPoint.lon !== null ? "inherit" : "red" }}>
-                                                    {secondPoint.lat !== null && secondPoint.lon !== null ? (
-                                                        <>Second point: {secondPoint.lat.toFixed(6)},{secondPoint.lon.toFixed(6)}</>
-                                                    ) : (
-                                                        <>Click to choose the second point</>
+                                                <div>
+                                                    <div style={{ marginTop: "10px", fontSize: "14px", color: secondPoint.lat !== null && secondPoint.lon !== null ? "inherit" : "red" }}>
+                                                        {secondPoint.lat !== null && secondPoint.lon !== null ? (
+                                                            <>Second point: {secondPoint.lat.toFixed(6)},{secondPoint.lon.toFixed(6)}</>
+                                                        ) : (
+                                                            <>Click to choose the second point</>
+                                                        )}
+                                                    </div>
+                                                    {secondPoint.lat !== null && secondPoint.lon !== null && secondPointLoading && (
+                                                        <div style={{ marginTop: "5px", fontSize: "14px", color: "#666" }}>
+                                                            Loading second point on the chart ...
+                                                        </div>
                                                     )}
                                                 </div>
                                             )}
@@ -581,6 +589,7 @@ export default function Page() {
                                     rectangleBounds={rectangleBounds}
                                     cloudTolerance={cloudTolerance}
                                     secondPoint={secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : null}
+                                    onSecondPointLoadingChange={setSecondPointLoading}
                                 />
                             ) : null
                         }
