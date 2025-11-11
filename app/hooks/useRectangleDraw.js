@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react"
 
 export default function useRectangleDraw() {
-    const [isDrawing, setIsDrawing] = useState(false)
+    const [isDrawing, setIsDrawing] = useState(true)
     const [rectangleBounds, setRectangleBounds] = useState(null)
     const [startPoint, setStartPoint] = useState(null)
     const [currentBounds, setCurrentBounds] = useState(null)
