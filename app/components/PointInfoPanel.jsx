@@ -70,14 +70,18 @@ function getNextMonth(year, month) {
     return { year, month: month + 1 }
 }
 
-export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance }) {
+export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance, secondPoint = null }) {
     const [plotData, setPlotData] = useState([])
+    const [secondPlotData, setSecondPlotData] = useState([])
     const [loading, setLoading] = useState(false)
+    const [secondLoading, setSecondLoading] = useState(false)
     const fetchedMonthsRef = useRef(new Set())
+    const secondFetchedMonthsRef = useRef(new Set())
     const fetchingRef = useRef(false)
+    const secondFetchingRef = useRef(false)
     const arrowDebounceTimeoutRef = useRef(null)
     
-    const fetchMonthsData = async (monthsToFetch) => {
+    const fetchMonthsData = async (monthsToFetch, pointLat, pointLon) => {
         if (monthsToFetch.length === 0 || !rectangleBounds) {
             return []
         }
@@ -95,8 +99,8 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    lat,
-                    lon,
+                    lat: pointLat,
+                    lon: pointLon,
                     months: uniqueMonths,
                     bbox: bboxStr,
                     cloud: cloudTolerance
@@ -138,7 +142,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             fetchedMonthsRef.current.add(`${m.year}-${m.month}`)
         })
         
-        fetchMonthsData(initialMonths).then(results => {
+        fetchMonthsData(initialMonths, lat, lon).then(results => {
             if (results.length > 0) {
                 const plotArray = results.map(item => ({
                     year: item.year,
@@ -159,19 +163,69 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         })
     }, [lat, lon, endYear, endMonthNum, rectangleBounds, cloudTolerance, selectedYear, selectedMonth, isLoading])
     
+    useEffect(() => {
+        if (!secondPoint || !secondPoint.lat || !secondPoint.lon || !rectangleBounds || plotData.length === 0 || secondFetchingRef.current) {
+            return
+        }
+        
+        const monthsToFetch = plotData.map(d => ({ year: d.year, month: d.month }))
+        
+        secondFetchingRef.current = true
+        setSecondLoading(true)
+        setSecondPlotData([])
+        secondFetchedMonthsRef.current.clear()
+        
+        monthsToFetch.forEach(m => {
+            secondFetchedMonthsRef.current.add(`${m.year}-${m.month}`)
+        })
+        
+        fetchMonthsData(monthsToFetch, secondPoint.lat, secondPoint.lon).then(results => {
+            if (results.length > 0) {
+                const plotArray = results.map(item => ({
+                    year: item.year,
+                    month: item.month,
+                    label: formatMonthLabel(item.year, item.month),
+                    ndvi: item.ndvi
+                }))
+                
+                setSecondPlotData(plotArray)
+                
+                results.forEach(item => {
+                    const key = `${item.year}-${item.month}`
+                    secondFetchedMonthsRef.current.add(key)
+                })
+            }
+            setSecondLoading(false)
+            secondFetchingRef.current = false
+        })
+    }, [secondPoint, plotData, rectangleBounds, cloudTolerance])
+    
     const chartData = {
         labels: plotData.map(d => d.label),
         datasets: [
             {
-                label: "NDVI",
+                label: "First Point",
                 data: plotData.map(d => d.ndvi),
-                borderColor: "rgb(136, 132, 216)",
-                backgroundColor: "rgba(136, 132, 216, 0.1)",
+                borderColor: "rgb(0, 123, 255)",
+                backgroundColor: "rgba(0, 123, 255, 0.1)",
                 borderWidth: 2,
                 pointRadius: 4,
-                pointBackgroundColor: "rgb(136, 132, 216)",
+                pointBackgroundColor: "rgb(0, 123, 255)",
                 tension: 0.1
-            }
+            },
+            ...(secondPlotData.length > 0 ? [{
+                label: "Second Point",
+                data: plotData.map(d => {
+                    const secondData = secondPlotData.find(s => s.year === d.year && s.month === d.month)
+                    return secondData ? secondData.ndvi : null
+                }),
+                borderColor: "rgb(220, 53, 69)",
+                backgroundColor: "rgba(220, 53, 69, 0.1)",
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: "rgb(220, 53, 69)",
+                tension: 0.1
+            }] : [])
         ]
     }
     
@@ -180,7 +234,8 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: false
+                display: secondPlotData.length > 0,
+                position: 'top'
             },
             tooltip: {
                 enabled: true
@@ -243,7 +298,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             fetchingRef.current = true
             setLoading(true)
 
-            const results = await fetchMonthsData([prevMonth])
+            const results = await fetchMonthsData([prevMonth], lat, lon)
             if (results.length > 0) {
                 const newItem = {
                     year: results[0].year,
@@ -253,6 +308,20 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 }
                 fetchedMonthsRef.current.add(key)
                 setPlotData(prev => [newItem, ...prev])
+                
+                if (secondPoint && secondPoint.lat && secondPoint.lon && !secondFetchingRef.current) {
+                    const secondResults = await fetchMonthsData([prevMonth], secondPoint.lat, secondPoint.lon)
+                    if (secondResults.length > 0) {
+                        const secondNewItem = {
+                            year: secondResults[0].year,
+                            month: secondResults[0].month,
+                            label: formatMonthLabel(secondResults[0].year, secondResults[0].month),
+                            ndvi: secondResults[0].ndvi
+                        }
+                        secondFetchedMonthsRef.current.add(key)
+                        setSecondPlotData(prev => [secondNewItem, ...prev])
+                    }
+                }
             }
 
             setLoading(false)
@@ -288,7 +357,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             fetchingRef.current = true
             setLoading(true)
 
-            const results = await fetchMonthsData([nextMonth])
+            const results = await fetchMonthsData([nextMonth], lat, lon)
             if (results.length > 0) {
                 const newItem = {
                     year: results[0].year,
@@ -298,6 +367,20 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 }
                 fetchedMonthsRef.current.add(key)
                 setPlotData(prev => [...prev, newItem])
+                
+                if (secondPoint && secondPoint.lat && secondPoint.lon && !secondFetchingRef.current) {
+                    const secondResults = await fetchMonthsData([nextMonth], secondPoint.lat, secondPoint.lon)
+                    if (secondResults.length > 0) {
+                        const secondNewItem = {
+                            year: secondResults[0].year,
+                            month: secondResults[0].month,
+                            label: formatMonthLabel(secondResults[0].year, secondResults[0].month),
+                            ndvi: secondResults[0].ndvi
+                        }
+                        secondFetchedMonthsRef.current.add(key)
+                        setSecondPlotData(prev => [...prev, secondNewItem])
+                    }
+                }
             }
 
             setLoading(false)

@@ -580,6 +580,7 @@ export default function Page() {
                                     endMonthNum={endMonthNum}
                                     rectangleBounds={rectangleBounds}
                                     cloudTolerance={cloudTolerance}
+                                    secondPoint={secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : null}
                                 />
                             ) : null
                         }
