@@ -201,7 +201,7 @@ export default function Page() {
                 </label>
             </div>
             {isDrawing ? (
-                <span style={{ padding: "10px 0", margin: "10px", fontSize: "16px", display: "inline-block" }}>
+                <span style={{ padding: "10px 0", margin: "10px", fontSize: "16px", display: "inline-block", color: "red" }}>
                     Click and drag to draw area ...
                 </span>
             ) : (
