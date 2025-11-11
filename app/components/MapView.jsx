@@ -1,6 +1,6 @@
 "use client"
 import dynamic from "next/dynamic"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import BoundaryLayer from "./BoundaryLayer"
@@ -29,6 +29,31 @@ function FixMarkerIcon() {
         }
     }, [])
     return null
+}
+
+function SecondPointMarker({ position, children }) {
+    const [icon, setIcon] = useState(null)
+    
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            import('leaflet').then((L) => {
+                const redIcon = L.default.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                    iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+                setIcon(redIcon)
+            })
+        }
+    }, [])
+    
+    if (!icon || !position) return null
+    
+    return <Marker position={position} icon={icon}>{children}</Marker>
 }
 
 function MapResize({ ndviTileUrl }) {
@@ -126,11 +151,11 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 </Marker>
             )}
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
-                <Marker position={[secondPoint.lat, secondPoint.lon]}>
+                <SecondPointMarker position={[secondPoint.lat, secondPoint.lon]}>
                     <Popup>
                         Second point: {secondPoint.lat.toFixed(6)}, {secondPoint.lon.toFixed(6)}
                     </Popup>
-                </Marker>
+                </SecondPointMarker>
             )}
         </MapContainer>
     )
