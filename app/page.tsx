@@ -224,8 +224,6 @@ export default function Page() {
         }, 1000)
     }
 
-    const showInfoPanel = pointLoaded
-
     const getMonthYearLabel = (sliderValue) => {
         const { year, month } = sliderValueToMonthYear(sliderValue)
         const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -259,226 +257,230 @@ export default function Page() {
     }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, fetchPointNdvi])
 
     return (
-        <div>
-            <div style={{ padding: "10px", margin: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                <span>Basemap:</span>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                    <input
-                        type="radio"
-                        name="basemap"
-                        value="street"
-                        checked={basemap === "street"}
-                        onChange={(e) => setBasemap(e.target.value)}
-                    />
-                    <span>Street</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                    <input
-                        type="radio"
-                        name="basemap"
-                        value="satellite"
-                        checked={basemap === "satellite"}
-                        onChange={(e) => setBasemap(e.target.value)}
-                    />
-                    <span>Satellite</span>
-                </label>
+        <div style={{ display: "flex", width: "100%", height: "100vh" }}>
+            <div style={{ width: "66.67%", height: "100vh" }}>
+                <MapView
+                    isDrawing={isDrawing}
+                    rectangleBounds={rectangleBounds}
+                    currentBounds={currentBounds}
+                    onStart={setStart}
+                    onUpdate={updateBounds}
+                    onEnd={handleFinalize}
+                    onReset={resetRectangle}
+                    ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
+                    basemap={basemap}
+                    isPointAnalysisMode={isImageAvailable()}
+                    onPointClick={handlePointClick}
+                    selectedPoint={selectedPoint}
+                />
             </div>
-            {isDrawing ? (
-                <span style={{ padding: "10px 0", margin: "10px", fontSize: "16px", display: "inline-block", color: "red" }}>
-                    Click and drag to draw area
-                </span>
-            ) : (
-                <div style={{ padding: "10px", margin: "10px" }}>
-                    {!rectangleBounds && (
-                        <button
-                            onClick={startDrawing}
-                            style={{
-                                background: "none",
-                                border: "none",
-                                padding: "10px 0",
-                                margin: "0 0 10px 0",
-                                cursor: "pointer",
-                                fontSize: "16px",
-                                color: "#0066cc",
-                                textDecoration: "none",
-                                fontFamily: "inherit",
-                                display: "block"
-                            }}
-                            onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-                            onMouseLeave={(e) => e.target.style.textDecoration = "none"}
-                        >
-                            Select area of interest
-                        </button>
-                    )}
-                    {rectangleBounds && (
+            <div style={{ width: "33.33%", height: "100vh", display: "flex", flexDirection: "column", borderLeft: "1px solid #ccc", backgroundColor: "white" }}>
+                <div style={{ padding: "20px", overflowY: "auto", flex: "1 1 auto" }}>
+                    <div style={{ padding: "10px 0", marginBottom: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span>Basemap:</span>
+                        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                            <input
+                                type="radio"
+                                name="basemap"
+                                value="street"
+                                checked={basemap === "street"}
+                                onChange={(e) => setBasemap(e.target.value)}
+                            />
+                            <span>Street</span>
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                            <input
+                                type="radio"
+                                name="basemap"
+                                value="satellite"
+                                checked={basemap === "satellite"}
+                                onChange={(e) => setBasemap(e.target.value)}
+                            />
+                            <span>Satellite</span>
+                        </label>
+                    </div>
+                    {isDrawing ? (
+                        <div style={{ padding: "10px 0", fontSize: "16px", color: "red" }}>
+                            Click and drag to draw area
+                        </div>
+                    ) : (
                         <>
-                            <button
-                                onClick={handleButtonClick}
-                                style={{
-                                    background: "none",
-                                    border: "none",
-                                    padding: "10px 0",
-                                    margin: "0 0 10px 0",
-                                    cursor: "pointer",
-                                    fontSize: "16px",
-                                    color: "#0066cc",
-                                    textDecoration: "none",
-                                    fontFamily: "inherit",
-                                    display: "block"
-                                }}
-                                onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-                                onMouseLeave={(e) => e.target.style.textDecoration = "none"}
-                            >
-                                Reset area of interest
-                            </button>
-                            {loading ? (
-                                <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px" }}>
-                                    Loading NDVI data...
-                                </div>
-                            ) : endMonth && imageCount !== null ? (
-                                !isImageAvailable() ? (
-                                    <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
-                                        No image found for {endMonth}. <span style={{ color: "red" }}>Consider increasing cloud tolerance</span>.
-                                    </div>
-                                ) : (
-                                    <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
-                                        Average NDVI for {endMonth} (based on {imageCount} image(s))
-                                    </div>
-                                )
-                            ) : null}
-                            {!loading && endMonth && imageCount !== null && (
+                            {!rectangleBounds && (
+                                <button
+                                    onClick={startDrawing}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        padding: "10px 0",
+                                        margin: "0 0 10px 0",
+                                        cursor: "pointer",
+                                        fontSize: "16px",
+                                        color: "#0066cc",
+                                        textDecoration: "none",
+                                        fontFamily: "inherit",
+                                        display: "block"
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
+                                    onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                                >
+                                    Select area of interest
+                                </button>
+                            )}
+                            {rectangleBounds && (
                                 <>
-                                    <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                                        <button
-                                            onClick={() => handleCloudButtonClick(-1)}
-                                            onMouseUp={handleCloudButtonRelease}
-                                            disabled={localCloudTolerance === 0}
-                                            style={{
-                                                width: "30px",
-                                                height: "30px",
-                                                fontSize: "18px",
-                                                cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
-                                                opacity: localCloudTolerance === 0 ? 0.5 : 1,
-                                                border: "1px solid #ccc",
-                                                borderRadius: "4px",
-                                                background: "white"
-                                            }}
-                                        >
-                                            -
-                                        </button>
-                                        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                            <label style={{ fontSize: "14px", display: "block" }}>
-                                                Cloud tolerance (%): {localCloudTolerance}
-                                            </label>
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="100"
-                                                value={localCloudTolerance}
-                                                onChange={(e) => handleCloudChange(parseInt(e.target.value))}
-                                                onMouseUp={handleCloudButtonRelease}
-                                                style={{ width: "200px" }}
-                                            />
+                                    <button
+                                        onClick={handleButtonClick}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            padding: "10px 0",
+                                            margin: "0 0 10px 0",
+                                            cursor: "pointer",
+                                            fontSize: "16px",
+                                            color: "#0066cc",
+                                            textDecoration: "none",
+                                            fontFamily: "inherit",
+                                            display: "block"
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
+                                        onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                                    >
+                                        Reset area of interest
+                                    </button>
+                                    {loading ? (
+                                        <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px" }}>
+                                            Loading NDVI data...
                                         </div>
-                                        <button
-                                            onClick={() => handleCloudButtonClick(1)}
-                                            onMouseUp={handleCloudButtonRelease}
-                                            disabled={localCloudTolerance === 100}
-                                            style={{
-                                                width: "30px",
-                                                height: "30px",
-                                                fontSize: "18px",
-                                                cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
-                                                opacity: localCloudTolerance === 100 ? 0.5 : 1,
-                                                border: "1px solid #ccc",
-                                                borderRadius: "4px",
-                                                background: "white"
-                                            }}
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                    {selectedYear && selectedMonth && (
-                                        <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                                            <button
-                                                onClick={() => handleTimeButtonClick(-1)}
-                                                disabled={localTimeSliderValue === 0}
-                                                style={{
-                                                    width: "30px",
-                                                    height: "30px",
-                                                    fontSize: "18px",
-                                                    cursor: localTimeSliderValue === 0 ? "not-allowed" : "pointer",
-                                                    opacity: localTimeSliderValue === 0 ? 0.5 : 1,
-                                                    border: "1px solid #ccc",
-                                                    borderRadius: "4px",
-                                                    background: "white"
-                                                }}
-                                            >
-                                                -
-                                            </button>
-                                            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                                <label style={{ fontSize: "14px", display: "block" }}>
-                                                    {getMonthYearLabel(localTimeSliderValue)}
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max={getMaxSliderValue()}
-                                                    value={localTimeSliderValue}
-                                                    onChange={(e) => {
-                                                        const newValue = parseInt(e.target.value)
-                                                        handleTimeChange(newValue)
-                                                    }}
-                                                    style={{ width: "200px" }}
-                                                />
+                                    ) : endMonth && imageCount !== null ? (
+                                        !isImageAvailable() ? (
+                                            <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
+                                                No image found for {endMonth}. <span style={{ color: "red" }}>Consider increasing cloud tolerance</span>.
                                             </div>
-                                            <button
-                                                onClick={() => handleTimeButtonClick(1)}
-                                                disabled={localTimeSliderValue >= getMaxSliderValue()}
-                                                style={{
-                                                    width: "30px",
-                                                    height: "30px",
-                                                    fontSize: "18px",
-                                                    cursor: localTimeSliderValue >= getMaxSliderValue() ? "not-allowed" : "pointer",
-                                                    opacity: localTimeSliderValue >= getMaxSliderValue() ? 0.5 : 1,
-                                                    border: "1px solid #ccc",
-                                                    borderRadius: "4px",
-                                                    background: "white"
-                                                }}
-                                            >
-                                                +
-                                            </button>
-                                        </div>
-                                    )}
-                                    {isImageAvailable() && (
-                                        <div style={{ marginTop: "10px", fontSize: "14px", color: "red" }}>
-                                            Click a point to analyse
-                                        </div>
+                                        ) : (
+                                            <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
+                                                Average NDVI for {endMonth} (based on {imageCount} image(s))
+                                            </div>
+                                        )
+                                    ) : null}
+                                    {!loading && endMonth && imageCount !== null && (
+                                        <>
+                                            <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                                                <button
+                                                    onClick={() => handleCloudButtonClick(-1)}
+                                                    onMouseUp={handleCloudButtonRelease}
+                                                    disabled={localCloudTolerance === 0}
+                                                    style={{
+                                                        width: "30px",
+                                                        height: "30px",
+                                                        fontSize: "18px",
+                                                        cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
+                                                        opacity: localCloudTolerance === 0 ? 0.5 : 1,
+                                                        border: "1px solid #ccc",
+                                                        borderRadius: "4px",
+                                                        background: "white"
+                                                    }}
+                                                >
+                                                    -
+                                                </button>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                                                    <label style={{ fontSize: "14px", display: "block" }}>
+                                                        Cloud tolerance (%): {localCloudTolerance}
+                                                    </label>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="100"
+                                                        value={localCloudTolerance}
+                                                        onChange={(e) => handleCloudChange(parseInt(e.target.value))}
+                                                        onMouseUp={handleCloudButtonRelease}
+                                                        style={{ width: "200px" }}
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => handleCloudButtonClick(1)}
+                                                    onMouseUp={handleCloudButtonRelease}
+                                                    disabled={localCloudTolerance === 100}
+                                                    style={{
+                                                        width: "30px",
+                                                        height: "30px",
+                                                        fontSize: "18px",
+                                                        cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
+                                                        opacity: localCloudTolerance === 100 ? 0.5 : 1,
+                                                        border: "1px solid #ccc",
+                                                        borderRadius: "4px",
+                                                        background: "white"
+                                                    }}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                            {selectedYear && selectedMonth && (
+                                                <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                                                    <button
+                                                        onClick={() => handleTimeButtonClick(-1)}
+                                                        disabled={localTimeSliderValue === 0}
+                                                        style={{
+                                                            width: "30px",
+                                                            height: "30px",
+                                                            fontSize: "18px",
+                                                            cursor: localTimeSliderValue === 0 ? "not-allowed" : "pointer",
+                                                            opacity: localTimeSliderValue === 0 ? 0.5 : 1,
+                                                            border: "1px solid #ccc",
+                                                            borderRadius: "4px",
+                                                            background: "white"
+                                                        }}
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                                                        <label style={{ fontSize: "14px", display: "block" }}>
+                                                            {getMonthYearLabel(localTimeSliderValue)}
+                                                        </label>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max={getMaxSliderValue()}
+                                                            value={localTimeSliderValue}
+                                                            onChange={(e) => {
+                                                                const newValue = parseInt(e.target.value)
+                                                                handleTimeChange(newValue)
+                                                            }}
+                                                            style={{ width: "200px" }}
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleTimeButtonClick(1)}
+                                                        disabled={localTimeSliderValue >= getMaxSliderValue()}
+                                                        style={{
+                                                            width: "30px",
+                                                            height: "30px",
+                                                            fontSize: "18px",
+                                                            cursor: localTimeSliderValue >= getMaxSliderValue() ? "not-allowed" : "pointer",
+                                                            opacity: localTimeSliderValue >= getMaxSliderValue() ? 0.5 : 1,
+                                                            border: "1px solid #ccc",
+                                                            borderRadius: "4px",
+                                                            background: "white"
+                                                        }}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {isImageAvailable() && (
+                                                <div style={{ marginTop: "10px", fontSize: "14px", color: "red" }}>
+                                                    Click a point to analyse
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </>
                             )}
                         </>
                     )}
                 </div>
-            )}
-            <div style={{ display: "flex", width: "100%" }}>
-                <div style={{ width: showInfoPanel ? "66.67%" : "100%" }}>
-                    <MapView
-                        isDrawing={isDrawing}
-                        rectangleBounds={rectangleBounds}
-                        currentBounds={currentBounds}
-                        onStart={setStart}
-                        onUpdate={updateBounds}
-                        onEnd={handleFinalize}
-                        onReset={resetRectangle}
-                        ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
-                        basemap={basemap}
-                        isPointAnalysisMode={isImageAvailable()}
-                        onPointClick={handlePointClick}
-                        selectedPoint={selectedPoint}
-                    />
+                <div style={{ borderTop: "1px solid #ccc", padding: "20px", flex: "0 0 auto" }}>
+                    <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} isReloading={loading && pointLoaded} />
                 </div>
-                {showInfoPanel && <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} isReloading={loading && pointLoaded} />}
             </div>
         </div>
     )

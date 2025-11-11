@@ -1,7 +1,6 @@
 export const MAP_CENTER = [40.0, -74.5]
 export const MAP_ZOOM = 10
-export const MAP_STYLE = { height: "90vh", width: "100%" }
-export const MAP_STYLE_WITH_PANEL = { height: "90vh", width: "66.67%" }
+export const MAP_STYLE = { height: "100vh", width: "100%" }
 export const TILE_LAYER_STREET = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 export const TILE_LAYER_SATELLITE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 export const BOUNDARY_FILE_PATH = "/data/boundary_4326.geojson"
