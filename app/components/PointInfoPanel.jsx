@@ -70,7 +70,7 @@ function getNextMonth(year, month) {
     return { year, month: month + 1 }
 }
 
-export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance, secondPoint = null, onSecondPointLoadingChange = null }) {
+export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance, secondPoint = null, onSecondPointLoadingChange = undefined }) {
     const [plotData, setPlotData] = useState([])
     const [secondPlotData, setSecondPlotData] = useState([])
     const [loading, setLoading] = useState(false)

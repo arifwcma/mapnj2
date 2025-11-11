@@ -40,9 +40,9 @@ export default function Page() {
         getCurrentDateRange
     } = useNdviData()
 
-    const debounceTimeoutRef = useRef(null)
-    const sliderDebounceTimeoutRef = useRef(null)
-    const timeSliderDebounceTimeoutRef = useRef(null)
+    const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const sliderDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const timeSliderDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const cloudToleranceRef = useRef(cloudTolerance)
     const timeSliderValueRef = useRef(0)
     const isInitialLoadRef = useRef(false)
@@ -50,14 +50,14 @@ export default function Page() {
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
     const [basemap, setBasemap] = useState("street")
-    const [selectedPoint, setSelectedPoint] = useState({ lat: null, lon: null, ndvi: null })
+    const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null, ndvi: number | null }>({ lat: null, lon: null, ndvi: null })
     const [pointLoading, setPointLoading] = useState(false)
     const [secondPointSelection, setSecondPointSelection] = useState(false)
-    const [secondPoint, setSecondPoint] = useState({ lat: null, lon: null })
+    const [secondPoint, setSecondPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [secondPointLoading, setSecondPointLoading] = useState(false)
     const pointLoaded = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
 
-    const fetchPointNdvi = useCallback(async (lat, lon) => {
+    const fetchPointNdvi = useCallback(async (lat: number, lon: number) => {
         if (!rectangleBounds || !selectedYear || !selectedMonth) {
             return null
         }
@@ -84,8 +84,8 @@ export default function Page() {
             }
             const data = await response.json()
             return data.ndvi
-        } catch (error) {
-            if (error.name !== 'AbortError') {
+        } catch (error: unknown) {
+            if ((error as Error).name !== 'AbortError') {
                 console.error("Error fetching point NDVI:", error)
             }
             return null
@@ -119,6 +119,7 @@ export default function Page() {
                 return
             }
             const refetchNdvi = async () => {
+                if (selectedPoint.lat === null || selectedPoint.lon === null) return
                 const ndvi = await fetchPointNdvi(selectedPoint.lat, selectedPoint.lon)
                 if (ndvi !== null) {
                     setSelectedPoint(prev => ({ ...prev, ndvi }))
@@ -136,6 +137,7 @@ export default function Page() {
                 return
             }
             const refetchNdvi = async () => {
+                if (selectedPoint.lat === null || selectedPoint.lon === null) return
                 setPointLoading(true)
                 const ndvi = await fetchPointNdvi(selectedPoint.lat, selectedPoint.lon)
                 if (ndvi !== null) {
@@ -180,7 +182,7 @@ export default function Page() {
         finalizeRectangle()
     }
 
-    const handleCloudChange = (newValue) => {
+    const handleCloudChange = (newValue: number) => {
         cloudToleranceRef.current = newValue
         setLocalCloudTolerance(newValue)
         
@@ -193,7 +195,7 @@ export default function Page() {
         }, 1000)
     }
 
-    const handleCloudButtonClick = (delta) => {
+    const handleCloudButtonClick = (delta: number) => {
         const currentValue = cloudToleranceRef.current
         const newValue = Math.max(0, Math.min(100, currentValue + delta))
         cloudToleranceRef.current = newValue
@@ -223,7 +225,7 @@ export default function Page() {
         console.log("Cloud tolerance:", cloudToleranceRef.current)
     }
 
-    const handleTimeChange = (newValue) => {
+    const handleTimeChange = (newValue: number) => {
         timeSliderValueRef.current = newValue
         setLocalTimeSliderValue(newValue)
         
@@ -237,7 +239,7 @@ export default function Page() {
         }, 1000)
     }
 
-    const handleTimeButtonClick = (delta) => {
+    const handleTimeButtonClick = (delta: number) => {
         const currentValue = timeSliderValueRef.current
         const maxValue = getMaxSliderValue()
         const newValue = Math.max(0, Math.min(maxValue, currentValue + delta))
@@ -254,18 +256,19 @@ export default function Page() {
         }, 1000)
     }
 
-    const getMonthYearLabel = (sliderValue) => {
+    const getMonthYearLabel = (sliderValue: number) => {
         const { year, month } = sliderValueToMonthYear(sliderValue)
         const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
         return `${MONTH_NAMES[month - 1]} ${year}`
     }
 
-    const handlePointClick = useCallback(async (lat, lon) => {
+    const handlePointClick = useCallback(async (lat: number, lon: number) => {
         if (secondPointSelection) {
             if (!rectangleBounds) return
             
-            const [minLat, minLng] = rectangleBounds[0]
-            const [maxLat, maxLng] = rectangleBounds[1]
+            const bounds = rectangleBounds as [[number, number], [number, number]]
+            const [minLat, minLng] = bounds[0]
+            const [maxLat, maxLng] = bounds[1]
             
             if (lat < minLat || lat > maxLat || lon < minLng || lon > maxLng) {
                 return
@@ -281,8 +284,9 @@ export default function Page() {
             return
         }
         
-        const [minLat, minLng] = rectangleBounds[0]
-        const [maxLat, maxLng] = rectangleBounds[1]
+        const bounds = rectangleBounds as [[number, number], [number, number]]
+        const [minLat, minLng] = bounds[0]
+        const [maxLat, maxLng] = bounds[1]
         
         if (lat < minLat || lat > maxLat || lon < minLng || lon > maxLng) {
             return
@@ -320,8 +324,8 @@ export default function Page() {
                     basemap={basemap}
                     isPointAnalysisMode={isImageAvailable()}
                     onPointClick={handlePointClick}
-                    selectedPoint={selectedPoint}
-                    secondPoint={secondPoint}
+                    selectedPoint={selectedPoint as any}
+                    secondPoint={secondPoint as any}
                 />
             </div>
             <div style={{ width: "33.33%", height: "100vh", display: "flex", flexDirection: "column", borderLeft: "1px solid #ccc", backgroundColor: "white" }}>
@@ -370,8 +374,8 @@ export default function Page() {
                                         fontFamily: "inherit",
                                         display: "block"
                                     }}
-                                    onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-                                    onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                                    onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
+                                    onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
                                 >
                                     Select area of interest
                                 </button>
@@ -392,8 +396,8 @@ export default function Page() {
                                             fontFamily: "inherit",
                                             display: "block"
                                         }}
-                                        onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-                                        onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                                        onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
+                                        onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
                                     >
                                         Reset area of interest
                                     </button>
@@ -542,8 +546,8 @@ export default function Page() {
                                                                 fontFamily: "inherit",
                                                                 display: "block"
                                                             }}
-                                                            onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-                                                            onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                                                            onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
+                                                            onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
                                                         >
                                                             Compare with another point
                                                         </button>
@@ -554,7 +558,7 @@ export default function Page() {
                                                 <div>
                                                     <div style={{ marginTop: "10px", fontSize: "14px", color: secondPoint.lat !== null && secondPoint.lon !== null ? "inherit" : "red" }}>
                                                         {secondPoint.lat !== null && secondPoint.lon !== null ? (
-                                                            <>Second point: {secondPoint.lat.toFixed(6)},{secondPoint.lon.toFixed(6)}</>
+                                                            <>Second point: {secondPoint.lat!.toFixed(6)},{secondPoint.lon!.toFixed(6)}</>
                                                         ) : (
                                                             <>Click to choose the second point</>
                                                         )}
@@ -576,9 +580,10 @@ export default function Page() {
                 <div style={{ borderTop: "1px solid #ccc", padding: "20px", flex: "0 0 auto" }}>
                     <InfoPanel 
                         lat={selectedPoint.lat} 
-                        lon={selectedPoint.lon} 
+                        lon={selectedPoint.lon}
+                        ndvi={selectedPoint.ndvi}
                         pointInfoPanel={
-                            selectedPoint.lat !== null && selectedPoint.lon !== null ? (
+                            (selectedPoint.lat !== null && selectedPoint.lon !== null ? (
                                 <PointInfoPanel
                                     lat={selectedPoint.lat}
                                     lon={selectedPoint.lon}
@@ -591,10 +596,10 @@ export default function Page() {
                                     endMonthNum={endMonthNum}
                                     rectangleBounds={rectangleBounds}
                                     cloudTolerance={cloudTolerance}
-                                    secondPoint={secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : null}
-                                    onSecondPointLoadingChange={setSecondPointLoading}
+                                    secondPoint={(secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : undefined) as any}
+                                    onSecondPointLoadingChange={setSecondPointLoading as any}
                                 />
-                            ) : null
+                            ) : undefined) as any
                         }
                     />
                 </div>
