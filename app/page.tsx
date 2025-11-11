@@ -235,6 +235,19 @@ export default function Page() {
         return `${MONTH_NAMES[month - 1]} ${year}`
     }
 
+    const getLoadingMonthDisplay = () => {
+        if (endMonth) return endMonth
+        if (selectedYear && selectedMonth) {
+            const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+            return `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
+        }
+        if (endYear && endMonthNum) {
+            const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+            return `${MONTH_NAMES[endMonthNum - 1]} ${endYear}`
+        }
+        return ""
+    }
+
     const handlePointClick = useCallback(async (lat, lon) => {
         console.log("Point clicked:", lat, lon, { isImageAvailable: isImageAvailable(), rectangleBounds, selectedYear, selectedMonth })
         if (!isImageAvailable() || !rectangleBounds || !selectedYear || !selectedMonth) {
@@ -358,7 +371,7 @@ export default function Page() {
                                     </button>
                                     {loading ? (
                                         <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px" }}>
-                                            Loading NDVI data...
+                                            Loading NDVI data for <strong>{getLoadingMonthDisplay()}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...
                                         </div>
                                     ) : endMonth && imageCount !== null ? (
                                         !isImageAvailable() ? (
