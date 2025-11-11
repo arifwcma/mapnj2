@@ -547,7 +547,7 @@ export default function Page() {
                                                 </>
                                             )}
                                             {isImageAvailable() && secondPointSelection && (
-                                                <div style={{ marginTop: "10px", fontSize: "14px", color: "red" }}>
+                                                <div style={{ marginTop: "10px", fontSize: "14px", color: secondPoint.lat !== null && secondPoint.lon !== null ? "inherit" : "red" }}>
                                                     {secondPoint.lat !== null && secondPoint.lon !== null ? (
                                                         <>Second point: {secondPoint.lat.toFixed(6)},{secondPoint.lon.toFixed(6)}</>
                                                     ) : (
