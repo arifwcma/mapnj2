@@ -171,6 +171,9 @@ export default function Page() {
         resetRectangle()
         clearNdvi()
         setSelectedPoint({ lat: null, lon: null, ndvi: null })
+        setSecondPoint({ lat: null, lon: null })
+        setSecondPointSelection(false)
+        setSecondPointLoading(false)
     }
 
     const handleFinalize = () => {
