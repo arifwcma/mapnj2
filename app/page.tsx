@@ -187,6 +187,13 @@ export default function Page() {
             return
         }
         
+        const [minLat, minLng] = rectangleBounds[0]
+        const [maxLat, maxLng] = rectangleBounds[1]
+        
+        if (lat < minLat || lat > maxLat || lon < minLng || lon > maxLng) {
+            return
+        }
+        
         console.log("Setting loading state")
         setPointLoading(true)
         const dateRange = getCurrentDateRange()
