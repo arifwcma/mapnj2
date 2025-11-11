@@ -31,6 +31,18 @@ function FixMarkerIcon() {
     return null
 }
 
+function MapResize({ ndviTileUrl }) {
+    const map = useMap()
+    useEffect(() => {
+        if (map) {
+            setTimeout(() => {
+                map.invalidateSize()
+            }, 100)
+        }
+    }, [map, ndviTileUrl])
+    return null
+}
+
 function ZoomToRectangle({ bounds }) {
     const map = useMap()
     useEffect(() => {
@@ -81,6 +93,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
 
     return (
         <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
+            <MapResize ndviTileUrl={ndviTileUrl} />
             <FixMarkerIcon />
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
             {!isDrawing && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
