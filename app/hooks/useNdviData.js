@@ -146,6 +146,11 @@ export default function useNdviData() {
         return monthYearToSliderValue(selectedYear, selectedMonth)
     }, [selectedYear, selectedMonth])
 
+    const getCurrentDateRange = useCallback(() => {
+        if (!selectedYear || !selectedMonth) return null
+        return getMonthDateRange(selectedYear, selectedMonth)
+    }, [selectedYear, selectedMonth])
+
     return {
         ndviTileUrl,
         endMonth,
@@ -165,6 +170,7 @@ export default function useNdviData() {
         getMaxSliderValue,
         getCurrentSliderValue,
         sliderValueToMonthYear,
-        monthYearToSliderValue
+        monthYearToSliderValue,
+        getCurrentDateRange
     }
 }

@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import MapView from "@/app/components/MapView"
+import InfoPanel from "@/app/components/InfoPanel"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
 
@@ -33,7 +34,8 @@ export default function Page() {
         getMaxSliderValue,
         getCurrentSliderValue,
         sliderValueToMonthYear,
-        monthYearToSliderValue
+        monthYearToSliderValue,
+        getCurrentDateRange
     } = useNdviData()
 
     const debounceTimeoutRef = useRef(null)
@@ -45,6 +47,8 @@ export default function Page() {
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
     const [basemap, setBasemap] = useState("street")
+    const [selectedPoint, setSelectedPoint] = useState({ lat: null, lon: null, ndvi: null })
+    const [pointLoading, setPointLoading] = useState(false)
 
     useEffect(() => {
         setLocalCloudTolerance(cloudTolerance)
@@ -88,6 +92,7 @@ export default function Page() {
     const handleButtonClick = () => {
         resetRectangle()
         clearNdvi()
+        setSelectedPoint({ lat: null, lon: null, ndvi: null })
     }
 
     const handleFinalize = () => {
@@ -348,6 +353,11 @@ export default function Page() {
                                             </button>
                                         </div>
                                     )}
+                                    {isImageAvailable() && (
+                                        <div style={{ marginTop: "10px", fontSize: "14px", color: "red" }}>
+                                            Click a point to analyse ...
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </>
@@ -364,7 +374,33 @@ export default function Page() {
                 onReset={resetRectangle}
                 ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
                 basemap={basemap}
+                isPointAnalysisMode={isImageAvailable()}
+                showInfoPanel={selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null}
+                onPointClick={async (lat, lon) => {
+                    if (!isImageAvailable() || !rectangleBounds || !selectedYear || !selectedMonth) return
+                    
+                    setPointLoading(true)
+                    const dateRange = getCurrentDateRange()
+                    if (!dateRange) {
+                        setPointLoading(false)
+                        return
+                    }
+                    
+                    const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+                    
+                    try {
+                        const response = await fetch(`/api/ndvi/point?lat=${lat}&lon=${lon}&start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`)
+                        if (!response.ok) throw new Error("Failed to get NDVI")
+                        const data = await response.json()
+                        setSelectedPoint({ lat, lon, ndvi: data.ndvi })
+                    } catch (error) {
+                        console.error("Error fetching point NDVI:", error)
+                    } finally {
+                        setPointLoading(false)
+                    }
+                }}
             />
+            <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} />
         </div>
     )
 }

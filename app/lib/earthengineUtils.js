@@ -133,3 +133,43 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
         })
     })
 }
+
+export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
+    await initEarthEngine()
+
+    const [minLng, minLat, maxLng, maxLat] = Array.isArray(bbox)
+        ? [bbox[0][1], bbox[0][0], bbox[1][1], bbox[1][0]]
+        : bbox.split(",").map(parseFloat)
+
+    if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
+        throw new Error("Invalid bbox format")
+    }
+
+    if (isNaN(lat) || isNaN(lon)) {
+        throw new Error("Invalid lat/lon format")
+    }
+
+    const startDate = ee.Date(start)
+    const endDate = ee.Date(end).advance(1, "day")
+
+    const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+    const point = ee.Geometry.Point([lon, lat])
+
+    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+        .filterBounds(rectangle)
+        .filterDate(startDate, endDate)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
+        .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
+
+    const mean = collection.mean().clip(rectangle)
+
+    return await new Promise((resolve, reject) => {
+        mean.sample(point, 30).first().get("NDVI", (value, err) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            resolve(value)
+        })
+    })
+}
