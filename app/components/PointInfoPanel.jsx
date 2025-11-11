@@ -116,6 +116,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
         
         fetchingRef.current = true
         setLoading(true)
+        setPlotData([])
         fetchedMonthsRef.current.clear()
         
         initialMonths.forEach(m => {
@@ -203,7 +204,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
                     NDVI: {ndvi.toFixed(2)}
                 </div>
             ) : null}
-            {!isReloading && plotData.length > 0 && (
+            {!isReloading && !loading && plotData.length > 0 && (
                 <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                     <Line data={chartData} options={chartOptions} />
                 </div>
