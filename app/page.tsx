@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import MapView from "@/app/components/MapView"
 import InfoPanel from "@/app/components/InfoPanel"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
@@ -179,6 +179,39 @@ export default function Page() {
         const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
         return `${MONTH_NAMES[month - 1]} ${year}`
     }
+
+    const handlePointClick = useCallback(async (lat, lon) => {
+        console.log("Point clicked:", lat, lon, { isImageAvailable: isImageAvailable(), rectangleBounds, selectedYear, selectedMonth })
+        if (!isImageAvailable() || !rectangleBounds || !selectedYear || !selectedMonth) {
+            console.log("Conditions not met")
+            return
+        }
+        
+        setPointLoading(true)
+        const dateRange = getCurrentDateRange()
+        if (!dateRange) {
+            console.log("No date range")
+            setPointLoading(false)
+            return
+        }
+        
+        const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+        
+        try {
+            const response = await fetch(`/api/ndvi/point?lat=${lat}&lon=${lon}&start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`)
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                throw new Error(errorData.error || "Failed to get NDVI")
+            }
+            const data = await response.json()
+            setSelectedPoint({ lat, lon, ndvi: data.ndvi })
+        } catch (error) {
+            console.error("Error fetching point NDVI:", error)
+            alert(`Error: ${error.message}`)
+        } finally {
+            setPointLoading(false)
+        }
+    }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, getCurrentDateRange, cloudTolerance])
 
     return (
         <div>
@@ -376,29 +409,7 @@ export default function Page() {
                 basemap={basemap}
                 isPointAnalysisMode={isImageAvailable()}
                 showInfoPanel={selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null}
-                onPointClick={async (lat, lon) => {
-                    if (!isImageAvailable() || !rectangleBounds || !selectedYear || !selectedMonth) return
-                    
-                    setPointLoading(true)
-                    const dateRange = getCurrentDateRange()
-                    if (!dateRange) {
-                        setPointLoading(false)
-                        return
-                    }
-                    
-                    const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
-                    
-                    try {
-                        const response = await fetch(`/api/ndvi/point?lat=${lat}&lon=${lon}&start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`)
-                        if (!response.ok) throw new Error("Failed to get NDVI")
-                        const data = await response.json()
-                        setSelectedPoint({ lat, lon, ndvi: data.ndvi })
-                    } catch (error) {
-                        console.error("Error fetching point NDVI:", error)
-                    } finally {
-                        setPointLoading(false)
-                    }
-                }}
+                onPointClick={handlePointClick}
             />
             <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} />
         </div>

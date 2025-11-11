@@ -27,9 +27,14 @@ function PointClickHandler({ isActive, onPointClick }) {
     const map = useMap()
     
     useEffect(() => {
-        if (!map || !isActive) return
+        if (!map || !isActive || !onPointClick) {
+            console.log("PointClickHandler inactive:", { map: !!map, isActive, hasCallback: !!onPointClick })
+            return
+        }
         
+        console.log("PointClickHandler active, setting up listener")
         const handleClick = (e) => {
+            console.log("Map click detected:", e.latlng)
             const { lat, lng } = e.latlng
             onPointClick(lat, lng)
         }
@@ -37,6 +42,7 @@ function PointClickHandler({ isActive, onPointClick }) {
         map.on("click", handleClick)
         
         return () => {
+            console.log("Removing click listener")
             map.off("click", handleClick)
         }
     }, [map, isActive, onPointClick])
@@ -59,7 +65,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     return (
         <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={mapStyle}>
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
-            <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />
+            {!isDrawing && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
             {boundary && <BoundaryLayer data={boundary} />}
             {isDrawing && (
                 <RectangleDrawHandler

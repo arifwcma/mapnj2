@@ -164,9 +164,19 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
     const mean = collection.mean().clip(rectangle)
 
     return await new Promise((resolve, reject) => {
-        mean.sample(point, 30).first().get("NDVI", (value, err) => {
+        mean.reduceRegion({
+            reducer: ee.Reducer.first(),
+            geometry: point,
+            scale: 10,
+            maxPixels: 1e9
+        }).get("NDVI", (value, err) => {
             if (err) {
-                reject(err)
+                const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
+                reject(new Error(errorMsg))
+                return
+            }
+            if (value === null || value === undefined) {
+                reject(new Error("No NDVI value found at this point"))
                 return
             }
             resolve(value)
