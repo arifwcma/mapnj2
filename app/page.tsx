@@ -45,6 +45,7 @@ export default function Page() {
     const isInitialLoadRef = useRef(false)
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
+    const [basemap, setBasemap] = useState("street")
 
     useEffect(() => {
         setLocalCloudTolerance(cloudTolerance)
@@ -181,6 +182,29 @@ export default function Page() {
 
     return (
         <div>
+            <div style={{ padding: "10px", margin: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <span>Basemap:</span>
+                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                    <input
+                        type="radio"
+                        name="basemap"
+                        value="street"
+                        checked={basemap === "street"}
+                        onChange={(e) => setBasemap(e.target.value)}
+                    />
+                    <span>Street</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                    <input
+                        type="radio"
+                        name="basemap"
+                        value="satellite"
+                        checked={basemap === "satellite"}
+                        onChange={(e) => setBasemap(e.target.value)}
+                    />
+                    <span>Satellite</span>
+                </label>
+            </div>
             {isDrawing ? (
                 <span style={{ padding: "10px 0", margin: "10px", fontSize: "16px", display: "inline-block" }}>
                     Click and drag to draw area ...
@@ -342,6 +366,7 @@ export default function Page() {
                 onEnd={handleFinalize}
                 onReset={resetRectangle}
                 ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
+                basemap={basemap}
             />
         </div>
     )
