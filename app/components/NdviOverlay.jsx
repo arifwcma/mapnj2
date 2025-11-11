@@ -6,6 +6,6 @@ const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), 
 export default function NdviOverlay({ tileUrl, bounds }) {
     if (!tileUrl || !bounds) return null
 
-    return <TileLayer url={tileUrl} opacity={0.7} />
+    return <TileLayer url={tileUrl} opacity={0.7} zIndex={300} />
 }
 

@@ -114,7 +114,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 </>
             )}
             {ndviTileUrl && rectangleBounds && (
-                <NdviOverlay tileUrl={ndviTileUrl} bounds={rectangleBounds} />
+                <NdviOverlay key={`ndvi-${basemap}-${ndviTileUrl}`} tileUrl={ndviTileUrl} bounds={rectangleBounds} />
             )}
             {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
                 <Marker position={[selectedPoint.lat, selectedPoint.lon]}>
