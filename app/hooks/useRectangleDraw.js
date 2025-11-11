@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react"
 
 export default function useRectangleDraw() {
-    const [isDrawing, setIsDrawing] = useState(true)
+    const [isDrawing, setIsDrawing] = useState(false)
     const [rectangleBounds, setRectangleBounds] = useState(null)
     const [startPoint, setStartPoint] = useState(null)
     const [currentBounds, setCurrentBounds] = useState(null)
@@ -21,7 +21,7 @@ export default function useRectangleDraw() {
 
     const resetRectangle = useCallback(() => {
         setRectangleBounds(null)
-        setIsDrawing(true)
+        setIsDrawing(false)
         setStartPoint(null)
         setCurrentBounds(null)
     }, [])

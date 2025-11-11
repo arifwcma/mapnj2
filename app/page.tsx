@@ -13,7 +13,8 @@ export default function Page() {
         resetRectangle,
         setStart,
         updateBounds,
-        finalizeRectangle
+        finalizeRectangle,
+        startDrawing
     } = useRectangleDraw()
 
     const {
@@ -288,9 +289,9 @@ export default function Page() {
                 </span>
             ) : (
                 <div style={{ padding: "10px", margin: "10px" }}>
-                    {rectangleBounds && (
+                    {!rectangleBounds && (
                         <button
-                            onClick={handleButtonClick}
+                            onClick={startDrawing}
                             style={{
                                 background: "none",
                                 border: "none",
@@ -306,11 +307,30 @@ export default function Page() {
                             onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
                             onMouseLeave={(e) => e.target.style.textDecoration = "none"}
                         >
-                            Reset area of interest
+                            Select area of interest
                         </button>
                     )}
                     {rectangleBounds && (
                         <>
+                            <button
+                                onClick={handleButtonClick}
+                                style={{
+                                    background: "none",
+                                    border: "none",
+                                    padding: "10px 0",
+                                    margin: "0 0 10px 0",
+                                    cursor: "pointer",
+                                    fontSize: "16px",
+                                    color: "#0066cc",
+                                    textDecoration: "none",
+                                    fontFamily: "inherit",
+                                    display: "block"
+                                }}
+                                onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
+                                onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                            >
+                                Reset area of interest
+                            </button>
                             {loading ? (
                                 <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px" }}>
                                     Loading NDVI data...
