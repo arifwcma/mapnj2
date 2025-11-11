@@ -164,22 +164,27 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
     const mean = collection.mean().clip(rectangle)
 
     return await new Promise((resolve, reject) => {
-        mean.reduceRegion({
-            reducer: ee.Reducer.first(),
-            geometry: point,
+        const sampled = mean.sampleRegions({
+            collection: ee.FeatureCollection([ee.Feature(point)]),
             scale: 10,
-            maxPixels: 1e9
-        }).get("NDVI", (value, err) => {
+            tileScale: 2
+        })
+        
+        sampled.first().getInfo((feature, err) => {
             if (err) {
                 const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
+                console.error("Earth Engine error:", errorMsg)
                 reject(new Error(errorMsg))
                 return
             }
-            if (value === null || value === undefined) {
+            const ndviValue = feature?.properties?.NDVI
+            if (ndviValue === null || ndviValue === undefined) {
+                console.log("No NDVI value found at point")
                 reject(new Error("No NDVI value found at this point"))
                 return
             }
-            resolve(value)
+            console.log("NDVI value retrieved:", ndviValue)
+            resolve(ndviValue)
         })
     })
 }

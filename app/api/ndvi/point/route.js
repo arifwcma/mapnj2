@@ -36,14 +36,16 @@ export async function GET(request) {
     }
 
     try {
+        console.log("API: Getting NDVI at point", { lat: latNum, lon: lonNum, start, end, bbox, cloud })
         const ndvi = await getNdviAtPoint(latNum, lonNum, start, end, bbox, cloud)
+        console.log("API: NDVI retrieved:", ndvi)
         return NextResponse.json({ ndvi, lat: latNum, lon: lonNum })
     } catch (error) {
         console.error("Error getting NDVI at point:", error)
         if (error.message.includes("Invalid")) {
             return NextResponse.json({ error: error.message }, { status: 400 })
         }
-        return NextResponse.json({ error: "Failed to get NDVI at point" }, { status: 500 })
+        return NextResponse.json({ error: error.message || "Failed to get NDVI at point" }, { status: 500 })
     }
 }
 

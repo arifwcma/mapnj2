@@ -1,7 +1,9 @@
 "use client"
 
 export default function InfoPanel({ lat, lon, ndvi }) {
-    if (lat === null || lon === null || ndvi === null) {
+    console.log("InfoPanel render:", { lat, lon, ndvi, latType: typeof lat, lonType: typeof lon, ndviType: typeof ndvi })
+    if (lat === null || lon === null || ndvi === null || ndvi === undefined) {
+        console.log("InfoPanel returning null because:", { latIsNull: lat === null, lonIsNull: lon === null, ndviIsNull: ndvi === null, ndviIsUndefined: ndvi === undefined })
         return null
     }
 

@@ -187,8 +187,10 @@ export default function Page() {
             return
         }
         
+        console.log("Setting loading state")
         setPointLoading(true)
         const dateRange = getCurrentDateRange()
+        console.log("Date range:", dateRange)
         if (!dateRange) {
             console.log("No date range")
             setPointLoading(false)
@@ -198,16 +200,34 @@ export default function Page() {
         const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
         
         try {
-            const response = await fetch(`/api/ndvi/point?lat=${lat}&lon=${lon}&start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`)
+            console.log("Fetching NDVI:", { lat, lon, start: dateRange.start, end: dateRange.end, bbox: bboxStr, cloud: cloudTolerance })
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 30000)
+            
+            const response = await fetch(`/api/ndvi/point?lat=${lat}&lon=${lon}&start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`, {
+                signal: controller.signal
+            })
+            clearTimeout(timeoutId)
+            
+            console.log("Response status:", response.status)
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                console.log("Error response:", errorData)
                 throw new Error(errorData.error || "Failed to get NDVI")
             }
             const data = await response.json()
+            console.log("NDVI data received:", data)
+            console.log("Setting selected point:", { lat, lon, ndvi: data.ndvi })
             setSelectedPoint({ lat, lon, ndvi: data.ndvi })
+            console.log("Selected point set")
         } catch (error) {
-            console.error("Error fetching point NDVI:", error)
-            alert(`Error: ${error.message}`)
+            if (error.name === 'AbortError') {
+                console.error("Request timeout")
+                alert("Request timed out. The Earth Engine operation is taking too long.")
+            } else {
+                console.error("Error fetching point NDVI:", error)
+                alert(`Error: ${error.message}`)
+            }
         } finally {
             setPointLoading(false)
         }
