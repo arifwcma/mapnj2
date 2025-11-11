@@ -455,6 +455,7 @@ export default function Page() {
                         basemap={basemap}
                         isPointAnalysisMode={isImageAvailable()}
                         onPointClick={handlePointClick}
+                        selectedPoint={selectedPoint}
                     />
                 </div>
                 {showInfoPanel && <InfoPanel lat={selectedPoint.lat} lon={selectedPoint.lon} ndvi={selectedPoint.ndvi} isReloading={loading && pointLoaded} />}

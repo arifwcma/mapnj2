@@ -12,6 +12,24 @@ import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLIT
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
 const Rectangle = dynamic(() => import("react-leaflet").then(m => m.Rectangle), { ssr: false })
+const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false })
+const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false })
+
+function FixMarkerIcon() {
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            import('leaflet').then((L) => {
+                delete L.default.Icon.Default.prototype._getIconUrl
+                L.default.Icon.Default.mergeOptions({
+                    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+                    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+                })
+            })
+        }
+    }, [])
+    return null
+}
 
 function ZoomToRectangle({ bounds }) {
     const map = useMap()
@@ -50,7 +68,7 @@ function PointClickHandler({ isActive, onPointClick }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, basemap = "street", isPointAnalysisMode = false, onPointClick }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
@@ -63,6 +81,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
 
     return (
         <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
+            <FixMarkerIcon />
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
             {!isDrawing && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
             {boundary && <BoundaryLayer data={boundary} />}
@@ -83,6 +102,15 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             )}
             {ndviTileUrl && rectangleBounds && (
                 <NdviOverlay tileUrl={ndviTileUrl} bounds={rectangleBounds} />
+            )}
+            {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
+                <Marker position={[selectedPoint.lat, selectedPoint.lon]}>
+                    {selectedPoint.ndvi !== null && selectedPoint.ndvi !== undefined && (
+                        <Popup>
+                            NDVI: {selectedPoint.ndvi.toFixed(2)}
+                        </Popup>
+                    )}
+                </Marker>
             )}
         </MapContainer>
     )
