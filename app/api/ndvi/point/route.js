@@ -42,7 +42,10 @@ export async function GET(request) {
         return NextResponse.json({ ndvi, lat: latNum, lon: lonNum })
     } catch (error) {
         console.error("Error getting NDVI at point:", error)
-        if (error.message.includes("Invalid")) {
+        if (error.message && error.message.includes("No images found")) {
+            return NextResponse.json({ ndvi: null, lat: latNum, lon: lonNum })
+        }
+        if (error.message && error.message.includes("Invalid")) {
             return NextResponse.json({ error: error.message }, { status: 400 })
         }
         return NextResponse.json({ error: error.message || "Failed to get NDVI at point" }, { status: 500 })

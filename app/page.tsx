@@ -130,6 +130,25 @@ export default function Page() {
     }, [loading, pointLoaded, isImageAvailable, selectedPoint.lat, selectedPoint.lon, fetchPointNdvi])
 
     useEffect(() => {
+        if (selectedPoint.lat !== null && selectedPoint.lon !== null && !loading && isImageAvailable() && rectangleBounds && selectedYear && selectedMonth) {
+            if (justSetPointRef.current) {
+                return
+            }
+            const refetchNdvi = async () => {
+                setPointLoading(true)
+                const ndvi = await fetchPointNdvi(selectedPoint.lat, selectedPoint.lon)
+                if (ndvi !== null) {
+                    setSelectedPoint(prev => ({ ...prev, ndvi }))
+                } else {
+                    setSelectedPoint(prev => ({ ...prev, ndvi: null }))
+                }
+                setPointLoading(false)
+            }
+            refetchNdvi()
+        }
+    }, [cloudTolerance, selectedYear, selectedMonth, isImageAvailable, selectedPoint.lat, selectedPoint.lon, rectangleBounds, loading, fetchPointNdvi])
+
+    useEffect(() => {
         if (selectedYear && selectedMonth) {
             const sliderValue = getCurrentSliderValue()
             if (timeSliderValueRef.current !== sliderValue) {

@@ -161,33 +161,46 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
-    const mean = collection.mean().clip(rectangle)
-
     return await new Promise((resolve, reject) => {
-        const sampled = mean.sampleRegions({
-            collection: ee.FeatureCollection([ee.Feature(point)]),
-            scale: 10,
-            tileScale: 2
-        })
-        
-        sampled.first().getInfo((feature, err) => {
+        collection.size().getInfo((size, err) => {
             if (err) {
                 const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
-                console.error("Earth Engine error:", errorMsg)
+                console.error("Earth Engine error checking collection size:", errorMsg)
                 reject(new Error(errorMsg))
                 return
             }
-            const ndviValue = feature?.properties?.NDVI
-            if (ndviValue === null || ndviValue === undefined) {
-                console.log("No NDVI value found at point")
-                reject(new Error("No NDVI value found at this point"))
+            
+            if (size === 0) {
+                reject(new Error("No images found for the specified criteria"))
                 return
             }
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-            const startDate = new Date(start)
-            const monthYear = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`
-            console.log(`NDVI value retrieved for ${monthYear}:`, ndviValue)
-            resolve(ndviValue)
+            
+            const mean = collection.mean().clip(rectangle)
+            const sampled = mean.sampleRegions({
+                collection: ee.FeatureCollection([ee.Feature(point)]),
+                scale: 10,
+                tileScale: 2
+            })
+            
+            sampled.first().getInfo((feature, err) => {
+                if (err) {
+                    const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
+                    console.error("Earth Engine error:", errorMsg)
+                    reject(new Error(errorMsg))
+                    return
+                }
+                const ndviValue = feature?.properties?.NDVI
+                if (ndviValue === null || ndviValue === undefined) {
+                    console.log("No NDVI value found at point")
+                    reject(new Error("No NDVI value found at this point"))
+                    return
+                }
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                const startDate = new Date(start)
+                const monthYear = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`
+                console.log(`NDVI value retrieved for ${monthYear}:`, ndviValue)
+                resolve(ndviValue)
+            })
         })
     })
 }
