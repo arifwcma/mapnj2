@@ -80,7 +80,7 @@ function PointClickHandler({ isActive, onPointClick }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
@@ -123,6 +123,13 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                             NDVI: {selectedPoint.ndvi.toFixed(2)}
                         </Popup>
                     )}
+                </Marker>
+            )}
+            {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
+                <Marker position={[secondPoint.lat, secondPoint.lon]}>
+                    <Popup>
+                        Second point: {secondPoint.lat.toFixed(6)}, {secondPoint.lon.toFixed(6)}
+                    </Popup>
                 </Marker>
             )}
         </MapContainer>

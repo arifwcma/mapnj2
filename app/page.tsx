@@ -52,6 +52,8 @@ export default function Page() {
     const [basemap, setBasemap] = useState("street")
     const [selectedPoint, setSelectedPoint] = useState({ lat: null, lon: null, ndvi: null })
     const [pointLoading, setPointLoading] = useState(false)
+    const [secondPointSelection, setSecondPointSelection] = useState(false)
+    const [secondPoint, setSecondPoint] = useState({ lat: null, lon: null })
     const pointLoaded = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
 
     const fetchPointNdvi = useCallback(async (lat, lon) => {
@@ -236,6 +238,20 @@ export default function Page() {
     }
 
     const handlePointClick = useCallback(async (lat, lon) => {
+        if (secondPointSelection) {
+            if (!rectangleBounds) return
+            
+            const [minLat, minLng] = rectangleBounds[0]
+            const [maxLat, maxLng] = rectangleBounds[1]
+            
+            if (lat < minLat || lat > maxLat || lon < minLng || lon > maxLng) {
+                return
+            }
+            
+            setSecondPoint({ lat, lon })
+            return
+        }
+        
         console.log("Point clicked:", lat, lon, { isImageAvailable: isImageAvailable(), rectangleBounds, selectedYear, selectedMonth })
         if (!isImageAvailable() || !rectangleBounds || !selectedYear || !selectedMonth) {
             console.log("Conditions not met")
@@ -263,7 +279,7 @@ export default function Page() {
         setTimeout(() => {
             justSetPointRef.current = false
         }, 100)
-    }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, fetchPointNdvi])
+    }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, fetchPointNdvi, secondPointSelection])
 
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
@@ -281,6 +297,7 @@ export default function Page() {
                     isPointAnalysisMode={isImageAvailable()}
                     onPointClick={handlePointClick}
                     selectedPoint={selectedPoint}
+                    secondPoint={secondPoint}
                 />
             </div>
             <div style={{ width: "33.33%", height: "100vh", display: "flex", flexDirection: "column", borderLeft: "1px solid #ccc", backgroundColor: "white" }}>
@@ -481,9 +498,41 @@ export default function Page() {
                                                     </button>
                                                 </div>
                                             )}
-                                            {isImageAvailable() && (
+                                            {isImageAvailable() && !secondPointSelection && (
+                                                <>
+                                                    <div style={{ marginTop: "10px", fontSize: "14px", color: "red" }}>
+                                                        Click a point to analyse
+                                                    </div>
+                                                    {pointLoaded && (
+                                                        <button
+                                                            onClick={() => setSecondPointSelection(true)}
+                                                            style={{
+                                                                background: "none",
+                                                                border: "none",
+                                                                padding: "10px 0",
+                                                                margin: "10px 0 0 0",
+                                                                cursor: "pointer",
+                                                                fontSize: "16px",
+                                                                color: "#0066cc",
+                                                                textDecoration: "none",
+                                                                fontFamily: "inherit",
+                                                                display: "block"
+                                                            }}
+                                                            onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
+                                                            onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+                                                        >
+                                                            Compare with another point
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                            {isImageAvailable() && secondPointSelection && (
                                                 <div style={{ marginTop: "10px", fontSize: "14px", color: "red" }}>
-                                                    Click a point to analyse
+                                                    {secondPoint.lat !== null && secondPoint.lon !== null ? (
+                                                        <>Second point: {secondPoint.lat.toFixed(6)},{secondPoint.lon.toFixed(6)}</>
+                                                    ) : (
+                                                        <>Click to choose the second point</>
+                                                    )}
                                                 </div>
                                             )}
                                         </>
