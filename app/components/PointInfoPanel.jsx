@@ -217,7 +217,10 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
     const canGoRight = () => {
         if (plotData.length === 0) return false
         const lastMonth = plotData[plotData.length - 1]
-        return !(lastMonth.year > endYear || (lastMonth.year === endYear && lastMonth.month >= endMonthNum))
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth() + 1
+        return !(lastMonth.year > currentYear || (lastMonth.year === currentYear && lastMonth.month >= currentMonth))
     }
 
     const handleLeftArrow = () => {
@@ -262,6 +265,14 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
 
         const lastMonth = plotData[plotData.length - 1]
         const nextMonth = getNextMonth(lastMonth.year, lastMonth.month)
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth() + 1
+        
+        if (nextMonth.year > currentYear || (nextMonth.year === currentYear && nextMonth.month > currentMonth)) {
+            return
+        }
+
         const key = `${nextMonth.year}-${nextMonth.month}`
 
         const existingIndex = plotData.findIndex(d => d.year === nextMonth.year && d.month === nextMonth.month)
@@ -342,6 +353,17 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
                             →
                         </button>
                     </div>
+                    {(() => {
+                        const validNdviValues = plotData.filter(d => d.ndvi !== null && d.ndvi !== undefined).map(d => d.ndvi)
+                        const average = validNdviValues.length > 0 
+                            ? validNdviValues.reduce((sum, val) => sum + val, 0) / validNdviValues.length 
+                            : null
+                        return average !== null ? (
+                            <div style={{ fontSize: "14px", color: "#666", marginTop: "10px", textAlign: "center" }}>
+                                Average: {average.toFixed(2)}
+                            </div>
+                        ) : null
+                    })()}
                 </>
             )}
             {loading && (
