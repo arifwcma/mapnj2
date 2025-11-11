@@ -56,11 +56,26 @@ function getInitialMonthsRange(currentYear, currentMonth, endYear, endMonthNum) 
     return months
 }
 
+function getPreviousMonth(year, month) {
+    if (month === 1) {
+        return { year: year - 1, month: 12 }
+    }
+    return { year, month: month - 1 }
+}
+
+function getNextMonth(year, month) {
+    if (month === 12) {
+        return { year: year + 1, month: 1 }
+    }
+    return { year, month: month + 1 }
+}
+
 export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance }) {
     const [plotData, setPlotData] = useState([])
     const [loading, setLoading] = useState(false)
     const fetchedMonthsRef = useRef(new Set())
     const fetchingRef = useRef(false)
+    const arrowDebounceTimeoutRef = useRef(null)
     
     const fetchMonthsData = async (monthsToFetch) => {
         if (monthsToFetch.length === 0 || !rectangleBounds) {
@@ -192,6 +207,92 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
             }
         }
     }
+
+    const canGoLeft = () => {
+        if (plotData.length === 0) return false
+        const firstMonth = plotData[0]
+        return !(firstMonth.year < MIN_YEAR || (firstMonth.year === MIN_YEAR && firstMonth.month <= MIN_MONTH))
+    }
+
+    const canGoRight = () => {
+        if (plotData.length === 0) return false
+        const lastMonth = plotData[plotData.length - 1]
+        return !(lastMonth.year > endYear || (lastMonth.year === endYear && lastMonth.month >= endMonthNum))
+    }
+
+    const handleLeftArrow = () => {
+        if (!canGoLeft() || loading || fetchingRef.current || plotData.length === 0) return
+
+        const firstMonth = plotData[0]
+        const prevMonth = getPreviousMonth(firstMonth.year, firstMonth.month)
+        const key = `${prevMonth.year}-${prevMonth.month}`
+
+        const existingIndex = plotData.findIndex(d => d.year === prevMonth.year && d.month === prevMonth.month)
+        if (existingIndex !== -1) {
+            return
+        }
+
+        if (arrowDebounceTimeoutRef.current) {
+            clearTimeout(arrowDebounceTimeoutRef.current)
+        }
+
+        arrowDebounceTimeoutRef.current = setTimeout(async () => {
+            fetchingRef.current = true
+            setLoading(true)
+
+            const results = await fetchMonthsData([prevMonth])
+            if (results.length > 0) {
+                const newItem = {
+                    year: results[0].year,
+                    month: results[0].month,
+                    label: formatMonthLabel(results[0].year, results[0].month),
+                    ndvi: results[0].ndvi
+                }
+                fetchedMonthsRef.current.add(key)
+                setPlotData(prev => [newItem, ...prev])
+            }
+
+            setLoading(false)
+            fetchingRef.current = false
+        }, 1000)
+    }
+
+    const handleRightArrow = () => {
+        if (!canGoRight() || loading || fetchingRef.current || plotData.length === 0) return
+
+        const lastMonth = plotData[plotData.length - 1]
+        const nextMonth = getNextMonth(lastMonth.year, lastMonth.month)
+        const key = `${nextMonth.year}-${nextMonth.month}`
+
+        const existingIndex = plotData.findIndex(d => d.year === nextMonth.year && d.month === nextMonth.month)
+        if (existingIndex !== -1) {
+            return
+        }
+
+        if (arrowDebounceTimeoutRef.current) {
+            clearTimeout(arrowDebounceTimeoutRef.current)
+        }
+
+        arrowDebounceTimeoutRef.current = setTimeout(async () => {
+            fetchingRef.current = true
+            setLoading(true)
+
+            const results = await fetchMonthsData([nextMonth])
+            if (results.length > 0) {
+                const newItem = {
+                    year: results[0].year,
+                    month: results[0].month,
+                    label: formatMonthLabel(results[0].year, results[0].month),
+                    ndvi: results[0].ndvi
+                }
+                fetchedMonthsRef.current.add(key)
+                setPlotData(prev => [...prev, newItem])
+            }
+
+            setLoading(false)
+            fetchingRef.current = false
+        }, 1000)
+    }
     
     return (
         <div>
@@ -205,9 +306,43 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
                 </div>
             ) : null}
             {!isReloading && !loading && plotData.length > 0 && (
-                <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
-                    <Line data={chartData} options={chartOptions} />
-                </div>
+                <>
+                    <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
+                        <Line data={chartData} options={chartOptions} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", padding: "0 10px" }}>
+                        <button
+                            onClick={handleLeftArrow}
+                            disabled={!canGoLeft() || loading}
+                            style={{
+                                background: "none",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
+                                padding: "8px 12px",
+                                cursor: (!canGoLeft() || loading) ? "not-allowed" : "pointer",
+                                opacity: (!canGoLeft() || loading) ? 0.5 : 1,
+                                fontSize: "18px"
+                            }}
+                        >
+                            ←
+                        </button>
+                        <button
+                            onClick={handleRightArrow}
+                            disabled={!canGoRight() || loading}
+                            style={{
+                                background: "none",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
+                                padding: "8px 12px",
+                                cursor: (!canGoRight() || loading) ? "not-allowed" : "pointer",
+                                opacity: (!canGoRight() || loading) ? 0.5 : 1,
+                                fontSize: "18px"
+                            }}
+                        >
+                            →
+                        </button>
+                    </div>
+                </>
             )}
             {loading && (
                 <div style={{ fontSize: "14px", color: "#666", marginTop: "20px" }}>
