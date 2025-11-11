@@ -287,6 +287,7 @@ export default function Page() {
         console.log("Setting loading state")
         setPointLoading(true)
         justSetPointRef.current = true
+        setSelectedPoint({ lat, lon, ndvi: null })
         const ndvi = await fetchPointNdvi(lat, lon)
         if (ndvi !== null) {
             console.log("Setting selected point:", { lat, lon, ndvi })
@@ -566,12 +567,13 @@ export default function Page() {
                         lat={selectedPoint.lat} 
                         lon={selectedPoint.lon} 
                         pointInfoPanel={
-                            pointLoaded ? (
+                            selectedPoint.lat !== null && selectedPoint.lon !== null ? (
                                 <PointInfoPanel
                                     lat={selectedPoint.lat}
                                     lon={selectedPoint.lon}
                                     ndvi={selectedPoint.ndvi}
                                     isReloading={loading && pointLoaded}
+                                    isLoading={pointLoading}
                                     selectedYear={selectedYear}
                                     selectedMonth={selectedMonth}
                                     endYear={endYear}

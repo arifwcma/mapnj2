@@ -70,7 +70,7 @@ function getNextMonth(year, month) {
     return { year, month: month + 1 }
 }
 
-export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance }) {
+export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance }) {
     const [plotData, setPlotData] = useState([])
     const [loading, setLoading] = useState(false)
     const fetchedMonthsRef = useRef(new Set())
@@ -116,7 +116,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
     }
     
     useEffect(() => {
-        if (!lat || !lon || !selectedYear || !selectedMonth || !rectangleBounds || !endYear || !endMonthNum) {
+        if (!lat || !lon || !selectedYear || !selectedMonth || !rectangleBounds || !endYear || !endMonthNum || isLoading) {
             return
         }
         
@@ -157,7 +157,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
             setLoading(false)
             fetchingRef.current = false
         })
-    }, [lat, lon, endYear, endMonthNum, rectangleBounds, cloudTolerance, selectedYear, selectedMonth])
+    }, [lat, lon, endYear, endMonthNum, rectangleBounds, cloudTolerance, selectedYear, selectedMonth, isLoading])
     
     const chartData = {
         labels: plotData.map(d => d.label),
@@ -311,12 +311,16 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, selectedYe
                 <div style={{ fontSize: "16px" }}>
                     Reloading ...
                 </div>
+            ) : isLoading || (ndvi === null || ndvi === undefined) ? (
+                <div style={{ fontSize: "16px", marginBottom: "20px" }}>
+                    Calculating NDVI ...
+                </div>
             ) : ndvi !== null && ndvi !== undefined ? (
                 <div style={{ fontSize: "16px", marginBottom: "20px" }}>
                     NDVI: {ndvi.toFixed(2)}
                 </div>
             ) : null}
-            {!isReloading && !loading && plotData.length > 0 && (
+            {!isReloading && !isLoading && !loading && plotData.length > 0 && (
                 <>
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line data={chartData} options={chartOptions} />
