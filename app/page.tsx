@@ -41,6 +41,7 @@ export default function Page() {
     const sliderDebounceTimeoutRef = useRef(null)
     const timeSliderDebounceTimeoutRef = useRef(null)
     const cloudToleranceRef = useRef(cloudTolerance)
+    const timeSliderValueRef = useRef(0)
     const isInitialLoadRef = useRef(false)
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
@@ -69,9 +70,20 @@ export default function Page() {
     useEffect(() => {
         if (selectedYear && selectedMonth) {
             const sliderValue = getCurrentSliderValue()
-            setLocalTimeSliderValue(sliderValue)
+            if (timeSliderValueRef.current !== sliderValue) {
+                timeSliderValueRef.current = sliderValue
+                setLocalTimeSliderValue(sliderValue)
+            }
         }
     }, [selectedYear, selectedMonth, getCurrentSliderValue])
+
+    useEffect(() => {
+        if (endYear && endMonthNum && !selectedYear && !selectedMonth) {
+            const sliderValue = monthYearToSliderValue(endYear, endMonthNum)
+            timeSliderValueRef.current = sliderValue
+            setLocalTimeSliderValue(sliderValue)
+        }
+    }, [endYear, endMonthNum, selectedYear, selectedMonth, monthYearToSliderValue])
 
     const handleButtonClick = () => {
         if (rectangleBounds) {
@@ -130,6 +142,7 @@ export default function Page() {
     }
 
     const handleTimeChange = (newValue) => {
+        timeSliderValueRef.current = newValue
         setLocalTimeSliderValue(newValue)
         
         if (timeSliderDebounceTimeoutRef.current) {
@@ -143,9 +156,10 @@ export default function Page() {
     }
 
     const handleTimeButtonClick = (delta) => {
-        const currentValue = getCurrentSliderValue()
+        const currentValue = timeSliderValueRef.current
         const maxValue = getMaxSliderValue()
         const newValue = Math.max(0, Math.min(maxValue, currentValue + delta))
+        timeSliderValueRef.current = newValue
         setLocalTimeSliderValue(newValue)
 
         if (timeSliderDebounceTimeoutRef.current) {
@@ -158,13 +172,6 @@ export default function Page() {
         }, 1000)
     }
 
-    const handleTimeButtonRelease = () => {
-        if (timeSliderDebounceTimeoutRef.current) {
-            clearTimeout(timeSliderDebounceTimeoutRef.current)
-        }
-        const { year, month } = sliderValueToMonthYear(localTimeSliderValue)
-        updateSelectedMonth(year, month)
-    }
 
     const getMonthYearLabel = (sliderValue) => {
         const { year, month } = sliderValueToMonthYear(sliderValue)
@@ -272,7 +279,6 @@ export default function Page() {
                                         <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
                                             <button
                                                 onClick={() => handleTimeButtonClick(-1)}
-                                                onMouseUp={handleTimeButtonRelease}
                                                 disabled={localTimeSliderValue === 0}
                                                 style={{
                                                     width: "30px",
@@ -289,21 +295,22 @@ export default function Page() {
                                             </button>
                                             <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                                 <label style={{ fontSize: "14px", display: "block" }}>
-                                                    Time: {getMonthYearLabel(localTimeSliderValue)}
+                                                    {getMonthYearLabel(localTimeSliderValue)}
                                                 </label>
                                                 <input
                                                     type="range"
                                                     min="0"
                                                     max={getMaxSliderValue()}
                                                     value={localTimeSliderValue}
-                                                    onChange={(e) => handleTimeChange(parseInt(e.target.value))}
-                                                    onMouseUp={handleTimeButtonRelease}
+                                                    onChange={(e) => {
+                                                        const newValue = parseInt(e.target.value)
+                                                        handleTimeChange(newValue)
+                                                    }}
                                                     style={{ width: "200px" }}
                                                 />
                                             </div>
                                             <button
                                                 onClick={() => handleTimeButtonClick(1)}
-                                                onMouseUp={handleTimeButtonRelease}
                                                 disabled={localTimeSliderValue >= getMaxSliderValue()}
                                                 style={{
                                                     width: "30px",
