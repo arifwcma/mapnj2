@@ -13,7 +13,6 @@ const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContai
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
 const Rectangle = dynamic(() => import("react-leaflet").then(m => m.Rectangle), { ssr: false })
 const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false })
-const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false })
 
 function FixMarkerIcon() {
     useEffect(() => {
@@ -341,13 +340,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     draggable={isMoveMode}
                     onDragEnd={onMarkerDragEnd}
                     rectangleBounds={rectangleBounds}
-                >
-                    {selectedPoint.ndvi !== null && selectedPoint.ndvi !== undefined && (
-                        <Popup>
-                            NDVI: {selectedPoint.ndvi.toFixed(2)}
-                        </Popup>
-                    )}
-                </DraggableMarker>
+                />
             )}
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
                 <SecondPointMarker 
@@ -355,11 +348,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     draggable={isMoveMode}
                     onDragEnd={onMarkerDragEnd}
                     rectangleBounds={rectangleBounds}
-                >
-                    <Popup>
-                        Second point: {secondPoint.lat.toFixed(6)}, {secondPoint.lon.toFixed(6)}
-                    </Popup>
-                </SecondPointMarker>
+                />
             )}
         </MapContainer>
     )

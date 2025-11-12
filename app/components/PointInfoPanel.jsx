@@ -324,6 +324,14 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                     font: {
                         size: 13
                     }
+                },
+                title: {
+                    display: true,
+                    text: "NDVI",
+                    font: {
+                        size: 13
+                    },
+                    rotation: -90
                 }
             }
         }
