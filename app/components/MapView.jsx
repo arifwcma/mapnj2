@@ -31,7 +31,7 @@ function FixMarkerIcon() {
     return null
 }
 
-function SecondPointMarker({ position, children }) {
+function SecondPointMarker({ position, children, draggable = false, onDragEnd }) {
     const [icon, setIcon] = useState(null)
     
     useEffect(() => {
@@ -53,7 +53,22 @@ function SecondPointMarker({ position, children }) {
     
     if (!icon || !position) return null
     
-    return <Marker position={position} icon={icon}>{children}</Marker>
+    return (
+        <Marker 
+            position={position} 
+            icon={icon}
+            draggable={draggable}
+            eventHandlers={draggable && onDragEnd ? {
+                dragend: (e) => {
+                    const marker = e.target
+                    const position = marker.getLatLng()
+                    onDragEnd(position.lat, position.lng, true)
+                }
+            } : {}}
+        >
+            {children}
+        </Marker>
+    )
 }
 
 function MapResize({ ndviTileUrl, rgbTileUrl }) {
@@ -105,7 +120,66 @@ function PointClickHandler({ isActive, onPointClick }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null }) {
+function MoveModeHandler({ isActive, onMarkerDragEnd }) {
+    const map = useMap()
+    
+    useEffect(() => {
+        if (!map) return
+        
+        if (isActive) {
+            const container = map.getContainer()
+            container.style.cursor = "move"
+            container.style.setProperty("cursor", "move", "important")
+            map.dragging.disable()
+            map.doubleClickZoom.disable()
+            map.scrollWheelZoom.disable()
+            
+            const styleId = "leaflet-move-cursor"
+            let styleEl = document.getElementById(styleId)
+            if (!styleEl) {
+                styleEl = document.createElement("style")
+                styleEl.id = styleId
+                styleEl.textContent = `
+                    .leaflet-container.leaflet-move-mode,
+                    .leaflet-container.leaflet-move-mode *,
+                    .leaflet-container.leaflet-move-mode svg,
+                    .leaflet-container.leaflet-move-mode svg * {
+                        cursor: move !important;
+                    }
+                    .leaflet-container.leaflet-move-mode .leaflet-marker-icon {
+                        cursor: move !important;
+                    }
+                `
+                document.head.appendChild(styleEl)
+            }
+            container.classList.add("leaflet-move-mode")
+        } else {
+            const container = map.getContainer()
+            container.style.cursor = ""
+            container.style.removeProperty("cursor")
+            map.dragging.enable()
+            map.doubleClickZoom.enable()
+            map.scrollWheelZoom.enable()
+            container.classList.remove("leaflet-move-mode")
+        }
+        
+        return () => {
+            if (isActive) {
+                const container = map.getContainer()
+                container.style.cursor = ""
+                container.style.removeProperty("cursor")
+                map.dragging.enable()
+                map.doubleClickZoom.enable()
+                map.scrollWheelZoom.enable()
+                container.classList.remove("leaflet-move-mode")
+            }
+        }
+    }, [map, isActive])
+    
+    return null
+}
+
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
@@ -121,7 +195,8 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
-            {!isDrawing && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
+            {!isDrawing && !isMoveMode && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
+            {isMoveMode && <MoveModeHandler isActive={isMoveMode} onMarkerDragEnd={onMarkerDragEnd} />}
             {boundary && <BoundaryLayer data={boundary} />}
             {isDrawing && (
                 <RectangleDrawHandler
@@ -145,7 +220,17 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
             )}
             {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
-                <Marker position={[selectedPoint.lat, selectedPoint.lon]}>
+                <Marker 
+                    position={[selectedPoint.lat, selectedPoint.lon]}
+                    draggable={isMoveMode}
+                    eventHandlers={isMoveMode && onMarkerDragEnd ? {
+                        dragend: (e) => {
+                            const marker = e.target
+                            const position = marker.getLatLng()
+                            onMarkerDragEnd(position.lat, position.lng, false)
+                        }
+                    } : {}}
+                >
                     {selectedPoint.ndvi !== null && selectedPoint.ndvi !== undefined && (
                         <Popup>
                             NDVI: {selectedPoint.ndvi.toFixed(2)}
@@ -154,7 +239,11 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 </Marker>
             )}
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
-                <SecondPointMarker position={[secondPoint.lat, secondPoint.lon]}>
+                <SecondPointMarker 
+                    position={[secondPoint.lat, secondPoint.lon]}
+                    draggable={isMoveMode}
+                    onDragEnd={onMarkerDragEnd}
+                >
                     <Popup>
                         Second point: {secondPoint.lat.toFixed(6)}, {secondPoint.lon.toFixed(6)}
                     </Popup>

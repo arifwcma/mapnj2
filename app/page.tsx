@@ -58,6 +58,7 @@ export default function Page() {
     const [secondPointSelection, setSecondPointSelection] = useState(false)
     const [secondPoint, setSecondPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [secondPointLoading, setSecondPointLoading] = useState(false)
+    const [isMoveMode, setIsMoveMode] = useState(false)
     const pointLoaded = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
 
     const fetchPointNdvi = useCallback(async (lat: number, lon: number) => {
@@ -173,6 +174,7 @@ export default function Page() {
     }, [endYear, endMonthNum, selectedYear, selectedMonth, monthYearToSliderValue])
 
     const handleButtonClick = () => {
+        setIsMoveMode(false)
         resetRectangle()
         clearNdvi()
         setSelectedPoint({ lat: null, lon: null, ndvi: null })
@@ -266,6 +268,10 @@ export default function Page() {
     }
 
     const handlePointClick = useCallback(async (lat: number, lon: number) => {
+        if (isMoveMode) {
+            return
+        }
+        
         if (secondPointSelection) {
             if (!rectangleBounds) return
             
@@ -310,7 +316,39 @@ export default function Page() {
         setTimeout(() => {
             justSetPointRef.current = false
         }, 100)
-    }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, fetchPointNdvi, secondPointSelection])
+    }, [isImageAvailable, rectangleBounds, selectedYear, selectedMonth, fetchPointNdvi, secondPointSelection, isMoveMode])
+
+    const handleMarkerDragEnd = useCallback(async (lat: number, lon: number, isSecondPoint: boolean = false) => {
+        if (!isMoveMode) return
+        
+        const bounds = rectangleBounds as [[number, number], [number, number]] | null
+        if (!bounds) return
+        
+        const [minLat, minLng] = bounds[0]
+        const [maxLat, maxLng] = bounds[1]
+        
+        if (lat < minLat || lat > maxLat || lon < minLng || lon > maxLng) {
+            return
+        }
+        
+        if (isSecondPoint) {
+            setSecondPoint({ lat, lon })
+        } else {
+            setPointLoading(true)
+            justSetPointRef.current = true
+            setSelectedPoint({ lat, lon, ndvi: null })
+            const ndvi = await fetchPointNdvi(lat, lon)
+            if (ndvi !== null) {
+                setSelectedPoint({ lat, lon, ndvi })
+            } else {
+                setSelectedPoint({ lat, lon, ndvi: null })
+            }
+            setPointLoading(false)
+            setTimeout(() => {
+                justSetPointRef.current = false
+            }, 100)
+        }
+    }, [isMoveMode, rectangleBounds, fetchPointNdvi])
 
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
@@ -327,10 +365,12 @@ export default function Page() {
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}
-                    isPointAnalysisMode={isImageAvailable()}
+                    isPointAnalysisMode={isImageAvailable() && !isMoveMode}
                     onPointClick={handlePointClick}
                     selectedPoint={selectedPoint as any}
                     secondPoint={secondPoint as any}
+                    isMoveMode={isMoveMode}
+                    onMarkerDragEnd={handleMarkerDragEnd}
                 />
             </div>
             <div style={{ width: "33.33%", height: "100vh", display: "flex", flexDirection: "column", borderLeft: "1px solid #ccc", backgroundColor: "white" }}>
@@ -609,20 +649,42 @@ export default function Page() {
                                                     </button>
                                                 </div>
                                             )}
-                                            {isImageAvailable() && !secondPointSelection && (
+                                            {isImageAvailable() && !secondPointSelection && !isMoveMode && (
                                                 <>
-                                                    <div style={{ 
-                                                        marginTop: "10px", 
-                                                        fontSize: "13px", 
-                                                        color: "#555",
-                                                        backgroundColor: "#f8f9fa",
-                                                        border: "1px solid #e0e0e0",
-                                                        borderRadius: "4px",
-                                                        padding: "8px 12px",
-                                                        textAlign: "center"
-                                                    }}>
-                                                        Click a point to analyse
-                                                    </div>
+                                                    {pointLoaded ? (
+                                                        <button
+                                                            onClick={() => setIsMoveMode(true)}
+                                                            style={{
+                                                                background: "none",
+                                                                border: "none",
+                                                                padding: "10px 0",
+                                                                margin: "10px 0 0 0",
+                                                                cursor: "pointer",
+                                                                fontSize: "13px",
+                                                                color: "#0066cc",
+                                                                textDecoration: "none",
+                                                                fontFamily: "inherit",
+                                                                display: "block"
+                                                            }}
+                                                            onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
+                                                            onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
+                                                        >
+                                                            Move point marker
+                                                        </button>
+                                                    ) : (
+                                                        <div style={{ 
+                                                            marginTop: "10px", 
+                                                            fontSize: "13px", 
+                                                            color: "#555",
+                                                            backgroundColor: "#f8f9fa",
+                                                            border: "1px solid #e0e0e0",
+                                                            borderRadius: "4px",
+                                                            padding: "8px 12px",
+                                                            textAlign: "center"
+                                                        }}>
+                                                            Click a point to analyse
+                                                        </div>
+                                                    )}
                                                     {pointLoaded && (
                                                         <button
                                                             onClick={() => setSecondPointSelection(true)}
@@ -644,6 +706,41 @@ export default function Page() {
                                                         Compare with another point
                                                     </button>
                                                     )}
+                                                </>
+                                            )}
+                                            {isImageAvailable() && isMoveMode && (
+                                                <>
+                                                    <div style={{ 
+                                                        marginTop: "10px", 
+                                                        fontSize: "13px", 
+                                                        color: "#555",
+                                                        backgroundColor: "#f8f9fa",
+                                                        border: "1px solid #e0e0e0",
+                                                        borderRadius: "4px",
+                                                        padding: "8px 12px",
+                                                        textAlign: "center"
+                                                    }}>
+                                                        Drag a marker to move
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setIsMoveMode(false)}
+                                                        style={{
+                                                            background: "none",
+                                                            border: "none",
+                                                            padding: "10px 0",
+                                                            margin: "10px 0 0 0",
+                                                            cursor: "pointer",
+                                                            fontSize: "13px",
+                                                            color: "#0066cc",
+                                                            textDecoration: "none",
+                                                            fontFamily: "inherit",
+                                                            display: "block"
+                                                        }}
+                                                        onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
+                                                        onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
+                                                    >
+                                                        Cancel move
+                                                    </button>
                                                 </>
                                             )}
                                             {isImageAvailable() && secondPointSelection && (
