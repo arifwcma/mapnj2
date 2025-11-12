@@ -830,6 +830,33 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                     <span>Loading chart data...</span>
                 </div>
             )}
+            {secondLoading && (
+                <div style={{
+                    fontSize: "13px",
+                    color: "#333",
+                    backgroundColor: "#f0f8ff",
+                    border: "1px solid #b3d9ff",
+                    borderRadius: "4px",
+                    padding: "10px 15px",
+                    marginTop: "10px",
+                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px"
+                }}>
+                    <div style={{
+                        display: "inline-block",
+                        width: "14px",
+                        height: "14px",
+                        border: "2px solid #b3d9ff",
+                        borderTop: "2px solid #0066cc",
+                        borderRadius: "50%",
+                        animation: "spin 1s linear infinite"
+                    }}></div>
+                    <span>Loading second point on the chart ...</span>
+                </div>
+            )}
         </div>
     )
 }

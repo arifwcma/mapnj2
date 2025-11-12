@@ -648,59 +648,20 @@ export default function Page() {
                                             )}
                                             {isImageAvailable() && secondPointSelection && (
                                                 <div>
-                                                    <div style={{ 
-                                                        marginTop: "10px", 
-                                                        fontSize: "13px", 
-                                                        color: "#555",
-                                                        backgroundColor: secondPoint.lat !== null && secondPoint.lon !== null ? "transparent" : "#f8f9fa",
-                                                        border: secondPoint.lat !== null && secondPoint.lon !== null ? "none" : "1px solid #e0e0e0",
-                                                        borderRadius: "4px",
-                                                        padding: secondPoint.lat !== null && secondPoint.lon !== null ? "0" : "8px 12px",
-                                                        textAlign: secondPoint.lat !== null && secondPoint.lon !== null ? "left" : "center",
-                                                        display: "flex", 
-                                                        alignItems: "center", 
-                                                        gap: "5px" 
-                                                    }}>
-                                                        {secondPoint.lat !== null && secondPoint.lon !== null ? (
-                                                            <>
-                                                                <img 
-                                                                    src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
-                                                                    alt="Red marker" 
-                                                                    style={{ width: "20px", height: "32px" }}
-                                                                />
-                                                                <span>: {secondPoint.lat!.toFixed(6)},{secondPoint.lon!.toFixed(6)}</span>
-                                                            </>
-                                                        ) : (
-                                                            <>Click to choose the second point</>
-                                                        )}
-                                                    </div>
-                                                    {secondPoint.lat !== null && secondPoint.lon !== null && secondPointLoading && (
-                                                        <div style={{
-                                                            marginTop: "10px",
-                                                            fontSize: "13px",
-                                                            color: "#333",
-                                                            backgroundColor: "#f0f8ff",
-                                                            border: "1px solid #b3d9ff",
+                                                    {secondPoint.lat === null || secondPoint.lon === null ? (
+                                                        <div style={{ 
+                                                            marginTop: "10px", 
+                                                            fontSize: "13px", 
+                                                            color: "#555",
+                                                            backgroundColor: "#f8f9fa",
+                                                            border: "1px solid #e0e0e0",
                                                             borderRadius: "4px",
-                                                            padding: "10px 15px",
-                                                            textAlign: "center",
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                            gap: "8px"
+                                                            padding: "8px 12px",
+                                                            textAlign: "center"
                                                         }}>
-                                                            <div style={{
-                                                                display: "inline-block",
-                                                                width: "14px",
-                                                                height: "14px",
-                                                                border: "2px solid #b3d9ff",
-                                                                borderTop: "2px solid #0066cc",
-                                                                borderRadius: "50%",
-                                                                animation: "spin 1s linear infinite"
-                                                            }}></div>
-                                                            <span>Loading second point on the chart ...</span>
+                                                            Click to choose the second point
                                                         </div>
-                                                    )}
+                                                    ) : null}
                                                 </div>
                                             )}
                                         </>
@@ -715,6 +676,7 @@ export default function Page() {
                         lat={selectedPoint.lat} 
                         lon={selectedPoint.lon}
                         ndvi={selectedPoint.ndvi}
+                        secondPoint={secondPoint as any}
                         pointInfoPanel={
                             (selectedPoint.lat !== null && selectedPoint.lon !== null ? (
                                 <PointInfoPanel
