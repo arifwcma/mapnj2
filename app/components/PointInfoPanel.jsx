@@ -664,24 +664,47 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                     <span>Calculating NDVI ...</span>
                 </div>
             ) : ndvi !== null && ndvi !== undefined ? (
-                <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
-                    {(() => {
+                <>
+                    <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
+                        {(() => {
+                            const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                            const timeLabel = selectedYear && selectedMonth 
+                                ? ` (${MONTH_NAMES[selectedMonth - 1]} ${selectedYear})`
+                                : ""
+                            return (
+                                <>
+                                    <img 
+                                        src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                                        alt="Blue marker" 
+                                        style={{ width: "20px", height: "32px" }}
+                                    />
+                                    <span>NDVI{timeLabel}: <strong>{ndvi.toFixed(2)}</strong></span>
+                                </>
+                            )
+                        })()}
+                    </div>
+                    {secondPoint && secondPoint.lat && secondPoint.lon && secondPlotData.length > 0 && (() => {
                         const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
                         const timeLabel = selectedYear && selectedMonth 
                             ? ` (${MONTH_NAMES[selectedMonth - 1]} ${selectedYear})`
                             : ""
-                        return (
-                            <>
-                                <img 
-                                    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
-                                    alt="Blue marker" 
-                                    style={{ width: "20px", height: "32px" }}
-                                />
-                                <span>NDVI{timeLabel}: <strong>{ndvi.toFixed(2)}</strong></span>
-                            </>
-                        )
+                        const secondNdviData = secondPlotData.find(d => d.year === selectedYear && d.month === selectedMonth)
+                        const secondNdvi = secondNdviData?.ndvi
+                        if (secondNdvi !== null && secondNdvi !== undefined) {
+                            return (
+                                <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
+                                    <img 
+                                        src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                                        alt="Red marker" 
+                                        style={{ width: "20px", height: "32px" }}
+                                    />
+                                    <span>NDVI{timeLabel}: <strong>{secondNdvi.toFixed(2)}</strong></span>
+                                </div>
+                            )
+                        }
+                        return null
                     })()}
-                </div>
+                </>
             ) : null}
             {!isReloading && !isLoading && !loading && plotData.length > 0 && (
                 <>
