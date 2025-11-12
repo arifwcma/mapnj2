@@ -83,6 +83,9 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     const previousSecondPointRef = useRef(null)
     const leftArrowClickCountRef = useRef(0)
     const rightArrowClickCountRef = useRef(0)
+    const chartRef = useRef(null)
+    const [firstPointHidden, setFirstPointHidden] = useState(false)
+    const [secondPointHidden, setSecondPointHidden] = useState(false)
     
     const fetchMonthsData = async (monthsToFetch, pointLat, pointLon) => {
         if (monthsToFetch.length === 0 || !rectangleBounds) {
@@ -298,8 +301,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: secondPlotData.length > 0,
-                position: 'top'
+                display: false
             },
             tooltip: {
                 enabled: true
@@ -641,8 +643,60 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             ) : null}
             {!isReloading && !isLoading && !loading && plotData.length > 0 && (
                 <>
+                    {secondPlotData.length > 0 && (
+                        <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginTop: "20px", marginBottom: "10px" }}>
+                            <div 
+                                style={{ 
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    gap: "5px", 
+                                    cursor: "pointer",
+                                    opacity: firstPointHidden ? 0.5 : 1
+                                }}
+                                onClick={() => {
+                                    if (chartRef.current) {
+                                        const meta = chartRef.current.getDatasetMeta(0)
+                                        meta.hidden = !meta.hidden
+                                        setFirstPointHidden(meta.hidden)
+                                        chartRef.current.update()
+                                    }
+                                }}
+                            >
+                                <img 
+                                    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                                    alt="Blue marker" 
+                                    style={{ width: "16px", height: "25px" }}
+                                />
+                                <div style={{ width: "30px", height: "3px", backgroundColor: "rgb(0, 123, 255)" }}></div>
+                            </div>
+                            <div 
+                                style={{ 
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    gap: "5px", 
+                                    cursor: "pointer",
+                                    opacity: secondPointHidden ? 0.5 : 1
+                                }}
+                                onClick={() => {
+                                    if (chartRef.current) {
+                                        const meta = chartRef.current.getDatasetMeta(1)
+                                        meta.hidden = !meta.hidden
+                                        setSecondPointHidden(meta.hidden)
+                                        chartRef.current.update()
+                                    }
+                                }}
+                            >
+                                <img 
+                                    src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                                    alt="Red marker" 
+                                    style={{ width: "16px", height: "25px" }}
+                                />
+                                <div style={{ width: "30px", height: "3px", backgroundColor: "rgb(220, 53, 69)" }}></div>
+                            </div>
+                        </div>
+                    )}
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
-                        <Line data={chartData} options={chartOptions} />
+                        <Line ref={chartRef} data={chartData} options={chartOptions} />
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", padding: "0 10px" }}>
                         <button
