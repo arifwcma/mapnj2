@@ -664,13 +664,22 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                     <span>Calculating NDVI ...</span>
                 </div>
             ) : ndvi !== null && ndvi !== undefined ? (
-                <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px" }}>
+                <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
                     {(() => {
                         const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
                         const timeLabel = selectedYear && selectedMonth 
                             ? ` (${MONTH_NAMES[selectedMonth - 1]} ${selectedYear})`
                             : ""
-                        return <>NDVI{timeLabel}: {ndvi.toFixed(2)}</>
+                        return (
+                            <>
+                                <img 
+                                    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                                    alt="Blue marker" 
+                                    style={{ width: "20px", height: "32px" }}
+                                />
+                                <span>NDVI{timeLabel}: <strong>{ndvi.toFixed(2)}</strong></span>
+                            </>
+                        )
                     })()}
                 </div>
             ) : null}
@@ -783,7 +792,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                                                     alt="Blue marker" 
                                                     style={{ width: "20px", height: "32px" }}
                                                 />
-                                                <span>Average: {average.toFixed(2)}</span>
+                                                <span>Average: <strong>{average.toFixed(2)}</strong></span>
                                             </>
                                         )}
                                         {secondAverage !== null && (
@@ -793,7 +802,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                                                     alt="Red marker" 
                                                     style={{ width: "20px", height: "32px" }}
                                                 />
-                                                <span>Average: {secondAverage.toFixed(2)}</span>
+                                                <span>Average: <strong>{secondAverage.toFixed(2)}</strong></span>
                                             </>
                                         )}
                                     </div>

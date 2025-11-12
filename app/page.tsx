@@ -527,7 +527,7 @@ export default function Page() {
                                                 </button>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                                                     <label style={{ fontSize: "13px", display: "block" }}>
-                                                        Cloud tolerance (%): {localCloudTolerance}
+                                                        Cloud tolerance (%): <strong>{localCloudTolerance}</strong>
                                                     </label>
                                                     <input
                                                         type="range"
