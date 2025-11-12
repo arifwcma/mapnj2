@@ -710,6 +710,27 @@ export default function Page() {
                                                     )}
                                                 </>
                                             )}
+                                            {isImageAvailable() && secondPointSelection && !isMoveMode && pointLoaded && (
+                                                <button
+                                                    onClick={() => setIsMoveMode(true)}
+                                                    style={{
+                                                        background: "none",
+                                                        border: "none",
+                                                        padding: "10px 0",
+                                                        margin: "10px 0 0 0",
+                                                        cursor: "pointer",
+                                                        fontSize: "13px",
+                                                        color: "#0066cc",
+                                                        textDecoration: "none",
+                                                        fontFamily: "inherit",
+                                                        display: "block"
+                                                    }}
+                                                    onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
+                                                    onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
+                                                >
+                                                    Move point marker
+                                                </button>
+                                            )}
                                             {isImageAvailable() && isMoveMode && (
                                                 <>
                                                     <div style={{ 
