@@ -331,6 +331,8 @@ export default function Page() {
             return
         }
         
+        setIsMoveMode(false)
+        
         if (isSecondPoint) {
             setSecondPoint({ lat, lon })
         } else {

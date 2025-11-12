@@ -1,6 +1,6 @@
 "use client"
 import dynamic from "next/dynamic"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import BoundaryLayer from "./BoundaryLayer"
@@ -31,8 +31,78 @@ function FixMarkerIcon() {
     return null
 }
 
-function SecondPointMarker({ position, children, draggable = false, onDragEnd }) {
+function DraggableMarker({ position, children, draggable = false, onDragEnd, rectangleBounds }) {
+    const previousPositionRef = useRef(null)
+    const isDraggingRef = useRef(false)
+    const markerRef = useRef(null)
+    
+    useEffect(() => {
+        if (markerRef.current && !isDraggingRef.current) {
+            const currentPos = markerRef.current.getLatLng()
+            const posLat = Array.isArray(position) ? position[0] : position.lat
+            const posLng = Array.isArray(position) ? position[1] : position.lng
+            
+            if (Math.abs(currentPos.lat - posLat) > 0.000001 || Math.abs(currentPos.lng - posLng) > 0.000001) {
+                markerRef.current.setLatLng([posLat, posLng])
+            }
+        }
+    }, [position])
+    
+    return (
+        <Marker 
+            ref={(ref) => {
+                if (ref) {
+                    markerRef.current = ref.leafletElement || ref
+                }
+            }}
+            position={position}
+            draggable={draggable}
+            eventHandlers={draggable && onDragEnd ? {
+                dragstart: (e) => {
+                    isDraggingRef.current = true
+                    const marker = e.target
+                    const currentPos = marker.getLatLng()
+                    previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
+                },
+                dragend: (e) => {
+                    const marker = e.target
+                    const newPosition = marker.getLatLng()
+                    
+                    if (rectangleBounds) {
+                        const bounds = rectangleBounds
+                        const [minLat, minLng] = bounds[0]
+                        const [maxLat, maxLng] = bounds[1]
+                        
+                        if (newPosition.lat < minLat || newPosition.lat > maxLat || 
+                            newPosition.lng < minLng || newPosition.lng > maxLng) {
+                            if (previousPositionRef.current) {
+                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
+                            }
+                            isDraggingRef.current = false
+                            return
+                        }
+                    }
+                    
+                    const finalLat = newPosition.lat
+                    const finalLng = newPosition.lng
+                    
+                    setTimeout(() => {
+                        isDraggingRef.current = false
+                        onDragEnd(finalLat, finalLng, false)
+                    }, 10)
+                }
+            } : {}}
+        >
+            {children}
+        </Marker>
+    )
+}
+
+function SecondPointMarker({ position, children, draggable = false, onDragEnd, rectangleBounds }) {
     const [icon, setIcon] = useState(null)
+    const previousPositionRef = useRef(null)
+    const isDraggingRef = useRef(false)
+    const markerRef = useRef(null)
     
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -51,18 +121,64 @@ function SecondPointMarker({ position, children, draggable = false, onDragEnd })
         }
     }, [])
     
+    useEffect(() => {
+        if (markerRef.current && !isDraggingRef.current) {
+            const currentPos = markerRef.current.getLatLng()
+            const posLat = Array.isArray(position) ? position[0] : position.lat
+            const posLng = Array.isArray(position) ? position[1] : position.lng
+            
+            if (Math.abs(currentPos.lat - posLat) > 0.000001 || Math.abs(currentPos.lng - posLng) > 0.000001) {
+                markerRef.current.setLatLng([posLat, posLng])
+            }
+        }
+    }, [position])
+    
     if (!icon || !position) return null
     
     return (
         <Marker 
+            ref={(ref) => {
+                if (ref) {
+                    markerRef.current = ref.leafletElement || ref
+                }
+            }}
             position={position} 
             icon={icon}
             draggable={draggable}
             eventHandlers={draggable && onDragEnd ? {
+                dragstart: (e) => {
+                    isDraggingRef.current = true
+                    const marker = e.target
+                    const currentPos = marker.getLatLng()
+                    previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
+                },
                 dragend: (e) => {
                     const marker = e.target
-                    const position = marker.getLatLng()
-                    onDragEnd(position.lat, position.lng, true)
+                    const newPosition = marker.getLatLng()
+                    
+                    if (rectangleBounds) {
+                        const bounds = rectangleBounds
+                        const [minLat, minLng] = bounds[0]
+                        const [maxLat, maxLng] = bounds[1]
+                        
+                        if (newPosition.lat < minLat || newPosition.lat > maxLat || 
+                            newPosition.lng < minLng || newPosition.lng > maxLng) {
+                            if (previousPositionRef.current) {
+                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
+                            }
+                            isDraggingRef.current = false
+                            return
+                        }
+                    }
+                    
+                    const finalLat = newPosition.lat
+                    const finalLng = newPosition.lng
+                    marker.setLatLng([finalLat, finalLng])
+                    
+                    setTimeout(() => {
+                        isDraggingRef.current = false
+                        onDragEnd(finalLat, finalLng, true)
+                    }, 0)
                 }
             } : {}}
         >
@@ -220,29 +336,25 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
             )}
             {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
-                <Marker 
+                <DraggableMarker 
                     position={[selectedPoint.lat, selectedPoint.lon]}
                     draggable={isMoveMode}
-                    eventHandlers={isMoveMode && onMarkerDragEnd ? {
-                        dragend: (e) => {
-                            const marker = e.target
-                            const position = marker.getLatLng()
-                            onMarkerDragEnd(position.lat, position.lng, false)
-                        }
-                    } : {}}
+                    onDragEnd={onMarkerDragEnd}
+                    rectangleBounds={rectangleBounds}
                 >
                     {selectedPoint.ndvi !== null && selectedPoint.ndvi !== undefined && (
                         <Popup>
                             NDVI: {selectedPoint.ndvi.toFixed(2)}
                         </Popup>
                     )}
-                </Marker>
+                </DraggableMarker>
             )}
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
                 <SecondPointMarker 
                     position={[secondPoint.lat, secondPoint.lon]}
                     draggable={isMoveMode}
                     onDragEnd={onMarkerDragEnd}
+                    rectangleBounds={rectangleBounds}
                 >
                     <Popup>
                         Second point: {secondPoint.lat.toFixed(6)}, {secondPoint.lon.toFixed(6)}
