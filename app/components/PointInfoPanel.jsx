@@ -81,6 +81,8 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     const secondFetchingRef = useRef(false)
     const arrowDebounceTimeoutRef = useRef(null)
     const previousSecondPointRef = useRef(null)
+    const leftArrowClickCountRef = useRef(0)
+    const rightArrowClickCountRef = useRef(0)
     
     const fetchMonthsData = async (monthsToFetch, pointLat, pointLon) => {
         if (monthsToFetch.length === 0 || !rectangleBounds) {
@@ -341,140 +343,278 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     }
 
     const handleLeftArrow = () => {
-        if (!canGoLeft() || loading || fetchingRef.current || plotData.length === 0) return
-
-        const firstMonth = plotData[0]
-        const prevMonth = getPreviousMonth(firstMonth.year, firstMonth.month)
-        const key = `${prevMonth.year}-${prevMonth.month}`
-
-        const existingIndex = plotData.findIndex(d => d.year === prevMonth.year && d.month === prevMonth.month)
-        if (existingIndex !== -1) {
+        if (plotData.length === 0 || loading || fetchingRef.current) {
             return
         }
+
+        if (!canGoLeft()) {
+            return
+        }
+
+        leftArrowClickCountRef.current += 1
 
         if (arrowDebounceTimeoutRef.current) {
             clearTimeout(arrowDebounceTimeoutRef.current)
         }
 
-        arrowDebounceTimeoutRef.current = setTimeout(async () => {
+        arrowDebounceTimeoutRef.current = setTimeout(() => {
+            const offset = leftArrowClickCountRef.current
+            leftArrowClickCountRef.current = 0
+
+            if (offset === 0 || loading || fetchingRef.current || plotData.length === 0) {
+                return
+            }
+
+            const firstMonth = plotData[0]
+            const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+
             fetchingRef.current = true
             setLoading(true)
 
-            const results = await fetchMonthsData([prevMonth], lat, lon)
-            if (results.length > 0) {
-                const newItem = {
-                    year: results[0].year,
-                    month: results[0].month,
-                    label: formatMonthLabel(results[0].year, results[0].month),
-                    ndvi: results[0].ndvi
+            fetch(`/api/ndvi/point/months/expand`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    lat,
+                    lon,
+                    startYear: firstMonth.year,
+                    startMonth: firstMonth.month,
+                    direction: "left",
+                    offset,
+                    bbox: bboxStr,
+                    cloud: cloudTolerance
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to fetch months data")
                 }
-                fetchedMonthsRef.current.add(key)
-                setPlotData(prev => [newItem, ...prev])
-                
-                if (secondPoint && secondPoint.lat && secondPoint.lon && !secondFetchingRef.current) {
-                    const secondKey = `${prevMonth.year}-${prevMonth.month}`
-                    if (!secondFetchedMonthsRef.current.has(secondKey)) {
-                        const secondResults = await fetchMonthsData([prevMonth], secondPoint.lat, secondPoint.lon)
-                        if (secondResults.length > 0) {
-                            const secondNewItem = {
-                                year: secondResults[0].year,
-                                month: secondResults[0].month,
-                                label: formatMonthLabel(secondResults[0].year, secondResults[0].month),
-                                ndvi: secondResults[0].ndvi
+                return response.json()
+            })
+            .then(data => {
+                if (data.results && data.results.length > 0) {
+                    const newItems = data.results.map(item => ({
+                        year: item.year,
+                        month: item.month,
+                        label: formatMonthLabel(item.year, item.month),
+                        ndvi: item.ndvi
+                    }))
+
+                    newItems.forEach(item => {
+                        const key = `${item.year}-${item.month}`
+                        fetchedMonthsRef.current.add(key)
+                    })
+
+                    setPlotData(prev => {
+                        const existingKeys = new Set(prev.map(d => `${d.year}-${d.month}`))
+                        const itemsToAdd = newItems.filter(item => !existingKeys.has(`${item.year}-${item.month}`))
+                        return [...itemsToAdd, ...prev].sort((a, b) => {
+                            if (a.year !== b.year) return a.year - b.year
+                            return a.month - b.month
+                        })
+                    })
+
+                    if (secondPoint && secondPoint.lat && secondPoint.lon && !secondFetchingRef.current) {
+                        fetch(`/api/ndvi/point/months/expand`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                lat: secondPoint.lat,
+                                lon: secondPoint.lon,
+                                startYear: firstMonth.year,
+                                startMonth: firstMonth.month,
+                                direction: "left",
+                                offset,
+                                bbox: bboxStr,
+                                cloud: cloudTolerance
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error("Failed to fetch second point months data")
                             }
-                            secondFetchedMonthsRef.current.add(secondKey)
-                            setSecondPlotData(prev => [secondNewItem, ...prev])
-                        }
-                    } else {
-                        const existingSecondItem = secondPlotData.find(s => s.year === prevMonth.year && s.month === prevMonth.month)
-                        if (!existingSecondItem) {
-                            const secondNewItem = {
-                                year: prevMonth.year,
-                                month: prevMonth.month,
-                                label: formatMonthLabel(prevMonth.year, prevMonth.month),
-                                ndvi: null
+                            return response.json()
+                        })
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                const secondNewItems = data.results.map(item => ({
+                                    year: item.year,
+                                    month: item.month,
+                                    label: formatMonthLabel(item.year, item.month),
+                                    ndvi: item.ndvi
+                                }))
+
+                                secondNewItems.forEach(item => {
+                                    const key = `${item.year}-${item.month}`
+                                    secondFetchedMonthsRef.current.add(key)
+                                })
+
+                                setSecondPlotData(prev => {
+                                    const existingKeys = new Set(prev.map(d => `${d.year}-${d.month}`))
+                                    const itemsToAdd = secondNewItems.filter(item => !existingKeys.has(`${item.year}-${item.month}`))
+                                    return [...itemsToAdd, ...prev].sort((a, b) => {
+                                        if (a.year !== b.year) return a.year - b.year
+                                        return a.month - b.month
+                                    })
+                                })
                             }
-                            setSecondPlotData(prev => [secondNewItem, ...prev])
-                        }
+                        })
+                        .catch(error => {
+                            console.error("Error fetching second point months data:", error)
+                        })
                     }
                 }
-            }
 
-            setLoading(false)
-            fetchingRef.current = false
+                setLoading(false)
+                fetchingRef.current = false
+            })
+            .catch(error => {
+                console.error("Error fetching months data:", error)
+                setLoading(false)
+                fetchingRef.current = false
+            })
         }, 1000)
     }
 
     const handleRightArrow = () => {
-        if (!canGoRight() || loading || fetchingRef.current || plotData.length === 0) return
-
-        const lastMonth = plotData[plotData.length - 1]
-        const nextMonth = getNextMonth(lastMonth.year, lastMonth.month)
-        const now = new Date()
-        const currentYear = now.getFullYear()
-        const currentMonth = now.getMonth() + 1
-        
-        if (nextMonth.year > currentYear || (nextMonth.year === currentYear && nextMonth.month > currentMonth)) {
+        if (plotData.length === 0 || loading || fetchingRef.current) {
             return
         }
 
-        const key = `${nextMonth.year}-${nextMonth.month}`
-
-        const existingIndex = plotData.findIndex(d => d.year === nextMonth.year && d.month === nextMonth.month)
-        if (existingIndex !== -1) {
+        if (!canGoRight()) {
             return
         }
+
+        rightArrowClickCountRef.current += 1
 
         if (arrowDebounceTimeoutRef.current) {
             clearTimeout(arrowDebounceTimeoutRef.current)
         }
 
-        arrowDebounceTimeoutRef.current = setTimeout(async () => {
+        arrowDebounceTimeoutRef.current = setTimeout(() => {
+            const offset = rightArrowClickCountRef.current
+            rightArrowClickCountRef.current = 0
+
+            if (offset === 0 || loading || fetchingRef.current || plotData.length === 0) {
+                return
+            }
+
+            const lastMonth = plotData[plotData.length - 1]
+            const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+
             fetchingRef.current = true
             setLoading(true)
 
-            const results = await fetchMonthsData([nextMonth], lat, lon)
-            if (results.length > 0) {
-                const newItem = {
-                    year: results[0].year,
-                    month: results[0].month,
-                    label: formatMonthLabel(results[0].year, results[0].month),
-                    ndvi: results[0].ndvi
+            fetch(`/api/ndvi/point/months/expand`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    lat,
+                    lon,
+                    startYear: lastMonth.year,
+                    startMonth: lastMonth.month,
+                    direction: "right",
+                    offset,
+                    bbox: bboxStr,
+                    cloud: cloudTolerance
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to fetch months data")
                 }
-                fetchedMonthsRef.current.add(key)
-                setPlotData(prev => [...prev, newItem])
-                
-                if (secondPoint && secondPoint.lat && secondPoint.lon && !secondFetchingRef.current) {
-                    const secondKey = `${nextMonth.year}-${nextMonth.month}`
-                    if (!secondFetchedMonthsRef.current.has(secondKey)) {
-                        const secondResults = await fetchMonthsData([nextMonth], secondPoint.lat, secondPoint.lon)
-                        if (secondResults.length > 0) {
-                            const secondNewItem = {
-                                year: secondResults[0].year,
-                                month: secondResults[0].month,
-                                label: formatMonthLabel(secondResults[0].year, secondResults[0].month),
-                                ndvi: secondResults[0].ndvi
+                return response.json()
+            })
+            .then(data => {
+                if (data.results && data.results.length > 0) {
+                    const newItems = data.results.map(item => ({
+                        year: item.year,
+                        month: item.month,
+                        label: formatMonthLabel(item.year, item.month),
+                        ndvi: item.ndvi
+                    }))
+
+                    newItems.forEach(item => {
+                        const key = `${item.year}-${item.month}`
+                        fetchedMonthsRef.current.add(key)
+                    })
+
+                    setPlotData(prev => {
+                        const existingKeys = new Set(prev.map(d => `${d.year}-${d.month}`))
+                        const itemsToAdd = newItems.filter(item => !existingKeys.has(`${item.year}-${item.month}`))
+                        return [...prev, ...itemsToAdd].sort((a, b) => {
+                            if (a.year !== b.year) return a.year - b.year
+                            return a.month - b.month
+                        })
+                    })
+
+                    if (secondPoint && secondPoint.lat && secondPoint.lon && !secondFetchingRef.current) {
+                        fetch(`/api/ndvi/point/months/expand`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                lat: secondPoint.lat,
+                                lon: secondPoint.lon,
+                                startYear: lastMonth.year,
+                                startMonth: lastMonth.month,
+                                direction: "right",
+                                offset,
+                                bbox: bboxStr,
+                                cloud: cloudTolerance
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error("Failed to fetch second point months data")
                             }
-                            secondFetchedMonthsRef.current.add(secondKey)
-                            setSecondPlotData(prev => [...prev, secondNewItem])
-                        }
-                    } else {
-                        const existingSecondItem = secondPlotData.find(s => s.year === nextMonth.year && s.month === nextMonth.month)
-                        if (!existingSecondItem) {
-                            const secondNewItem = {
-                                year: nextMonth.year,
-                                month: nextMonth.month,
-                                label: formatMonthLabel(nextMonth.year, nextMonth.month),
-                                ndvi: null
+                            return response.json()
+                        })
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                const secondNewItems = data.results.map(item => ({
+                                    year: item.year,
+                                    month: item.month,
+                                    label: formatMonthLabel(item.year, item.month),
+                                    ndvi: item.ndvi
+                                }))
+
+                                secondNewItems.forEach(item => {
+                                    const key = `${item.year}-${item.month}`
+                                    secondFetchedMonthsRef.current.add(key)
+                                })
+
+                                setSecondPlotData(prev => {
+                                    const existingKeys = new Set(prev.map(d => `${d.year}-${d.month}`))
+                                    const itemsToAdd = secondNewItems.filter(item => !existingKeys.has(`${item.year}-${item.month}`))
+                                    return [...prev, ...itemsToAdd].sort((a, b) => {
+                                        if (a.year !== b.year) return a.year - b.year
+                                        return a.month - b.month
+                                    })
+                                })
                             }
-                            setSecondPlotData(prev => [...prev, secondNewItem])
-                        }
+                        })
+                        .catch(error => {
+                            console.error("Error fetching second point months data:", error)
+                        })
                     }
                 }
-            }
 
-            setLoading(false)
-            fetchingRef.current = false
+                setLoading(false)
+                fetchingRef.current = false
+            })
+            .catch(error => {
+                console.error("Error fetching months data:", error)
+                setLoading(false)
+                fetchingRef.current = false
+            })
         }, 1000)
     }
     

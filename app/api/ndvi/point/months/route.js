@@ -56,12 +56,20 @@ export async function POST(request) {
                     ndvi: ndvi !== null && ndvi !== undefined ? ndvi : null
                 })
             } catch (error) {
-                console.error(`Error fetching NDVI for ${year}-${month}:`, error)
-                results.push({
-                    year,
-                    month,
-                    ndvi: null
-                })
+                if (error.message && error.message.includes("No images found")) {
+                    results.push({
+                        year,
+                        month,
+                        ndvi: null
+                    })
+                } else {
+                    console.error(`Error fetching NDVI for ${year}-${month}:`, error)
+                    results.push({
+                        year,
+                        month,
+                        ndvi: null
+                    })
+                }
             }
         }
 
