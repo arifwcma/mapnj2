@@ -56,7 +56,7 @@ function SecondPointMarker({ position, children }) {
     return <Marker position={position} icon={icon}>{children}</Marker>
 }
 
-function MapResize({ ndviTileUrl }) {
+function MapResize({ ndviTileUrl, rgbTileUrl }) {
     const map = useMap()
     useEffect(() => {
         if (map) {
@@ -64,7 +64,7 @@ function MapResize({ ndviTileUrl }) {
                 map.invalidateSize()
             }, 100)
         }
-    }, [map, ndviTileUrl])
+    }, [map, ndviTileUrl, rgbTileUrl])
     return null
 }
 
@@ -105,7 +105,7 @@ function PointClickHandler({ isActive, onPointClick }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
@@ -118,7 +118,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
 
     return (
         <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
-            <MapResize ndviTileUrl={ndviTileUrl} />
+            <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
             {!isDrawing && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
@@ -138,8 +138,11 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     <ZoomToRectangle bounds={rectangleBounds} />
                 </>
             )}
-            {ndviTileUrl && rectangleBounds && (
+            {ndviTileUrl && rectangleBounds && overlayType === "NDVI" && (
                 <NdviOverlay key={`ndvi-${basemap}-${ndviTileUrl}`} tileUrl={ndviTileUrl} bounds={rectangleBounds} />
+            )}
+            {rgbTileUrl && rectangleBounds && overlayType === "RGB" && (
+                <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
             )}
             {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
                 <Marker position={[selectedPoint.lat, selectedPoint.lon]}>

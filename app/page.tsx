@@ -20,6 +20,8 @@ export default function Page() {
 
     const {
         ndviTileUrl,
+        rgbTileUrl,
+        overlayType,
         endMonth,
         endYear,
         endMonthNum,
@@ -32,6 +34,7 @@ export default function Page() {
         updateCloudTolerance,
         updateSelectedMonth,
         clearNdvi,
+        setOverlayType,
         isImageAvailable,
         getMaxSliderValue,
         getCurrentSliderValue,
@@ -101,9 +104,9 @@ export default function Page() {
         if (rectangleBounds) {
             if (!selectedYear || !selectedMonth) {
                 isInitialLoadRef.current = true
-                loadNdviData(rectangleBounds, cloudTolerance)
+                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType)
             } else if (!isInitialLoadRef.current) {
-                loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth)
+                loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType)
             } else {
                 isInitialLoadRef.current = false
             }
@@ -111,7 +114,7 @@ export default function Page() {
             clearNdvi()
             isInitialLoadRef.current = false
         }
-    }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, loadNdviData, clearNdvi])
+    }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, loadNdviData, clearNdvi])
 
     useEffect(() => {
         if (pointLoaded && !loading && isImageAvailable() && selectedPoint.lat !== null && selectedPoint.lon !== null) {
@@ -321,6 +324,8 @@ export default function Page() {
                     onEnd={handleFinalize}
                     onReset={resetRectangle}
                     ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
+                    rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
+                    overlayType={overlayType}
                     basemap={basemap}
                     isPointAnalysisMode={isImageAvailable()}
                     onPointClick={handlePointClick}
@@ -423,7 +428,40 @@ export default function Page() {
                                             </div>
                                         ) : (
                                             <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
-                                                <div>NDVI for <strong>{endMonth}</strong></div>
+                                                <div style={{ marginBottom: "10px", display: "flex", alignItems: "center", gap: "15px" }}>
+                                                    <span>Overlay:</span>
+                                                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                                                        <input
+                                                            type="radio"
+                                                            name="overlay"
+                                                            value="NDVI"
+                                                            checked={overlayType === "NDVI"}
+                                                            onChange={() => setOverlayType("NDVI")}
+                                                        />
+                                                        <span>NDVI</span>
+                                                    </label>
+                                                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                                                        <input
+                                                            type="radio"
+                                                            name="overlay"
+                                                            value="RGB"
+                                                            checked={overlayType === "RGB"}
+                                                            onChange={() => setOverlayType("RGB")}
+                                                        />
+                                                        <span>RGB</span>
+                                                    </label>
+                                                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                                                        <input
+                                                            type="radio"
+                                                            name="overlay"
+                                                            value="None"
+                                                            checked={overlayType === "None"}
+                                                            onChange={() => setOverlayType("None")}
+                                                        />
+                                                        <span>None</span>
+                                                    </label>
+                                                </div>
+                                                <div>{overlayType === "NDVI" ? "NDVI" : overlayType === "RGB" ? "RGB" : ""} for <strong>{endMonth}</strong></div>
                                                 <div>Based on <strong>{imageCount}</strong> image(s)</div>
                                             </div>
                                         )

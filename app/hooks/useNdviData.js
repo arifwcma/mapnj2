@@ -24,6 +24,8 @@ function sliderValueToMonthYear(value) {
 
 export default function useNdviData() {
     const [ndviTileUrl, setNdviTileUrl] = useState(null)
+    const [rgbTileUrl, setRgbTileUrl] = useState(null)
+    const [overlayType, setOverlayType] = useState("NDVI")
     const [endMonth, setEndMonth] = useState(null)
     const [endYear, setEndYear] = useState(null)
     const [endMonthNum, setEndMonthNum] = useState(null)
@@ -37,7 +39,7 @@ export default function useNdviData() {
     const [selectedMonth, setSelectedMonth] = useState(null)
     const loadingRef = useRef(false)
 
-    const loadNdviData = useCallback(async (bbox, cloud = 30, year = null, month = null) => {
+    const loadNdviData = useCallback(async (bbox, cloud = 30, year = null, month = null, overlay = "NDVI") => {
         if (!bbox || loadingRef.current) {
             return
         }
@@ -70,9 +72,27 @@ export default function useNdviData() {
                 monthData = await monthResponse.json()
             }
 
-            const tileResponse = await fetch(`/api/ndvi/average?start=${monthData.start}&end=${monthData.end}&bbox=${bboxStr}&cloud=${cloud}`)
-            if (!tileResponse.ok) throw new Error("Failed to get NDVI tile")
-            const tileData = await tileResponse.json()
+            if (monthData.count > 0) {
+                if (overlay === "NDVI") {
+                    const tileResponse = await fetch(`/api/ndvi/average?start=${monthData.start}&end=${monthData.end}&bbox=${bboxStr}&cloud=${cloud}`)
+                    if (!tileResponse.ok) throw new Error("Failed to get NDVI tile")
+                    const tileData = await tileResponse.json()
+                    setNdviTileUrl(tileData.tileUrl)
+                    setRgbTileUrl(null)
+                } else if (overlay === "RGB") {
+                    const tileResponse = await fetch(`/api/rgb/average?start=${monthData.start}&end=${monthData.end}&bbox=${bboxStr}&cloud=${cloud}`)
+                    if (!tileResponse.ok) throw new Error("Failed to get RGB tile")
+                    const tileData = await tileResponse.json()
+                    setRgbTileUrl(tileData.tileUrl)
+                    setNdviTileUrl(null)
+                } else {
+                    setNdviTileUrl(null)
+                    setRgbTileUrl(null)
+                }
+            } else {
+                setNdviTileUrl(null)
+                setRgbTileUrl(null)
+            }
 
             setEndMonth(`${monthData.monthName} ${monthData.year}`)
             setEndYear(monthData.year)
@@ -89,15 +109,10 @@ export default function useNdviData() {
             } else {
                 setEndMonth(`${monthData.monthName} ${monthData.year}`)
             }
-            
-            if (monthData.count > 0) {
-                setNdviTileUrl(tileData.tileUrl)
-            } else {
-                setNdviTileUrl(null)
-            }
         } catch (err) {
             setError(err.message)
             setNdviTileUrl(null)
+            setRgbTileUrl(null)
             setEndMonth(null)
             setEndYear(null)
             setEndMonthNum(null)
@@ -121,6 +136,7 @@ export default function useNdviData() {
 
     const clearNdvi = useCallback(() => {
         setNdviTileUrl(null)
+        setRgbTileUrl(null)
         setEndMonth(null)
         setEndYear(null)
         setEndMonthNum(null)
@@ -130,6 +146,10 @@ export default function useNdviData() {
         setInitialEndYear(null)
         setInitialEndMonthNum(null)
         setError(null)
+    }, [])
+
+    const setOverlayTypeState = useCallback((type) => {
+        setOverlayType(type)
     }, [])
 
     const isImageAvailable = useCallback(() => {
@@ -153,6 +173,8 @@ export default function useNdviData() {
 
     return {
         ndviTileUrl,
+        rgbTileUrl,
+        overlayType,
         endMonth,
         endYear,
         endMonthNum,
@@ -166,6 +188,7 @@ export default function useNdviData() {
         updateCloudTolerance,
         updateSelectedMonth,
         clearNdvi,
+        setOverlayType: setOverlayTypeState,
         isImageAvailable,
         getMaxSliderValue,
         getCurrentSliderValue,

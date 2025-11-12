@@ -135,6 +135,43 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
     })
 }
 
+export async function getAverageRgbTile(start, end, bbox, cloud = 30) {
+    await initEarthEngine()
+
+    const [minLng, minLat, maxLng, maxLat] = Array.isArray(bbox)
+        ? [bbox[0][1], bbox[0][0], bbox[1][1], bbox[1][0]]
+        : bbox.split(",").map(parseFloat)
+
+    if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
+        throw new Error("Invalid bbox format")
+    }
+
+    const startDate = ee.Date(start)
+    const endDate = ee.Date(end).advance(1, "day")
+
+    const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+
+    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+        .filterBounds(rectangle)
+        .filterDate(startDate, endDate)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
+        .select(["B4", "B3", "B2"])
+
+    const mean = collection.mean().clip(rectangle)
+    const vis = { min: 0, max: 3000, bands: ["B4", "B3", "B2"] }
+
+    return await new Promise((resolve, reject) => {
+        mean.getMap(vis, (mapObj, err) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            const tileUrl = `https://earthengine.googleapis.com/v1/${mapObj.mapid}/tiles/{z}/{x}/{y}`
+            resolve(tileUrl)
+        })
+    })
+}
+
 export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
     await initEarthEngine()
 
