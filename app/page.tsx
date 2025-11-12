@@ -336,7 +336,7 @@ export default function Page() {
             <div style={{ width: "33.33%", height: "100vh", display: "flex", flexDirection: "column", borderLeft: "1px solid #ccc", backgroundColor: "white" }}>
                 <div style={{ padding: "20px", overflowY: "auto", flex: "1 1 auto" }}>
                     <div style={{ padding: "10px 0", marginBottom: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span>Basemap:</span>
+                        <span style={{ fontSize: "13px", color: "#333" }}>Basemap:</span>
                         <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
                             <input
                                 type="radio"
@@ -345,7 +345,7 @@ export default function Page() {
                                 checked={basemap === "street"}
                                 onChange={(e) => setBasemap(e.target.value)}
                             />
-                            <span>Street</span>
+                            <span style={{ fontSize: "13px", color: "#333" }}>Street</span>
                         </label>
                         <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
                             <input
@@ -355,11 +355,20 @@ export default function Page() {
                                 checked={basemap === "satellite"}
                                 onChange={(e) => setBasemap(e.target.value)}
                             />
-                            <span>Satellite</span>
+                            <span style={{ fontSize: "13px", color: "#333" }}>Satellite</span>
                         </label>
                     </div>
                     {isDrawing ? (
-                        <div style={{ padding: "10px 0", fontSize: "16px", color: "red" }}>
+                        <div style={{ 
+                            marginTop: "10px", 
+                            fontSize: "13px", 
+                            color: "#555",
+                            backgroundColor: "#f8f9fa",
+                            border: "1px solid #e0e0e0",
+                            borderRadius: "4px",
+                            padding: "8px 12px",
+                            textAlign: "center"
+                        }}>
                             Click and drag to draw area
                         </div>
                     ) : (
@@ -373,7 +382,7 @@ export default function Page() {
                                         padding: "10px 0",
                                         margin: "0 0 10px 0",
                                         cursor: "pointer",
-                                        fontSize: "16px",
+                                        fontSize: "13px",
                                         color: "#0066cc",
                                         textDecoration: "none",
                                         fontFamily: "inherit",
@@ -395,7 +404,7 @@ export default function Page() {
                                             padding: "10px 0",
                                             margin: "0 0 10px 0",
                                             cursor: "pointer",
-                                            fontSize: "16px",
+                                            fontSize: "13px",
                                             color: "#0066cc",
                                             textDecoration: "none",
                                             fontFamily: "inherit",
@@ -406,9 +415,15 @@ export default function Page() {
                                     >
                                         Reset area of interest
                                     </button>
+                                    <style>{`
+                                        @keyframes spin {
+                                            0% { transform: rotate(0deg); }
+                                            100% { transform: rotate(360deg); }
+                                        }
+                                    `}</style>
                                     {loading ? (
                                         <div style={{
-                                            fontSize: "14px",
+                                            fontSize: "13px",
                                             color: "#333",
                                             backgroundColor: "#f0f8ff",
                                             border: "1px solid #b3d9ff",
@@ -421,12 +436,6 @@ export default function Page() {
                                             justifyContent: "center",
                                             gap: "8px"
                                         }}>
-                                            <style>{`
-                                                @keyframes spin {
-                                                    0% { transform: rotate(0deg); }
-                                                    100% { transform: rotate(360deg); }
-                                                }
-                                            `}</style>
                                             <div style={{
                                                 display: "inline-block",
                                                 width: "14px",
@@ -453,23 +462,23 @@ export default function Page() {
                                         </div>
                                     ) : endMonth && imageCount !== null ? (
                                         !isImageAvailable() ? (
-                                            <div style={{
-                                                fontSize: "14px",
-                                                color: "#333",
-                                                backgroundColor: "#f0f8ff",
-                                                border: "1px solid #b3d9ff",
-                                                borderRadius: "4px",
-                                                padding: "10px 15px",
-                                                marginBottom: "15px",
-                                                textAlign: "center"
-                                            }}>
-                                                <div>No image found for {endMonth}.</div>
-                                                <div style={{ marginTop: "5px" }}><span style={{ color: "#d32f2f" }}>Consider increasing cloud tolerance</span>.</div>
-                                            </div>
+                                        <div style={{
+                                            fontSize: "13px",
+                                            color: "#555",
+                                            backgroundColor: "#f8f9fa",
+                                            border: "1px solid #e0e0e0",
+                                            borderRadius: "4px",
+                                            padding: "10px 15px",
+                                            marginBottom: "15px",
+                                            textAlign: "center"
+                                        }}>
+                                            <div>No image found for {endMonth}.</div>
+                                            <div style={{ marginTop: "5px" }}>Consider increasing cloud tolerance.</div>
+                                        </div>
                                         ) : (
-                                            <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
+                                            <div style={{ fontSize: "13px", color: "#333", marginBottom: "10px" }}>
                                                 <div style={{ marginBottom: "10px", display: "flex", alignItems: "center", gap: "15px" }}>
-                                                    <span>Overlay:</span>
+                                                    <span style={{ fontSize: "13px", color: "#333" }}>Overlay:</span>
                                                     <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
                                                         <input
                                                             type="radio"
@@ -478,7 +487,7 @@ export default function Page() {
                                                             checked={overlayType === "NDVI"}
                                                             onChange={() => setOverlayType("NDVI")}
                                                         />
-                                                        <span>NDVI</span>
+                                                        <span style={{ fontSize: "13px", color: "#333" }}>NDVI</span>
                                                     </label>
                                                     <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
                                                         <input
@@ -488,7 +497,7 @@ export default function Page() {
                                                             checked={overlayType === "RGB"}
                                                             onChange={() => setOverlayType("RGB")}
                                                         />
-                                                        <span>RGB</span>
+                                                        <span style={{ fontSize: "13px", color: "#333" }}>RGB</span>
                                                     </label>
                                                 </div>
                                                 <div>{overlayType} for <strong>{endMonth}</strong></div>
@@ -506,7 +515,7 @@ export default function Page() {
                                                     style={{
                                                         width: "30px",
                                                         height: "30px",
-                                                        fontSize: "18px",
+                                                        fontSize: "13px",
                                                         cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
                                                         opacity: localCloudTolerance === 0 ? 0.5 : 1,
                                                         border: "1px solid #ccc",
@@ -517,7 +526,7 @@ export default function Page() {
                                                     -
                                                 </button>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                                    <label style={{ fontSize: "14px", display: "block" }}>
+                                                    <label style={{ fontSize: "13px", display: "block" }}>
                                                         Cloud tolerance (%): {localCloudTolerance}
                                                     </label>
                                                     <input
@@ -537,7 +546,7 @@ export default function Page() {
                                                     style={{
                                                         width: "30px",
                                                         height: "30px",
-                                                        fontSize: "18px",
+                                                        fontSize: "13px",
                                                         cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
                                                         opacity: localCloudTolerance === 100 ? 0.5 : 1,
                                                         border: "1px solid #ccc",
@@ -556,7 +565,7 @@ export default function Page() {
                                                         style={{
                                                             width: "30px",
                                                             height: "30px",
-                                                            fontSize: "18px",
+                                                            fontSize: "13px",
                                                             cursor: localTimeSliderValue === 0 ? "not-allowed" : "pointer",
                                                             opacity: localTimeSliderValue === 0 ? 0.5 : 1,
                                                             border: "1px solid #ccc",
@@ -567,7 +576,7 @@ export default function Page() {
                                                         -
                                                     </button>
                                                     <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                                        <label style={{ fontSize: "14px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", display: "block" }}>
                                                             {getMonthYearLabel(localTimeSliderValue)}
                                                         </label>
                                                         <input
@@ -588,7 +597,7 @@ export default function Page() {
                                                         style={{
                                                             width: "30px",
                                                             height: "30px",
-                                                            fontSize: "18px",
+                                                            fontSize: "13px",
                                                             cursor: localTimeSliderValue >= getMaxSliderValue() ? "not-allowed" : "pointer",
                                                             opacity: localTimeSliderValue >= getMaxSliderValue() ? 0.5 : 1,
                                                             border: "1px solid #ccc",
@@ -602,7 +611,16 @@ export default function Page() {
                                             )}
                                             {isImageAvailable() && !secondPointSelection && (
                                                 <>
-                                                    <div style={{ marginTop: "10px", fontSize: "14px", color: "red" }}>
+                                                    <div style={{ 
+                                                        marginTop: "10px", 
+                                                        fontSize: "13px", 
+                                                        color: "#555",
+                                                        backgroundColor: "#f8f9fa",
+                                                        border: "1px solid #e0e0e0",
+                                                        borderRadius: "4px",
+                                                        padding: "8px 12px",
+                                                        textAlign: "center"
+                                                    }}>
                                                         Click a point to analyse
                                                     </div>
                                                     {pointLoaded && (
@@ -614,23 +632,35 @@ export default function Page() {
                                                                 padding: "10px 0",
                                                                 margin: "10px 0 0 0",
                                                                 cursor: "pointer",
-                                                                fontSize: "16px",
-                                                                color: "#0066cc",
-                                                                textDecoration: "none",
-                                                                fontFamily: "inherit",
-                                                                display: "block"
-                                                            }}
-                                                            onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
-                                                            onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
-                                                        >
-                                                            Compare with another point
-                                                        </button>
+                                                            fontSize: "13px",
+                                                            color: "#0066cc",
+                                                            textDecoration: "none",
+                                                            fontFamily: "inherit",
+                                                            display: "block"
+                                                        }}
+                                                        onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
+                                                        onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
+                                                    >
+                                                        Compare with another point
+                                                    </button>
                                                     )}
                                                 </>
                                             )}
                                             {isImageAvailable() && secondPointSelection && (
                                                 <div>
-                                                    <div style={{ marginTop: "10px", fontSize: "14px", color: secondPoint.lat !== null && secondPoint.lon !== null ? "inherit" : "red", display: "flex", alignItems: "center", gap: "5px" }}>
+                                                    <div style={{ 
+                                                        marginTop: "10px", 
+                                                        fontSize: "13px", 
+                                                        color: "#555",
+                                                        backgroundColor: secondPoint.lat !== null && secondPoint.lon !== null ? "transparent" : "#f8f9fa",
+                                                        border: secondPoint.lat !== null && secondPoint.lon !== null ? "none" : "1px solid #e0e0e0",
+                                                        borderRadius: "4px",
+                                                        padding: secondPoint.lat !== null && secondPoint.lon !== null ? "0" : "8px 12px",
+                                                        textAlign: secondPoint.lat !== null && secondPoint.lon !== null ? "left" : "center",
+                                                        display: "flex", 
+                                                        alignItems: "center", 
+                                                        gap: "5px" 
+                                                    }}>
                                                         {secondPoint.lat !== null && secondPoint.lon !== null ? (
                                                             <>
                                                                 <img 
@@ -647,7 +677,7 @@ export default function Page() {
                                                     {secondPoint.lat !== null && secondPoint.lon !== null && secondPointLoading && (
                                                         <div style={{
                                                             marginTop: "10px",
-                                                            fontSize: "14px",
+                                                            fontSize: "13px",
                                                             color: "#333",
                                                             backgroundColor: "#f0f8ff",
                                                             border: "1px solid #b3d9ff",

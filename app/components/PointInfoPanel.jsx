@@ -313,7 +313,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                     maxRotation: 45,
                     minRotation: 45,
                     font: {
-                        size: 10
+                        size: 13
                     }
                 }
             },
@@ -322,7 +322,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 max: 1,
                 ticks: {
                     font: {
-                        size: 10
+                        size: 13
                     }
                 }
             }
@@ -621,7 +621,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     }
     
     const statusMessageStyle = {
-        fontSize: "14px",
+        fontSize: "13px",
         color: "#333",
         backgroundColor: "#f0f8ff",
         border: "1px solid #b3d9ff",
@@ -664,7 +664,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                     <span>Calculating NDVI ...</span>
                 </div>
             ) : ndvi !== null && ndvi !== undefined ? (
-                <div style={{ fontSize: "16px", marginBottom: "20px" }}>
+                <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px" }}>
                     {(() => {
                         const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
                         const timeLabel = selectedYear && selectedMonth 
@@ -742,7 +742,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                                 padding: "8px 12px",
                                 cursor: (!canGoLeft() || loading) ? "not-allowed" : "pointer",
                                 opacity: (!canGoLeft() || loading) ? 0.5 : 1,
-                                fontSize: "18px"
+                                fontSize: "13px"
                             }}
                         >
                             ←
@@ -757,7 +757,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                                 padding: "8px 12px",
                                 cursor: (!canGoRight() || loading) ? "not-allowed" : "pointer",
                                 opacity: (!canGoRight() || loading) ? 0.5 : 1,
-                                fontSize: "18px"
+                                fontSize: "13px"
                             }}
                         >
                             →
@@ -774,26 +774,30 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                             : null
                         return (
                             <>
-                                {average !== null ? (
-                                    <div style={{ fontSize: "14px", color: "#666", marginTop: "10px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px" }}>
-                                        <img 
-                                            src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
-                                            alt="Blue marker" 
-                                            style={{ width: "20px", height: "32px" }}
-                                        />
-                                        <span>Average: {average.toFixed(2)}</span>
+                                {(average !== null || secondAverage !== null) && (
+                                    <div style={{ fontSize: "13px", color: "#555", marginTop: "10px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", flexWrap: "wrap" }}>
+                                        {average !== null && (
+                                            <>
+                                                <img 
+                                                    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                                                    alt="Blue marker" 
+                                                    style={{ width: "20px", height: "32px" }}
+                                                />
+                                                <span>Average: {average.toFixed(2)}</span>
+                                            </>
+                                        )}
+                                        {secondAverage !== null && (
+                                            <>
+                                                <img 
+                                                    src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                                                    alt="Red marker" 
+                                                    style={{ width: "20px", height: "32px" }}
+                                                />
+                                                <span>Average: {secondAverage.toFixed(2)}</span>
+                                            </>
+                                        )}
                                     </div>
-                                ) : null}
-                                {secondAverage !== null ? (
-                                    <div style={{ fontSize: "14px", color: "#666", marginTop: "5px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px" }}>
-                                        <img 
-                                            src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
-                                            alt="Red marker" 
-                                            style={{ width: "20px", height: "32px" }}
-                                        />
-                                        <span>Average: {secondAverage.toFixed(2)}</span>
-                                    </div>
-                                ) : null}
+                                )}
                             </>
                         )
                     })()}
@@ -801,7 +805,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             )}
             {loading && (
                 <div style={{
-                    fontSize: "14px",
+                    fontSize: "13px",
                     color: "#333",
                     backgroundColor: "#f0f8ff",
                     border: "1px solid #b3d9ff",
