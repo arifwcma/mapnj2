@@ -21,9 +21,9 @@ function FixMarkerIcon() {
             import('leaflet').then((L) => {
                 delete L.default.Icon.Default.prototype._getIconUrl
                 L.default.Icon.Default.mergeOptions({
-                    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-                    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+                    iconRetinaUrl: 'images/marker-icon-2x.png',
+                    iconUrl: 'images/marker-icon.png',
+                    shadowUrl: 'images/marker-shadow.png',
                 })
             })
         }
@@ -38,9 +38,9 @@ function SecondPointMarker({ position, children }) {
         if (typeof window !== 'undefined') {
             import('leaflet').then((L) => {
                 const redIcon = L.default.icon({
-                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-                    iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+                    iconUrl: 'images/marker-icon-red.png',
+                    iconRetinaUrl: 'images/marker-icon-2x-red.png',
+                    shadowUrl: 'images/marker-shadow.png',
                     iconSize: [25, 41],
                     iconAnchor: [12, 41],
                     popupAnchor: [1, -34],

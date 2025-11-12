@@ -11,7 +11,7 @@ export default function InfoPanel({ lat, lon, ndvi, isReloading = false, pointIn
         <div>
             <div style={{ fontSize: "13px", color: "#333", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
                 <img 
-                    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                    src="images/marker-icon.png" 
                     alt="Blue marker" 
                     style={{ width: "20px", height: "32px" }}
                 />
@@ -20,7 +20,7 @@ export default function InfoPanel({ lat, lon, ndvi, isReloading = false, pointIn
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
                 <div style={{ fontSize: "13px", color: "#333", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
                     <img 
-                        src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                        src="images/marker-icon-red.png" 
                         alt="Red marker" 
                         style={{ width: "20px", height: "32px" }}
                     />

@@ -674,7 +674,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                             return (
                                 <>
                                     <img 
-                                        src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                                        src="images/marker-icon.png" 
                                         alt="Blue marker" 
                                         style={{ width: "20px", height: "32px" }}
                                     />
@@ -694,7 +694,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                             return (
                                 <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
                                     <img 
-                                        src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                                        src="images/marker-icon-red.png" 
                                         alt="Red marker" 
                                         style={{ width: "20px", height: "32px" }}
                                     />
@@ -728,7 +728,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                                 }}
                             >
                                 <img 
-                                    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                                    src="images/marker-icon.png" 
                                     alt="Blue marker" 
                                     style={{ width: "16px", height: "25px" }}
                                 />
@@ -752,7 +752,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                                 }}
                             >
                                 <img 
-                                    src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                                    src="images/marker-icon-red.png" 
                                     alt="Red marker" 
                                     style={{ width: "16px", height: "25px" }}
                                 />
@@ -811,7 +811,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                                         {average !== null && (
                                             <>
                                                 <img 
-                                                    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                                                    src="images/marker-icon.png" 
                                                     alt="Blue marker" 
                                                     style={{ width: "20px", height: "32px" }}
                                                 />
@@ -821,7 +821,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                                         {secondAverage !== null && (
                                             <>
                                                 <img 
-                                                    src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                                                    src="images/marker-icon-red.png" 
                                                     alt="Red marker" 
                                                     style={{ width: "20px", height: "32px" }}
                                                 />
