@@ -56,41 +56,46 @@ function DraggableMarker({ position, children, draggable = false, onDragEnd, rec
             }}
             position={position}
             draggable={draggable}
-            eventHandlers={draggable && onDragEnd ? {
-                dragstart: (e) => {
-                    isDraggingRef.current = true
-                    const marker = e.target
-                    const currentPos = marker.getLatLng()
-                    previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
+            eventHandlers={{
+                click: (e) => {
+                    e.originalEvent.stopPropagation()
                 },
-                dragend: (e) => {
-                    const marker = e.target
-                    const newPosition = marker.getLatLng()
-                    
-                    if (rectangleBounds) {
-                        const bounds = rectangleBounds
-                        const [minLat, minLng] = bounds[0]
-                        const [maxLat, maxLng] = bounds[1]
+                ...(draggable && onDragEnd ? {
+                    dragstart: (e) => {
+                        isDraggingRef.current = true
+                        const marker = e.target
+                        const currentPos = marker.getLatLng()
+                        previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
+                    },
+                    dragend: (e) => {
+                        const marker = e.target
+                        const newPosition = marker.getLatLng()
                         
-                        if (newPosition.lat < minLat || newPosition.lat > maxLat || 
-                            newPosition.lng < minLng || newPosition.lng > maxLng) {
-                            if (previousPositionRef.current) {
-                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
+                        if (rectangleBounds) {
+                            const bounds = rectangleBounds
+                            const [minLat, minLng] = bounds[0]
+                            const [maxLat, maxLng] = bounds[1]
+                            
+                            if (newPosition.lat < minLat || newPosition.lat > maxLat || 
+                                newPosition.lng < minLng || newPosition.lng > maxLng) {
+                                if (previousPositionRef.current) {
+                                    marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
+                                }
+                                isDraggingRef.current = false
+                                return
                             }
-                            isDraggingRef.current = false
-                            return
                         }
+                        
+                        const finalLat = newPosition.lat
+                        const finalLng = newPosition.lng
+                        
+                        setTimeout(() => {
+                            isDraggingRef.current = false
+                            onDragEnd(finalLat, finalLng, false)
+                        }, 10)
                     }
-                    
-                    const finalLat = newPosition.lat
-                    const finalLng = newPosition.lng
-                    
-                    setTimeout(() => {
-                        isDraggingRef.current = false
-                        onDragEnd(finalLat, finalLng, false)
-                    }, 10)
-                }
-            } : {}}
+                } : {})
+            }}
         >
             {children}
         </Marker>
@@ -144,42 +149,46 @@ function SecondPointMarker({ position, children, draggable = false, onDragEnd, r
             position={position} 
             icon={icon}
             draggable={draggable}
-            eventHandlers={draggable && onDragEnd ? {
-                dragstart: (e) => {
-                    isDraggingRef.current = true
-                    const marker = e.target
-                    const currentPos = marker.getLatLng()
-                    previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
+            eventHandlers={{
+                click: (e) => {
+                    e.originalEvent.stopPropagation()
                 },
-                dragend: (e) => {
-                    const marker = e.target
-                    const newPosition = marker.getLatLng()
-                    
-                    if (rectangleBounds) {
-                        const bounds = rectangleBounds
-                        const [minLat, minLng] = bounds[0]
-                        const [maxLat, maxLng] = bounds[1]
+                ...(draggable && onDragEnd ? {
+                    dragstart: (e) => {
+                        isDraggingRef.current = true
+                        const marker = e.target
+                        const currentPos = marker.getLatLng()
+                        previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
+                    },
+                    dragend: (e) => {
+                        const marker = e.target
+                        const newPosition = marker.getLatLng()
                         
-                        if (newPosition.lat < minLat || newPosition.lat > maxLat || 
-                            newPosition.lng < minLng || newPosition.lng > maxLng) {
-                            if (previousPositionRef.current) {
-                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
+                        if (rectangleBounds) {
+                            const bounds = rectangleBounds
+                            const [minLat, minLng] = bounds[0]
+                            const [maxLat, maxLng] = bounds[1]
+                            
+                            if (newPosition.lat < minLat || newPosition.lat > maxLat || 
+                                newPosition.lng < minLng || newPosition.lng > maxLng) {
+                                if (previousPositionRef.current) {
+                                    marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
+                                }
+                                isDraggingRef.current = false
+                                return
                             }
-                            isDraggingRef.current = false
-                            return
                         }
+                        
+                        const finalLat = newPosition.lat
+                        const finalLng = newPosition.lng
+                        
+                        setTimeout(() => {
+                            isDraggingRef.current = false
+                            onDragEnd(finalLat, finalLng, true)
+                        }, 10)
                     }
-                    
-                    const finalLat = newPosition.lat
-                    const finalLng = newPosition.lng
-                    marker.setLatLng([finalLat, finalLng])
-                    
-                    setTimeout(() => {
-                        isDraggingRef.current = false
-                        onDragEnd(finalLat, finalLng, true)
-                    }, 0)
-                }
-            } : {}}
+                } : {})
+            }}
         >
             {children}
         </Marker>
