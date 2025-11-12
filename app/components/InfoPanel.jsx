@@ -15,7 +15,7 @@ export default function InfoPanel({ lat, lon, ndvi, isReloading = false, pointIn
                     alt="Blue marker" 
                     style={{ width: "20px", height: "32px" }}
                 />
-                <span>Analyse: {lat.toFixed(6)},{lon.toFixed(6)}</span>
+                <span>: {lat.toFixed(6)},{lon.toFixed(6)}</span>
             </div>
             {pointInfoPanel}
         </div>
