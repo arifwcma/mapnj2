@@ -407,25 +407,64 @@ export default function Page() {
                                         Reset area of interest
                                     </button>
                                     {loading ? (
-                                        <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px" }}>
-                                            {(() => {
-                                                const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-                                                const displayMonth = selectedYear && selectedMonth 
-                                                    ? `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
-                                                    : endMonth
-                                                const overlayTypeText = overlayType === "RGB" ? "RGB" : "NDVI"
-                                                return displayMonth ? (
-                                                    <>Loading {overlayTypeText} data for <strong>{displayMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
-                                                ) : (
-                                                    <>Loading {overlayTypeText} data ...</>
-                                                )
-                                            })()}
+                                        <div style={{
+                                            fontSize: "14px",
+                                            color: "#333",
+                                            backgroundColor: "#f0f8ff",
+                                            border: "1px solid #b3d9ff",
+                                            borderRadius: "4px",
+                                            padding: "10px 15px",
+                                            marginBottom: "15px",
+                                            textAlign: "center",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: "8px"
+                                        }}>
+                                            <style>{`
+                                                @keyframes spin {
+                                                    0% { transform: rotate(0deg); }
+                                                    100% { transform: rotate(360deg); }
+                                                }
+                                            `}</style>
+                                            <div style={{
+                                                display: "inline-block",
+                                                width: "14px",
+                                                height: "14px",
+                                                border: "2px solid #b3d9ff",
+                                                borderTop: "2px solid #0066cc",
+                                                borderRadius: "50%",
+                                                animation: "spin 1s linear infinite"
+                                            }}></div>
+                                            <span>
+                                                {(() => {
+                                                    const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                                                    const displayMonth = selectedYear && selectedMonth 
+                                                        ? `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
+                                                        : endMonth
+                                                    const overlayTypeText = overlayType === "RGB" ? "RGB" : "NDVI"
+                                                    return displayMonth ? (
+                                                        <>Loading {overlayTypeText} data for <strong>{displayMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
+                                                    ) : (
+                                                        <>Loading {overlayTypeText} data ...</>
+                                                    )
+                                                })()}
+                                            </span>
                                         </div>
                                     ) : endMonth && imageCount !== null ? (
                                         !isImageAvailable() ? (
-                                            <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
+                                            <div style={{
+                                                fontSize: "14px",
+                                                color: "#333",
+                                                backgroundColor: "#f0f8ff",
+                                                border: "1px solid #b3d9ff",
+                                                borderRadius: "4px",
+                                                padding: "10px 15px",
+                                                marginBottom: "15px",
+                                                textAlign: "center"
+                                            }}>
                                                 <div>No image found for {endMonth}.</div>
-                                                <div><span style={{ color: "red" }}>Consider increasing cloud tolerance</span>.</div>
+                                                <div style={{ marginTop: "5px" }}><span style={{ color: "#d32f2f" }}>Consider increasing cloud tolerance</span>.</div>
                                             </div>
                                         ) : (
                                             <div style={{ fontSize: "14px", color: "#333", marginBottom: "10px" }}>
@@ -606,8 +645,30 @@ export default function Page() {
                                                         )}
                                                     </div>
                                                     {secondPoint.lat !== null && secondPoint.lon !== null && secondPointLoading && (
-                                                        <div style={{ marginTop: "5px", fontSize: "14px", color: "#666" }}>
-                                                            Loading second point on the chart ...
+                                                        <div style={{
+                                                            marginTop: "10px",
+                                                            fontSize: "14px",
+                                                            color: "#333",
+                                                            backgroundColor: "#f0f8ff",
+                                                            border: "1px solid #b3d9ff",
+                                                            borderRadius: "4px",
+                                                            padding: "10px 15px",
+                                                            textAlign: "center",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            gap: "8px"
+                                                        }}>
+                                                            <div style={{
+                                                                display: "inline-block",
+                                                                width: "14px",
+                                                                height: "14px",
+                                                                border: "2px solid #b3d9ff",
+                                                                borderTop: "2px solid #0066cc",
+                                                                borderRadius: "50%",
+                                                                animation: "spin 1s linear infinite"
+                                                            }}></div>
+                                                            <span>Loading second point on the chart ...</span>
                                                         </div>
                                                     )}
                                                 </div>

@@ -620,15 +620,48 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         }, 1000)
     }
     
+    const statusMessageStyle = {
+        fontSize: "14px",
+        color: "#333",
+        backgroundColor: "#f0f8ff",
+        border: "1px solid #b3d9ff",
+        borderRadius: "4px",
+        padding: "10px 15px",
+        marginBottom: "15px",
+        textAlign: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "8px"
+    }
+
+    const spinnerStyle = {
+        display: "inline-block",
+        width: "14px",
+        height: "14px",
+        border: "2px solid #b3d9ff",
+        borderTop: "2px solid #0066cc",
+        borderRadius: "50%",
+        animation: "spin 1s linear infinite"
+    }
+
     return (
         <div>
+            <style>{`
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `}</style>
             {isReloading ? (
-                <div style={{ fontSize: "16px" }}>
-                    Reloading ...
+                <div style={statusMessageStyle}>
+                    <div style={spinnerStyle}></div>
+                    <span>Reloading ...</span>
                 </div>
             ) : isLoading || (ndvi === null || ndvi === undefined) ? (
-                <div style={{ fontSize: "16px", marginBottom: "20px" }}>
-                    Calculating NDVI ...
+                <div style={statusMessageStyle}>
+                    <div style={spinnerStyle}></div>
+                    <span>Calculating NDVI ...</span>
                 </div>
             ) : ndvi !== null && ndvi !== undefined ? (
                 <div style={{ fontSize: "16px", marginBottom: "20px" }}>
@@ -767,8 +800,30 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 </>
             )}
             {loading && (
-                <div style={{ fontSize: "14px", color: "#666", marginTop: "20px" }}>
-                    Loading chart data...
+                <div style={{
+                    fontSize: "14px",
+                    color: "#333",
+                    backgroundColor: "#f0f8ff",
+                    border: "1px solid #b3d9ff",
+                    borderRadius: "4px",
+                    padding: "10px 15px",
+                    marginTop: "20px",
+                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px"
+                }}>
+                    <div style={{
+                        display: "inline-block",
+                        width: "14px",
+                        height: "14px",
+                        border: "2px solid #b3d9ff",
+                        borderTop: "2px solid #0066cc",
+                        borderRadius: "50%",
+                        animation: "spin 1s linear infinite"
+                    }}></div>
+                    <span>Loading chart data...</span>
                 </div>
             )}
         </div>
