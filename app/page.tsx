@@ -413,10 +413,11 @@ export default function Page() {
                                                 const displayMonth = selectedYear && selectedMonth 
                                                     ? `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
                                                     : endMonth
+                                                const overlayTypeText = overlayType === "RGB" ? "RGB" : "NDVI"
                                                 return displayMonth ? (
-                                                    <>Loading NDVI data for <strong>{displayMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
+                                                    <>Loading {overlayTypeText} data for <strong>{displayMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
                                                 ) : (
-                                                    <>Loading NDVI data ...</>
+                                                    <>Loading {overlayTypeText} data ...</>
                                                 )
                                             })()}
                                         </div>
@@ -450,18 +451,8 @@ export default function Page() {
                                                         />
                                                         <span>RGB</span>
                                                     </label>
-                                                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                                                        <input
-                                                            type="radio"
-                                                            name="overlay"
-                                                            value="None"
-                                                            checked={overlayType === "None"}
-                                                            onChange={() => setOverlayType("None")}
-                                                        />
-                                                        <span>None</span>
-                                                    </label>
                                                 </div>
-                                                <div>{overlayType === "NDVI" ? "NDVI" : overlayType === "RGB" ? "RGB" : ""} for <strong>{endMonth}</strong></div>
+                                                <div>{overlayType} for <strong>{endMonth}</strong></div>
                                                 <div>Based on <strong>{imageCount}</strong> image(s)</div>
                                             </div>
                                         )
