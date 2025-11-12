@@ -591,9 +591,16 @@ export default function Page() {
                                             )}
                                             {isImageAvailable() && secondPointSelection && (
                                                 <div>
-                                                    <div style={{ marginTop: "10px", fontSize: "14px", color: secondPoint.lat !== null && secondPoint.lon !== null ? "inherit" : "red" }}>
+                                                    <div style={{ marginTop: "10px", fontSize: "14px", color: secondPoint.lat !== null && secondPoint.lon !== null ? "inherit" : "red", display: "flex", alignItems: "center", gap: "5px" }}>
                                                         {secondPoint.lat !== null && secondPoint.lon !== null ? (
-                                                            <>Second point: {secondPoint.lat!.toFixed(6)},{secondPoint.lon!.toFixed(6)}</>
+                                                            <>
+                                                                <img 
+                                                                    src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                                                                    alt="Red marker" 
+                                                                    style={{ width: "20px", height: "32px" }}
+                                                                />
+                                                                <span>: {secondPoint.lat!.toFixed(6)},{secondPoint.lon!.toFixed(6)}</span>
+                                                            </>
                                                         ) : (
                                                             <>Click to choose the second point</>
                                                         )}

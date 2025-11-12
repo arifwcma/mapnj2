@@ -630,7 +630,13 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 </div>
             ) : ndvi !== null && ndvi !== undefined ? (
                 <div style={{ fontSize: "16px", marginBottom: "20px" }}>
-                    NDVI: {ndvi.toFixed(2)}
+                    {(() => {
+                        const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                        const timeLabel = selectedYear && selectedMonth 
+                            ? ` (${MONTH_NAMES[selectedMonth - 1]} ${selectedYear})`
+                            : ""
+                        return <>NDVI{timeLabel}: {ndvi.toFixed(2)}</>
+                    })()}
                 </div>
             ) : null}
             {!isReloading && !isLoading && !loading && plotData.length > 0 && (
@@ -682,13 +688,23 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                         return (
                             <>
                                 {average !== null ? (
-                                    <div style={{ fontSize: "14px", color: "#666", marginTop: "10px", textAlign: "center" }}>
-                                        Average: {average.toFixed(2)}
+                                    <div style={{ fontSize: "14px", color: "#666", marginTop: "10px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px" }}>
+                                        <img 
+                                            src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png" 
+                                            alt="Blue marker" 
+                                            style={{ width: "20px", height: "32px" }}
+                                        />
+                                        <span>Average: {average.toFixed(2)}</span>
                                     </div>
                                 ) : null}
                                 {secondAverage !== null ? (
-                                    <div style={{ fontSize: "14px", color: "#666", marginTop: "5px", textAlign: "center" }}>
-                                        Average (second point): {secondAverage.toFixed(2)}
+                                    <div style={{ fontSize: "14px", color: "#666", marginTop: "5px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px" }}>
+                                        <img 
+                                            src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" 
+                                            alt="Red marker" 
+                                            style={{ width: "20px", height: "32px" }}
+                                        />
+                                        <span>Average: {secondAverage.toFixed(2)}</span>
                                     </div>
                                 ) : null}
                             </>
