@@ -1,29 +1,7 @@
 import { NextResponse } from "next/server"
 import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
-
-const MIN_YEAR = 2019
-const MIN_MONTH = 1
-
-function getMonthDateRange(year, month) {
-    const start = `${year}-${String(month).padStart(2, "0")}-01`
-    const lastDay = new Date(year, month, 0).getDate()
-    const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
-    return { start, end }
-}
-
-function getPreviousMonth(year, month) {
-    if (month === 1) {
-        return { year: year - 1, month: 12 }
-    }
-    return { year, month: month - 1 }
-}
-
-function getNextMonth(year, month) {
-    if (month === 12) {
-        return { year: year + 1, month: 1 }
-    }
-    return { year, month: month + 1 }
-}
+import { MIN_YEAR, MIN_MONTH } from "@/app/lib/constants"
+import { getMonthDateRange, getPreviousMonth, getNextMonth } from "@/app/lib/dateUtils"
 
 export async function POST(request) {
     try {
@@ -113,7 +91,8 @@ export async function POST(request) {
                     ndvi: ndvi !== null && ndvi !== undefined ? ndvi : null
                 })
             } catch (error) {
-                if (error.message && error.message.includes("No images found")) {
+                const errorMessage = error.message || error.toString() || ""
+                if (errorMessage.includes("No images found") || errorMessage.includes("No NDVI value found")) {
                     results.push({
                         year,
                         month,

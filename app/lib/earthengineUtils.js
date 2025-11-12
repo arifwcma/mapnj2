@@ -1,20 +1,7 @@
 import { ee, initEarthEngine } from "@/app/lib/earthengine"
-
-const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-
-export function getMonthDateRange(year, month) {
-    const start = `${year}-${String(month).padStart(2, "0")}-01`
-    const lastDay = new Date(year, month, 0).getDate()
-    const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
-    return { start, end }
-}
-
-function getPreviousMonth(year, month) {
-    if (month === 1) {
-        return { year: year - 1, month: 12 }
-    }
-    return { year, month: month - 1 }
-}
+import { MONTH_NAMES_FULL } from "@/app/lib/constants"
+import { getMonthDateRange, getPreviousMonth } from "@/app/lib/dateUtils"
+import { bboxToArray } from "@/app/lib/bboxUtils"
 
 export async function countAvailableImages(start, end, bbox, cloud = 30) {
     await initEarthEngine()
@@ -70,7 +57,7 @@ export async function findAvailableMonth(bbox, cloud = 30) {
         return {
             year: currentYear,
             month: currentMonth,
-            monthName: MONTH_NAMES[currentMonth - 1],
+            monthName: MONTH_NAMES_FULL[currentMonth - 1],
             count,
             start: currentDateRange.start,
             end: currentDateRange.end
@@ -90,7 +77,7 @@ export async function findAvailableMonth(bbox, cloud = 30) {
     return {
         year: prevYear,
         month: prevMonth,
-        monthName: MONTH_NAMES[prevMonth - 1],
+            monthName: MONTH_NAMES_FULL[prevMonth - 1],
         count,
         start: prevDateRange.start,
         end: prevDateRange.end
@@ -100,9 +87,8 @@ export async function findAvailableMonth(bbox, cloud = 30) {
 export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
     await initEarthEngine()
 
-    const [minLng, minLat, maxLng, maxLat] = Array.isArray(bbox)
-        ? [bbox[0][1], bbox[0][0], bbox[1][1], bbox[1][0]]
-        : bbox.split(",").map(parseFloat)
+    const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
+    const [minLng, minLat, maxLng, maxLat] = bboxArray || []
 
     if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
         throw new Error("Invalid bbox format")
@@ -138,9 +124,8 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
 export async function getAverageRgbTile(start, end, bbox, cloud = 30) {
     await initEarthEngine()
 
-    const [minLng, minLat, maxLng, maxLat] = Array.isArray(bbox)
-        ? [bbox[0][1], bbox[0][0], bbox[1][1], bbox[1][0]]
-        : bbox.split(",").map(parseFloat)
+    const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
+    const [minLng, minLat, maxLng, maxLat] = bboxArray || []
 
     if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
         throw new Error("Invalid bbox format")
@@ -175,9 +160,8 @@ export async function getAverageRgbTile(start, end, bbox, cloud = 30) {
 export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
     await initEarthEngine()
 
-    const [minLng, minLat, maxLng, maxLat] = Array.isArray(bbox)
-        ? [bbox[0][1], bbox[0][0], bbox[1][1], bbox[1][0]]
-        : bbox.split(",").map(parseFloat)
+    const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
+    const [minLng, minLat, maxLng, maxLat] = bboxArray || []
 
     if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
         throw new Error("Invalid bbox format")
@@ -233,9 +217,8 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
                     reject(new Error("No NDVI value found at this point"))
                     return
                 }
-                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
                 const startDate = new Date(start)
-                const monthYear = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`
+                const monthYear = `${MONTH_NAMES_FULL[startDate.getMonth()]} ${startDate.getFullYear()}`
                 console.log(`NDVI value retrieved for ${monthYear}:`, ndviValue)
                 resolve(ndviValue)
             })

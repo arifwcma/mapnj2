@@ -1,9 +1,7 @@
 "use client"
 
-export default function InfoPanel({ lat, lon, ndvi, isReloading = false, pointInfoPanel = null, secondPoint = null }) {
-    console.log("InfoPanel render:", { lat, lon, ndvi, latType: typeof lat, lonType: typeof lon, ndviType: typeof ndvi, isReloading })
+export default function InfoPanel({ lat, lon, secondPoint = null }) {
     if (lat === null || lon === null) {
-        console.log("InfoPanel returning null because:", { latIsNull: lat === null, lonIsNull: lon === null })
         return null
     }
 
@@ -27,8 +25,6 @@ export default function InfoPanel({ lat, lon, ndvi, isReloading = false, pointIn
                     <span>: {secondPoint.lat.toFixed(6)},{secondPoint.lon.toFixed(6)}</span>
                 </div>
             )}
-            {pointInfoPanel}
         </div>
     )
 }
-

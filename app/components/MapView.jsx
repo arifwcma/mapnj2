@@ -8,6 +8,7 @@ import RectangleDrawHandler from "./RectangleDrawHandler"
 import NdviOverlay from "./NdviOverlay"
 import useBoundary from "@/app/hooks/useBoundary"
 import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE } from "@/app/lib/mapConfig"
+import { validatePointInBounds } from "@/app/lib/bboxUtils"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
@@ -71,19 +72,12 @@ function DraggableMarker({ position, children, draggable = false, onDragEnd, rec
                         const marker = e.target
                         const newPosition = marker.getLatLng()
                         
-                        if (rectangleBounds) {
-                            const bounds = rectangleBounds
-                            const [minLat, minLng] = bounds[0]
-                            const [maxLat, maxLng] = bounds[1]
-                            
-                            if (newPosition.lat < minLat || newPosition.lat > maxLat || 
-                                newPosition.lng < minLng || newPosition.lng > maxLng) {
-                                if (previousPositionRef.current) {
-                                    marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
-                                }
-                                isDraggingRef.current = false
-                                return
+                        if (rectangleBounds && !validatePointInBounds(newPosition.lat, newPosition.lng, rectangleBounds)) {
+                            if (previousPositionRef.current) {
+                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
                             }
+                            isDraggingRef.current = false
+                            return
                         }
                         
                         const finalLat = newPosition.lat
@@ -164,19 +158,12 @@ function SecondPointMarker({ position, children, draggable = false, onDragEnd, r
                         const marker = e.target
                         const newPosition = marker.getLatLng()
                         
-                        if (rectangleBounds) {
-                            const bounds = rectangleBounds
-                            const [minLat, minLng] = bounds[0]
-                            const [maxLat, maxLng] = bounds[1]
-                            
-                            if (newPosition.lat < minLat || newPosition.lat > maxLat || 
-                                newPosition.lng < minLng || newPosition.lng > maxLng) {
-                                if (previousPositionRef.current) {
-                                    marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
-                                }
-                                isDraggingRef.current = false
-                                return
+                        if (rectangleBounds && !validatePointInBounds(newPosition.lat, newPosition.lng, rectangleBounds)) {
+                            if (previousPositionRef.current) {
+                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
                             }
+                            isDraggingRef.current = false
+                            return
                         }
                         
                         const finalLat = newPosition.lat

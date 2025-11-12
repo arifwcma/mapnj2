@@ -3,8 +3,18 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import MapView from "@/app/components/MapView"
 import InfoPanel from "@/app/components/InfoPanel"
 import PointInfoPanel from "@/app/components/PointInfoPanel"
+import BasemapSelector from "@/app/components/BasemapSelector"
+import AreaOfInterestControls from "@/app/components/AreaOfInterestControls"
+import LoadingMessage from "@/app/components/LoadingMessage"
+import OverlayControls from "@/app/components/OverlayControls"
+import CloudToleranceSlider from "@/app/components/CloudToleranceSlider"
+import TimeSlider from "@/app/components/TimeSlider"
+import PointInteractionControls from "@/app/components/PointInteractionControls"
+import DataControls from "@/app/components/DataControls"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
+import { formatMonthLabelFull } from "@/app/lib/dateUtils"
+import { bboxToString } from "@/app/lib/bboxUtils"
 
 export default function Page() {
     const {
@@ -27,6 +37,7 @@ export default function Page() {
         endMonthNum,
         imageCount,
         loading,
+        overlayLoading,
         cloudTolerance,
         selectedYear,
         selectedMonth,
@@ -35,6 +46,7 @@ export default function Page() {
         updateSelectedMonth,
         clearNdvi,
         setOverlayType,
+        loadOverlayTileOnly,
         isImageAvailable,
         getMaxSliderValue,
         getCurrentSliderValue,
@@ -59,6 +71,11 @@ export default function Page() {
     const [secondPoint, setSecondPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [secondPointLoading, setSecondPointLoading] = useState(false)
     const [isMoveMode, setIsMoveMode] = useState(false)
+    const previousOverlayTypeRef = useRef(overlayType)
+    const previousRectangleBoundsRef = useRef(rectangleBounds)
+    const previousCloudToleranceRef = useRef(cloudTolerance)
+    const previousSelectedYearRef = useRef(selectedYear)
+    const previousSelectedMonthRef = useRef(selectedMonth)
     const pointLoaded = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
 
     const fetchPointNdvi = useCallback(async (lat: number, lon: number) => {
@@ -71,7 +88,7 @@ export default function Page() {
             return null
         }
         
-        const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+        const bboxStr = bboxToString(rectangleBounds)
         
         try {
             const controller = new AbortController()
@@ -84,13 +101,20 @@ export default function Page() {
             
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-                throw new Error(errorData.error || "Failed to get NDVI")
+                const errorMessage = errorData.error || "Failed to get NDVI"
+                if (errorMessage.includes("No NDVI value found") || errorMessage.includes("No images found")) {
+                    return null
+                }
+                throw new Error(errorMessage)
             }
             const data = await response.json()
             return data.ndvi
         } catch (error: unknown) {
             if ((error as Error).name !== 'AbortError') {
-                console.error("Error fetching point NDVI:", error)
+                const errorMessage = (error as Error).message || ""
+                if (!errorMessage.includes("No NDVI value found") && !errorMessage.includes("No images found")) {
+                    console.error("Error fetching point NDVI:", error)
+                }
             }
             return null
         }
@@ -103,19 +127,52 @@ export default function Page() {
 
     useEffect(() => {
         if (rectangleBounds) {
+            const overlayTypeChanged = previousOverlayTypeRef.current !== overlayType
+            const rectangleChanged = previousRectangleBoundsRef.current !== rectangleBounds
+            const cloudChanged = previousCloudToleranceRef.current !== cloudTolerance
+            const yearChanged = previousSelectedYearRef.current !== selectedYear
+            const monthChanged = previousSelectedMonthRef.current !== selectedMonth
+            
+            const isFirstLoad = !previousRectangleBoundsRef.current
+            
+            if (isFirstLoad) {
+                previousRectangleBoundsRef.current = rectangleBounds
+                previousCloudToleranceRef.current = cloudTolerance
+                previousSelectedYearRef.current = selectedYear
+                previousSelectedMonthRef.current = selectedMonth
+                previousOverlayTypeRef.current = overlayType
+            }
+            
             if (!selectedYear || !selectedMonth) {
-                isInitialLoadRef.current = true
-                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType)
-            } else if (!isInitialLoadRef.current) {
+                if (!isInitialLoadRef.current) {
+                    isInitialLoadRef.current = true
+                    loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType)
+                }
+            } else if (overlayTypeChanged && !rectangleChanged && !cloudChanged && !yearChanged && !monthChanged && selectedYear && selectedMonth) {
+                loadOverlayTileOnly(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType)
+            } else if ((rectangleChanged || cloudChanged || yearChanged || monthChanged) && !isInitialLoadRef.current) {
                 loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType)
-            } else {
+            }
+            
+            if (isInitialLoadRef.current && selectedYear && selectedMonth) {
                 isInitialLoadRef.current = false
             }
+            
+            previousOverlayTypeRef.current = overlayType
+            previousRectangleBoundsRef.current = rectangleBounds
+            previousCloudToleranceRef.current = cloudTolerance
+            previousSelectedYearRef.current = selectedYear
+            previousSelectedMonthRef.current = selectedMonth
         } else {
             clearNdvi()
             isInitialLoadRef.current = false
+            previousOverlayTypeRef.current = overlayType
+            previousRectangleBoundsRef.current = null
+            previousCloudToleranceRef.current = cloudTolerance
+            previousSelectedYearRef.current = selectedYear
+            previousSelectedMonthRef.current = selectedMonth
         }
-    }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, loadNdviData, clearNdvi])
+    }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, loadNdviData, loadOverlayTileOnly, clearNdvi])
 
     useEffect(() => {
         if (pointLoaded && !loading && isImageAvailable() && selectedPoint.lat !== null && selectedPoint.lon !== null) {
@@ -263,8 +320,7 @@ export default function Page() {
 
     const getMonthYearLabel = (sliderValue: number) => {
         const { year, month } = sliderValueToMonthYear(sliderValue)
-        const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-        return `${MONTH_NAMES[month - 1]} ${year}`
+        return formatMonthLabelFull(year, month)
     }
 
     const handlePointClick = useCallback(async (lat: number, lon: number) => {
@@ -377,417 +433,58 @@ export default function Page() {
             </div>
             <div style={{ width: "33.33%", height: "100vh", display: "flex", flexDirection: "column", borderLeft: "1px solid #ccc", backgroundColor: "white" }}>
                 <div style={{ padding: "20px", overflowY: "auto", flex: "1 1 auto" }}>
-                    <div style={{ padding: "10px 0", marginBottom: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ fontSize: "13px", color: "#333" }}>Basemap:</span>
-                        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                            <input
-                                type="radio"
-                                name="basemap"
-                                value="street"
-                                checked={basemap === "street"}
-                                onChange={(e) => setBasemap(e.target.value)}
-                            />
-                            <span style={{ fontSize: "13px", color: "#333" }}>Street</span>
-                        </label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                            <input
-                                type="radio"
-                                name="basemap"
-                                value="satellite"
-                                checked={basemap === "satellite"}
-                                onChange={(e) => setBasemap(e.target.value)}
-                            />
-                            <span style={{ fontSize: "13px", color: "#333" }}>Satellite</span>
-                        </label>
-                    </div>
-                    {isDrawing ? (
-                        <div style={{ 
-                            marginTop: "10px", 
-                            fontSize: "13px", 
-                            color: "#555",
-                            backgroundColor: "#f8f9fa",
-                            border: "1px solid #e0e0e0",
-                            borderRadius: "4px",
-                            padding: "8px 12px",
-                            textAlign: "center"
-                        }}>
-                            Click and drag to draw area
-                        </div>
-                    ) : (
+                    <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} />
+                    <AreaOfInterestControls 
+                        isDrawing={isDrawing}
+                        rectangleBounds={rectangleBounds}
+                        onStartDrawing={startDrawing}
+                        onReset={handleButtonClick}
+                    />
+                    {rectangleBounds && (
                         <>
-                            {!rectangleBounds && (
-                                <button
-                                    onClick={startDrawing}
-                                    style={{
-                                        background: "none",
-                                        border: "none",
-                                        padding: "10px 0",
-                                        margin: "0 0 10px 0",
-                                        cursor: "pointer",
-                                        fontSize: "13px",
-                                        color: "#0066cc",
-                                        textDecoration: "none",
-                                        fontFamily: "inherit",
-                                        display: "block"
-                                    }}
-                                    onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
-                                    onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
-                                >
-                                    Select area of interest
-                                </button>
-                            )}
-                            {rectangleBounds && (
-                                <>
-                                    <button
-                                        onClick={handleButtonClick}
-                                        style={{
-                                            background: "none",
-                                            border: "none",
-                                            padding: "10px 0",
-                                            margin: "0 0 10px 0",
-                                            cursor: "pointer",
-                                            fontSize: "13px",
-                                            color: "#0066cc",
-                                            textDecoration: "none",
-                                            fontFamily: "inherit",
-                                            display: "block"
-                                        }}
-                                        onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
-                                        onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
-                                    >
-                                        Reset area of interest
-                                    </button>
-                                    <style>{`
-                                        @keyframes spin {
-                                            0% { transform: rotate(0deg); }
-                                            100% { transform: rotate(360deg); }
-                                        }
-                                    `}</style>
-                                    {loading ? (
-                                        <div style={{
-                                            fontSize: "13px",
-                                            color: "#333",
-                                            backgroundColor: "#f0f8ff",
-                                            border: "1px solid #b3d9ff",
-                                            borderRadius: "4px",
-                                            padding: "10px 15px",
-                                            marginBottom: "15px",
-                                            textAlign: "center",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: "8px"
-                                        }}>
-                                            <div style={{
-                                                display: "inline-block",
-                                                width: "14px",
-                                                height: "14px",
-                                                border: "2px solid #b3d9ff",
-                                                borderTop: "2px solid #0066cc",
-                                                borderRadius: "50%",
-                                                animation: "spin 1s linear infinite"
-                                            }}></div>
-                                            <span>
-                                                {(() => {
-                                                    const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-                                                    const displayMonth = selectedYear && selectedMonth 
-                                                        ? `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
-                                                        : endMonth
-                                                    const overlayTypeText = overlayType === "RGB" ? "RGB" : "NDVI"
-                                                    return displayMonth ? (
-                                                        <>Loading {overlayTypeText} data for <strong>{displayMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
-                                                    ) : (
-                                                        <>Loading {overlayTypeText} data ...</>
-                                                    )
-                                                })()}
-                                            </span>
-                                        </div>
-                                    ) : endMonth && imageCount !== null ? (
-                                        !isImageAvailable() ? (
-                                        <div style={{
-                                            fontSize: "13px",
-                                            color: "#555",
-                                            backgroundColor: "#f8f9fa",
-                                            border: "1px solid #e0e0e0",
-                                            borderRadius: "4px",
-                                            padding: "10px 15px",
-                                            marginBottom: "15px",
-                                            textAlign: "center"
-                                        }}>
-                                            <div>No image found for {endMonth}.</div>
-                                            <div style={{ marginTop: "5px" }}>Consider increasing cloud tolerance.</div>
-                                        </div>
-                                        ) : (
-                                            <div style={{ fontSize: "13px", color: "#333", marginBottom: "10px" }}>
-                                                <div style={{ marginBottom: "10px", display: "flex", alignItems: "center", gap: "15px" }}>
-                                                    <span style={{ fontSize: "13px", color: "#333" }}>Overlay:</span>
-                                                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                                                        <input
-                                                            type="radio"
-                                                            name="overlay"
-                                                            value="NDVI"
-                                                            checked={overlayType === "NDVI"}
-                                                            onChange={() => setOverlayType("NDVI")}
-                                                        />
-                                                        <span style={{ fontSize: "13px", color: "#333" }}>NDVI</span>
-                                                    </label>
-                                                    <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                                                        <input
-                                                            type="radio"
-                                                            name="overlay"
-                                                            value="RGB"
-                                                            checked={overlayType === "RGB"}
-                                                            onChange={() => setOverlayType("RGB")}
-                                                        />
-                                                        <span style={{ fontSize: "13px", color: "#333" }}>RGB</span>
-                                                    </label>
-                                                </div>
-                                                <div>{overlayType} for <strong>{endMonth}</strong></div>
-                                                <div>Based on <strong>{imageCount}</strong> image(s)</div>
-                                            </div>
-                                        )
-                                    ) : null}
-                                    {!loading && endMonth && imageCount !== null && (
-                                        <>
-                                            <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                                                <button
-                                                    onClick={() => handleCloudButtonClick(-1)}
-                                                    onMouseUp={handleCloudButtonRelease}
-                                                    disabled={localCloudTolerance === 0}
-                                                    style={{
-                                                        width: "30px",
-                                                        height: "30px",
-                                                        fontSize: "13px",
-                                                        cursor: localCloudTolerance === 0 ? "not-allowed" : "pointer",
-                                                        opacity: localCloudTolerance === 0 ? 0.5 : 1,
-                                                        border: "1px solid #ccc",
-                                                        borderRadius: "4px",
-                                                        background: "white"
-                                                    }}
-                                                >
-                                                    -
-                                                </button>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                                    <label style={{ fontSize: "13px", display: "block" }}>
-                                                        Cloud tolerance (%): <strong>{localCloudTolerance}</strong>
-                                                    </label>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="100"
-                                                        value={localCloudTolerance}
-                                                        onChange={(e) => handleCloudChange(parseInt(e.target.value))}
-                                                        onMouseUp={handleCloudButtonRelease}
-                                                        style={{ width: "200px" }}
-                                                    />
-                                                </div>
-                                                <button
-                                                    onClick={() => handleCloudButtonClick(1)}
-                                                    onMouseUp={handleCloudButtonRelease}
-                                                    disabled={localCloudTolerance === 100}
-                                                    style={{
-                                                        width: "30px",
-                                                        height: "30px",
-                                                        fontSize: "13px",
-                                                        cursor: localCloudTolerance === 100 ? "not-allowed" : "pointer",
-                                                        opacity: localCloudTolerance === 100 ? 0.5 : 1,
-                                                        border: "1px solid #ccc",
-                                                        borderRadius: "4px",
-                                                        background: "white"
-                                                    }}
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
-                                            {selectedYear && selectedMonth && (
-                                                <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                                                    <button
-                                                        onClick={() => handleTimeButtonClick(-1)}
-                                                        disabled={localTimeSliderValue === 0}
-                                                        style={{
-                                                            width: "30px",
-                                                            height: "30px",
-                                                            fontSize: "13px",
-                                                            cursor: localTimeSliderValue === 0 ? "not-allowed" : "pointer",
-                                                            opacity: localTimeSliderValue === 0 ? 0.5 : 1,
-                                                            border: "1px solid #ccc",
-                                                            borderRadius: "4px",
-                                                            background: "white"
-                                                        }}
-                                                    >
-                                                        -
-                                                    </button>
-                                                    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                                                        <label style={{ fontSize: "13px", display: "block" }}>
-                                                            {getMonthYearLabel(localTimeSliderValue)}
-                                                        </label>
-                                                        <input
-                                                            type="range"
-                                                            min="0"
-                                                            max={getMaxSliderValue()}
-                                                            value={localTimeSliderValue}
-                                                            onChange={(e) => {
-                                                                const newValue = parseInt(e.target.value)
-                                                                handleTimeChange(newValue)
-                                                            }}
-                                                            style={{ width: "200px" }}
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        onClick={() => handleTimeButtonClick(1)}
-                                                        disabled={localTimeSliderValue >= getMaxSliderValue()}
-                                                        style={{
-                                                            width: "30px",
-                                                            height: "30px",
-                                                            fontSize: "13px",
-                                                            cursor: localTimeSliderValue >= getMaxSliderValue() ? "not-allowed" : "pointer",
-                                                            opacity: localTimeSliderValue >= getMaxSliderValue() ? 0.5 : 1,
-                                                            border: "1px solid #ccc",
-                                                            borderRadius: "4px",
-                                                            background: "white"
-                                                        }}
-                                                    >
-                                                        +
-                                                    </button>
-                                                </div>
-                                            )}
-                                            {isImageAvailable() && !secondPointSelection && !isMoveMode && (
-                                                <>
-                                                    {pointLoaded ? (
-                                                        <button
-                                                            onClick={() => setIsMoveMode(true)}
-                                                            style={{
-                                                                background: "none",
-                                                                border: "none",
-                                                                padding: "10px 0",
-                                                                margin: "10px 0 0 0",
-                                                                cursor: "pointer",
-                                                                fontSize: "13px",
-                                                                color: "#0066cc",
-                                                                textDecoration: "none",
-                                                                fontFamily: "inherit",
-                                                                display: "block"
-                                                            }}
-                                                            onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
-                                                            onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
-                                                        >
-                                                            Move point marker
-                                                        </button>
-                                                    ) : (
-                                                        <div style={{ 
-                                                            marginTop: "10px", 
-                                                            fontSize: "13px", 
-                                                            color: "#555",
-                                                            backgroundColor: "#f8f9fa",
-                                                            border: "1px solid #e0e0e0",
-                                                            borderRadius: "4px",
-                                                            padding: "8px 12px",
-                                                            textAlign: "center"
-                                                        }}>
-                                                            Click a point to analyse
-                                                        </div>
-                                                    )}
-                                                    {pointLoaded && (
-                                                        <button
-                                                            onClick={() => setSecondPointSelection(true)}
-                                                            style={{
-                                                                background: "none",
-                                                                border: "none",
-                                                                padding: "10px 0",
-                                                                margin: "10px 0 0 0",
-                                                                cursor: "pointer",
-                                                            fontSize: "13px",
-                                                            color: "#0066cc",
-                                                            textDecoration: "none",
-                                                            fontFamily: "inherit",
-                                                            display: "block"
-                                                        }}
-                                                        onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
-                                                        onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
-                                                    >
-                                                        Compare with another point
-                                                    </button>
-                                                    )}
-                                                </>
-                                            )}
-                                            {isImageAvailable() && secondPointSelection && !isMoveMode && pointLoaded && (
-                                                <button
-                                                    onClick={() => setIsMoveMode(true)}
-                                                    style={{
-                                                        background: "none",
-                                                        border: "none",
-                                                        padding: "10px 0",
-                                                        margin: "10px 0 0 0",
-                                                        cursor: "pointer",
-                                                        fontSize: "13px",
-                                                        color: "#0066cc",
-                                                        textDecoration: "none",
-                                                        fontFamily: "inherit",
-                                                        display: "block"
-                                                    }}
-                                                    onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
-                                                    onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
-                                                >
-                                                    Move point marker
-                                                </button>
-                                            )}
-                                            {isImageAvailable() && isMoveMode && (
-                                                <>
-                                                    <div style={{ 
-                                                        marginTop: "10px", 
-                                                        fontSize: "13px", 
-                                                        color: "#555",
-                                                        backgroundColor: "#f8f9fa",
-                                                        border: "1px solid #e0e0e0",
-                                                        borderRadius: "4px",
-                                                        padding: "8px 12px",
-                                                        textAlign: "center"
-                                                    }}>
-                                                        Drag a marker to move
-                                                    </div>
-                                                    <button
-                                                        onClick={() => setIsMoveMode(false)}
-                                                        style={{
-                                                            background: "none",
-                                                            border: "none",
-                                                            padding: "10px 0",
-                                                            margin: "10px 0 0 0",
-                                                            cursor: "pointer",
-                                                            fontSize: "13px",
-                                                            color: "#0066cc",
-                                                            textDecoration: "none",
-                                                            fontFamily: "inherit",
-                                                            display: "block"
-                                                        }}
-                                                        onMouseEnter={(e) => (e.target as HTMLElement).style.textDecoration = "underline"}
-                                                        onMouseLeave={(e) => (e.target as HTMLElement).style.textDecoration = "none"}
-                                                    >
-                                                        Cancel move
-                                                    </button>
-                                                </>
-                                            )}
-                                            {isImageAvailable() && secondPointSelection && (
-                                                <div>
-                                                    {secondPoint.lat === null || secondPoint.lon === null ? (
-                                                        <div style={{ 
-                                                            marginTop: "10px", 
-                                                            fontSize: "13px", 
-                                                            color: "#555",
-                                                            backgroundColor: "#f8f9fa",
-                                                            border: "1px solid #e0e0e0",
-                                                            borderRadius: "4px",
-                                                            padding: "8px 12px",
-                                                            textAlign: "center"
-                                                        }}>
-                                                            Click to choose the second point
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-                                </>
-                            )}
+                            <LoadingMessage 
+                                loading={loading}
+                                overlayLoading={overlayLoading}
+                                overlayType={overlayType}
+                                selectedYear={selectedYear}
+                                selectedMonth={selectedMonth}
+                                endMonth={endMonth}
+                                cloudTolerance={cloudTolerance}
+                            />
+                            <OverlayControls 
+                                overlayType={overlayType}
+                                endMonth={endMonth}
+                                imageCount={imageCount}
+                                isImageAvailable={isImageAvailable()}
+                                onOverlayChange={setOverlayType}
+                            />
+                            <DataControls endMonth={endMonth} imageCount={imageCount}>
+                                <CloudToleranceSlider 
+                                    cloudTolerance={localCloudTolerance}
+                                    onCloudChange={handleCloudChange}
+                                    onCloudButtonClick={handleCloudButtonClick}
+                                    onCloudButtonRelease={handleCloudButtonRelease}
+                                />
+                                {selectedYear && selectedMonth && (
+                                    <TimeSlider 
+                                        sliderValue={localTimeSliderValue}
+                                        maxValue={getMaxSliderValue()}
+                                        label={getMonthYearLabel(localTimeSliderValue)}
+                                        onTimeChange={handleTimeChange}
+                                        onTimeButtonClick={handleTimeButtonClick}
+                                    />
+                                )}
+                                <PointInteractionControls 
+                                    isImageAvailable={isImageAvailable()}
+                                    pointLoaded={pointLoaded}
+                                    secondPointSelection={secondPointSelection}
+                                    isMoveMode={isMoveMode}
+                                    secondPoint={secondPoint}
+                                    onMoveModeClick={() => setIsMoveMode(true)}
+                                    onCancelMove={() => setIsMoveMode(false)}
+                                    onCompareClick={() => setSecondPointSelection(true)}
+                                />
+                            </DataControls>
                         </>
                     )}
                 </div>
@@ -795,28 +492,25 @@ export default function Page() {
                     <InfoPanel 
                         lat={selectedPoint.lat} 
                         lon={selectedPoint.lon}
-                        ndvi={selectedPoint.ndvi}
                         secondPoint={secondPoint as any}
-                        pointInfoPanel={
-                            (selectedPoint.lat !== null && selectedPoint.lon !== null ? (
-                                <PointInfoPanel
-                                    lat={selectedPoint.lat}
-                                    lon={selectedPoint.lon}
-                                    ndvi={selectedPoint.ndvi}
-                                    isReloading={loading && pointLoaded}
-                                    isLoading={pointLoading}
-                                    selectedYear={selectedYear}
-                                    selectedMonth={selectedMonth}
-                                    endYear={endYear}
-                                    endMonthNum={endMonthNum}
-                                    rectangleBounds={rectangleBounds}
-                                    cloudTolerance={cloudTolerance}
-                                    secondPoint={(secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : undefined) as any}
-                                    onSecondPointLoadingChange={setSecondPointLoading as any}
-                                />
-                            ) : undefined) as any
-                        }
                     />
+                    {selectedPoint.lat !== null && selectedPoint.lon !== null && (
+                        <PointInfoPanel
+                            lat={selectedPoint.lat}
+                            lon={selectedPoint.lon}
+                            ndvi={selectedPoint.ndvi}
+                            isReloading={loading && pointLoaded}
+                            isLoading={pointLoading}
+                            selectedYear={selectedYear}
+                            selectedMonth={selectedMonth}
+                            endYear={endYear}
+                            endMonthNum={endMonthNum}
+                            rectangleBounds={rectangleBounds}
+                            cloudTolerance={cloudTolerance}
+                            secondPoint={(secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : undefined) as any}
+                            onSecondPointLoadingChange={setSecondPointLoading as any}
+                        />
+                    )}
                 </div>
             </div>
         </div>

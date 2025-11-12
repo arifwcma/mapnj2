@@ -11,6 +11,15 @@ import {
     Tooltip,
     Legend
 } from "chart.js"
+import { MONTH_NAMES_SHORT, MONTH_NAMES_FULL, MIN_YEAR, MIN_MONTH } from "@/app/lib/constants"
+import { formatMonthLabel, formatMonthLabelFull, getPreviousMonth, getNextMonth } from "@/app/lib/dateUtils"
+import { bboxToString } from "@/app/lib/bboxUtils"
+import PointStatusMessage from "./PointStatusMessage"
+import PointNdviDisplay from "./PointNdviDisplay"
+import SecondPointNdviDisplay from "./SecondPointNdviDisplay"
+import ChartSection from "./ChartSection"
+import ChartAverages from "./ChartAverages"
+import ChartLoadingMessage from "./ChartLoadingMessage"
 
 ChartJS.register(
     CategoryScale,
@@ -21,14 +30,6 @@ ChartJS.register(
     Tooltip,
     Legend
 )
-
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-const MIN_YEAR = 2019
-const MIN_MONTH = 1
-
-function formatMonthLabel(year, month) {
-    return `${MONTH_NAMES[month - 1]} ${year}`
-}
 
 function getInitialMonthsRange(currentYear, currentMonth, endYear, endMonthNum) {
     const months = []
@@ -54,20 +55,6 @@ function getInitialMonthsRange(currentYear, currentMonth, endYear, endMonthNum) 
     }
     
     return months
-}
-
-function getPreviousMonth(year, month) {
-    if (month === 1) {
-        return { year: year - 1, month: 12 }
-    }
-    return { year, month: month - 1 }
-}
-
-function getNextMonth(year, month) {
-    if (month === 12) {
-        return { year: year + 1, month: 1 }
-    }
-    return { year, month: month + 1 }
 }
 
 export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance, secondPoint = null, onSecondPointLoadingChange = undefined }) {
@@ -96,7 +83,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             index === self.findIndex(t => t.year === m.year && t.month === m.month)
         )
         
-        const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+        const bboxStr = bboxToString(rectangleBounds)
         
         try {
             const response = await fetch("/api/ndvi/point/months", {
@@ -376,7 +363,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             }
 
             const firstMonth = plotData[0]
-            const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+            const bboxStr = bboxToString(rectangleBounds)
 
             fetchingRef.current = true
             setLoading(true)
@@ -514,7 +501,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             }
 
             const lastMonth = plotData[plotData.length - 1]
-            const bboxStr = `${rectangleBounds[0][1]},${rectangleBounds[0][0]},${rectangleBounds[1][1]},${rectangleBounds[1][0]}`
+            const bboxStr = bboxToString(rectangleBounds)
 
             fetchingRef.current = true
             setLoading(true)
@@ -628,275 +615,75 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         }, 1000)
     }
     
-    const statusMessageStyle = {
-        fontSize: "13px",
-        color: "#333",
-        backgroundColor: "#f0f8ff",
-        border: "1px solid #b3d9ff",
-        borderRadius: "4px",
-        padding: "10px 15px",
-        marginBottom: "15px",
-        textAlign: "center",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "8px"
+
+    const handleFirstPointToggle = () => {
+        if (chartRef.current) {
+            const meta = chartRef.current.getDatasetMeta(0)
+            meta.hidden = !meta.hidden
+            setFirstPointHidden(meta.hidden)
+            chartRef.current.update()
+        }
     }
 
-    const spinnerStyle = {
-        display: "inline-block",
-        width: "14px",
-        height: "14px",
-        border: "2px solid #b3d9ff",
-        borderTop: "2px solid #0066cc",
-        borderRadius: "50%",
-        animation: "spin 1s linear infinite"
+    const handleSecondPointToggle = () => {
+        if (chartRef.current) {
+            const meta = chartRef.current.getDatasetMeta(1)
+            meta.hidden = !meta.hidden
+            setSecondPointHidden(meta.hidden)
+            chartRef.current.update()
+        }
     }
 
     return (
         <div>
-            <style>{`
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            `}</style>
-            {isReloading ? (
-                <div style={statusMessageStyle}>
-                    <div style={spinnerStyle}></div>
-                    <span>Reloading ...</span>
-                </div>
-            ) : isLoading || (ndvi === null || ndvi === undefined) ? (
-                <div style={statusMessageStyle}>
-                    <div style={spinnerStyle}></div>
-                    <span>Calculating NDVI ...</span>
-                </div>
-            ) : ndvi !== null && ndvi !== undefined ? (
+            <PointStatusMessage 
+                isReloading={isReloading}
+                isLoading={isLoading}
+                ndvi={ndvi}
+            />
+            {ndvi !== null && ndvi !== undefined && (
                 <>
-                    <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
-                        {(() => {
-                            const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-                            const timeLabel = selectedYear && selectedMonth 
-                                ? ` (${MONTH_NAMES[selectedMonth - 1]} ${selectedYear})`
-                                : ""
-                            return (
-                                <>
-                                    <img 
-                                        src="images/marker-icon.png" 
-                                        alt="Blue marker" 
-                                        style={{ width: "20px", height: "32px" }}
-                                    />
-                                    <span>NDVI{timeLabel}: <strong>{ndvi.toFixed(2)}</strong></span>
-                                </>
-                            )
-                        })()}
-                    </div>
-                    {secondPoint && secondPoint.lat && secondPoint.lon && secondPlotData.length > 0 && (() => {
-                        const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-                        const timeLabel = selectedYear && selectedMonth 
-                            ? ` (${MONTH_NAMES[selectedMonth - 1]} ${selectedYear})`
-                            : ""
-                        const secondNdviData = secondPlotData.find(d => d.year === selectedYear && d.month === selectedMonth)
-                        const secondNdvi = secondNdviData?.ndvi
-                        if (secondNdvi !== null && secondNdvi !== undefined) {
-                            return (
-                                <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
-                                    <img 
-                                        src="images/marker-icon-red.png" 
-                                        alt="Red marker" 
-                                        style={{ width: "20px", height: "32px" }}
-                                    />
-                                    <span>NDVI{timeLabel}: <strong>{secondNdvi.toFixed(2)}</strong></span>
-                                </div>
-                            )
-                        }
-                        return null
-                    })()}
+                    <PointNdviDisplay 
+                        ndvi={ndvi}
+                        selectedYear={selectedYear}
+                        selectedMonth={selectedMonth}
+                    />
+                    <SecondPointNdviDisplay 
+                        secondPoint={secondPoint}
+                        secondPlotData={secondPlotData}
+                        selectedYear={selectedYear}
+                        selectedMonth={selectedMonth}
+                    />
                 </>
-            ) : null}
+            )}
             {!isReloading && !isLoading && !loading && plotData.length > 0 && (
                 <>
-                    {secondPlotData.length > 0 && (
-                        <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginTop: "20px", marginBottom: "10px" }}>
-                            <div 
-                                style={{ 
-                                    display: "flex", 
-                                    alignItems: "center", 
-                                    gap: "5px", 
-                                    cursor: "pointer",
-                                    opacity: firstPointHidden ? 0.5 : 1
-                                }}
-                                onClick={() => {
-                                    if (chartRef.current) {
-                                        const meta = chartRef.current.getDatasetMeta(0)
-                                        meta.hidden = !meta.hidden
-                                        setFirstPointHidden(meta.hidden)
-                                        chartRef.current.update()
-                                    }
-                                }}
-                            >
-                                <img 
-                                    src="images/marker-icon.png" 
-                                    alt="Blue marker" 
-                                    style={{ width: "16px", height: "25px" }}
-                                />
-                                <div style={{ width: "30px", height: "3px", backgroundColor: "rgb(0, 123, 255)" }}></div>
-                            </div>
-                            <div 
-                                style={{ 
-                                    display: "flex", 
-                                    alignItems: "center", 
-                                    gap: "5px", 
-                                    cursor: "pointer",
-                                    opacity: secondPointHidden ? 0.5 : 1
-                                }}
-                                onClick={() => {
-                                    if (chartRef.current) {
-                                        const meta = chartRef.current.getDatasetMeta(1)
-                                        meta.hidden = !meta.hidden
-                                        setSecondPointHidden(meta.hidden)
-                                        chartRef.current.update()
-                                    }
-                                }}
-                            >
-                                <img 
-                                    src="images/marker-icon-red.png" 
-                                    alt="Red marker" 
-                                    style={{ width: "16px", height: "25px" }}
-                                />
-                                <div style={{ width: "30px", height: "3px", backgroundColor: "rgb(220, 53, 69)" }}></div>
-                            </div>
-                        </div>
-                    )}
-                    <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
-                        <Line ref={chartRef} data={chartData} options={chartOptions} />
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", padding: "0 10px" }}>
-                        <button
-                            onClick={handleLeftArrow}
-                            disabled={!canGoLeft() || loading}
-                            style={{
-                                background: "none",
-                                border: "1px solid #ccc",
-                                borderRadius: "4px",
-                                padding: "8px 12px",
-                                cursor: (!canGoLeft() || loading) ? "not-allowed" : "pointer",
-                                opacity: (!canGoLeft() || loading) ? 0.5 : 1,
-                                fontSize: "13px"
-                            }}
-                        >
-                            ←
-                        </button>
-                        <button
-                            onClick={handleRightArrow}
-                            disabled={!canGoRight() || loading}
-                            style={{
-                                background: "none",
-                                border: "1px solid #ccc",
-                                borderRadius: "4px",
-                                padding: "8px 12px",
-                                cursor: (!canGoRight() || loading) ? "not-allowed" : "pointer",
-                                opacity: (!canGoRight() || loading) ? 0.5 : 1,
-                                fontSize: "13px"
-                            }}
-                        >
-                            →
-                        </button>
-                    </div>
-                    {(() => {
-                        const validNdviValues = plotData.filter(d => d.ndvi !== null && d.ndvi !== undefined).map(d => d.ndvi)
-                        const average = validNdviValues.length > 0 
-                            ? validNdviValues.reduce((sum, val) => sum + val, 0) / validNdviValues.length 
-                            : null
-                        const validSecondNdviValues = secondPlotData.filter(d => d.ndvi !== null && d.ndvi !== undefined).map(d => d.ndvi)
-                        const secondAverage = validSecondNdviValues.length > 0 
-                            ? validSecondNdviValues.reduce((sum, val) => sum + val, 0) / validSecondNdviValues.length 
-                            : null
-                        return (
-                            <>
-                                {(average !== null || secondAverage !== null) && (
-                                    <div style={{ fontSize: "13px", color: "#555", marginTop: "10px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", flexWrap: "wrap" }}>
-                                        {average !== null && (
-                                            <>
-                                                <img 
-                                                    src="images/marker-icon.png" 
-                                                    alt="Blue marker" 
-                                                    style={{ width: "20px", height: "32px" }}
-                                                />
-                                                <span>Average: <strong>{average.toFixed(2)}</strong></span>
-                                            </>
-                                        )}
-                                        {secondAverage !== null && (
-                                            <>
-                                                <img 
-                                                    src="images/marker-icon-red.png" 
-                                                    alt="Red marker" 
-                                                    style={{ width: "20px", height: "32px" }}
-                                                />
-                                                <span>Average: <strong>{secondAverage.toFixed(2)}</strong></span>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </>
-                        )
-                    })()}
+                    <ChartSection 
+                        chartData={chartData}
+                        chartOptions={chartOptions}
+                        chartRef={chartRef}
+                        plotData={plotData}
+                        loading={loading}
+                        canGoLeft={canGoLeft}
+                        canGoRight={canGoRight}
+                        onLeftArrow={handleLeftArrow}
+                        onRightArrow={handleRightArrow}
+                        firstPointHidden={firstPointHidden}
+                        secondPointHidden={secondPointHidden}
+                        onFirstPointToggle={handleFirstPointToggle}
+                        onSecondPointToggle={handleSecondPointToggle}
+                        secondPlotData={secondPlotData}
+                    />
+                    <ChartAverages 
+                        plotData={plotData}
+                        secondPlotData={secondPlotData}
+                    />
                 </>
             )}
-            {loading && (
-                <div style={{
-                    fontSize: "13px",
-                    color: "#333",
-                    backgroundColor: "#f0f8ff",
-                    border: "1px solid #b3d9ff",
-                    borderRadius: "4px",
-                    padding: "10px 15px",
-                    marginTop: "20px",
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px"
-                }}>
-                    <div style={{
-                        display: "inline-block",
-                        width: "14px",
-                        height: "14px",
-                        border: "2px solid #b3d9ff",
-                        borderTop: "2px solid #0066cc",
-                        borderRadius: "50%",
-                        animation: "spin 1s linear infinite"
-                    }}></div>
-                    <span>Loading chart data...</span>
-                </div>
-            )}
-            {secondLoading && (
-                <div style={{
-                    fontSize: "13px",
-                    color: "#333",
-                    backgroundColor: "#f0f8ff",
-                    border: "1px solid #b3d9ff",
-                    borderRadius: "4px",
-                    padding: "10px 15px",
-                    marginTop: "10px",
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px"
-                }}>
-                    <div style={{
-                        display: "inline-block",
-                        width: "14px",
-                        height: "14px",
-                        border: "2px solid #b3d9ff",
-                        borderTop: "2px solid #0066cc",
-                        borderRadius: "50%",
-                        animation: "spin 1s linear infinite"
-                    }}></div>
-                    <span>Loading second point on the chart ...</span>
-                </div>
-            )}
+            <ChartLoadingMessage 
+                loading={loading}
+                secondLoading={secondLoading}
+            />
         </div>
     )
 }

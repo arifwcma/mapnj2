@@ -41,14 +41,15 @@ export async function GET(request) {
         console.log("API: NDVI retrieved:", ndvi)
         return NextResponse.json({ ndvi, lat: latNum, lon: lonNum })
     } catch (error) {
-        console.error("Error getting NDVI at point:", error)
-        if (error.message && error.message.includes("No images found")) {
+        const errorMessage = error.message || error.toString() || ""
+        if (errorMessage.includes("No images found") || errorMessage.includes("No NDVI value found")) {
             return NextResponse.json({ ndvi: null, lat: latNum, lon: lonNum })
         }
-        if (error.message && error.message.includes("Invalid")) {
-            return NextResponse.json({ error: error.message }, { status: 400 })
+        if (errorMessage.includes("Invalid")) {
+            return NextResponse.json({ error: errorMessage }, { status: 400 })
         }
-        return NextResponse.json({ error: error.message || "Failed to get NDVI at point" }, { status: 500 })
+        console.error("Error getting NDVI at point:", error)
+        return NextResponse.json({ error: errorMessage || "Failed to get NDVI at point" }, { status: 500 })
     }
 }
 

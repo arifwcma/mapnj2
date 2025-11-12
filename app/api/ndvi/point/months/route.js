@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server"
 import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
-
-function getMonthDateRange(year, month) {
-    const start = `${year}-${String(month).padStart(2, "0")}-01`
-    const lastDay = new Date(year, month, 0).getDate()
-    const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
-    return { start, end }
-}
+import { getMonthDateRange } from "@/app/lib/dateUtils"
 
 export async function POST(request) {
     try {
@@ -56,7 +50,8 @@ export async function POST(request) {
                     ndvi: ndvi !== null && ndvi !== undefined ? ndvi : null
                 })
             } catch (error) {
-                if (error.message && error.message.includes("No images found")) {
+                const errorMessage = error.message || error.toString() || ""
+                if (errorMessage.includes("No images found") || errorMessage.includes("No NDVI value found")) {
                     results.push({
                         year,
                         month,

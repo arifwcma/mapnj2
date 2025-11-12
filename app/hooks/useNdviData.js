@@ -1,43 +1,30 @@
 import { useState, useCallback, useRef } from "react"
-
-const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-const MIN_YEAR = 2019
-const MIN_MONTH = 1
-
-function getMonthDateRange(year, month) {
-    const start = `${year}-${String(month).padStart(2, "0")}-01`
-    const lastDay = new Date(year, month, 0).getDate()
-    const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
-    return { start, end }
-}
-
-function monthYearToSliderValue(year, month) {
-    return (year - MIN_YEAR) * 12 + (month - MIN_MONTH)
-}
-
-function sliderValueToMonthYear(value) {
-    const totalMonths = Math.floor(value)
-    const year = MIN_YEAR + Math.floor(totalMonths / 12)
-    const month = (totalMonths % 12) + 1
-    return { year, month }
-}
+import { useOverlayTiles } from "./useOverlayTiles"
+import { useTimeSelection } from "./useTimeSelection"
+import { useImageFilters } from "./useImageFilters"
+import { MONTH_NAMES_FULL } from "@/app/lib/constants"
+import { getMonthDateRange } from "@/app/lib/dateUtils"
+import { bboxToString } from "@/app/lib/bboxUtils"
 
 export default function useNdviData() {
-    const [ndviTileUrl, setNdviTileUrl] = useState(null)
-    const [rgbTileUrl, setRgbTileUrl] = useState(null)
-    const [overlayType, setOverlayType] = useState("NDVI")
+    const overlayTiles = useOverlayTiles()
+    const timeSelection = useTimeSelection()
+    const imageFilters = useImageFilters()
+    
     const [endMonth, setEndMonth] = useState(null)
     const [endYear, setEndYear] = useState(null)
     const [endMonthNum, setEndMonthNum] = useState(null)
-    const [initialEndYear, setInitialEndYear] = useState(null)
-    const [initialEndMonthNum, setInitialEndMonthNum] = useState(null)
-    const [imageCount, setImageCount] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
-    const [cloudTolerance, setCloudTolerance] = useState(30)
-    const [selectedYear, setSelectedYear] = useState(null)
-    const [selectedMonth, setSelectedMonth] = useState(null)
     const loadingRef = useRef(false)
+    
+    const overlayTilesRef = useRef(overlayTiles)
+    const timeSelectionRef = useRef(timeSelection)
+    const imageFiltersRef = useRef(imageFilters)
+    
+    overlayTilesRef.current = overlayTiles
+    timeSelectionRef.current = timeSelection
+    imageFiltersRef.current = imageFilters
 
     const loadNdviData = useCallback(async (bbox, cloud = 30, year = null, month = null, overlay = "NDVI") => {
         if (!bbox || loadingRef.current) {
@@ -49,7 +36,7 @@ export default function useNdviData() {
         setError(null)
 
         try {
-            const bboxStr = `${bbox[0][1]},${bbox[0][0]},${bbox[1][1]},${bbox[1][0]}`
+            const bboxStr = bboxToString(bbox)
             
             let monthData
             if (year && month) {
@@ -61,7 +48,7 @@ export default function useNdviData() {
                 monthData = {
                     year,
                     month,
-                    monthName: MONTH_NAMES[month - 1],
+                    monthName: MONTH_NAMES_FULL[month - 1],
                     count: countData.count,
                     start: dateRange.start,
                     end: dateRange.end
@@ -73,127 +60,71 @@ export default function useNdviData() {
             }
 
             if (monthData.count > 0) {
-                if (overlay === "NDVI") {
-                    const tileResponse = await fetch(`/api/ndvi/average?start=${monthData.start}&end=${monthData.end}&bbox=${bboxStr}&cloud=${cloud}`)
-                    if (!tileResponse.ok) throw new Error("Failed to get NDVI tile")
-                    const tileData = await tileResponse.json()
-                    setNdviTileUrl(tileData.tileUrl)
-                    setRgbTileUrl(null)
-                } else if (overlay === "RGB") {
-                    const tileResponse = await fetch(`/api/rgb/average?start=${monthData.start}&end=${monthData.end}&bbox=${bboxStr}&cloud=${cloud}`)
-                    if (!tileResponse.ok) throw new Error("Failed to get RGB tile")
-                    const tileData = await tileResponse.json()
-                    setRgbTileUrl(tileData.tileUrl)
-                    setNdviTileUrl(null)
-                } else {
-                    setNdviTileUrl(null)
-                    setRgbTileUrl(null)
-                }
+                await overlayTilesRef.current.loadOverlayTile(bbox, cloud, monthData.year, monthData.month, overlay)
             } else {
-                setNdviTileUrl(null)
-                setRgbTileUrl(null)
+                overlayTilesRef.current.clearTiles()
             }
 
             setEndMonth(`${monthData.monthName} ${monthData.year}`)
             setEndYear(monthData.year)
             setEndMonthNum(monthData.month)
-            setImageCount(monthData.count)
+            imageFiltersRef.current.setImageCount(monthData.count)
             
             if (!year || !month) {
-                setSelectedYear(monthData.year)
-                setSelectedMonth(monthData.month)
-                if (!initialEndYear || !initialEndMonthNum) {
-                    setInitialEndYear(monthData.year)
-                    setInitialEndMonthNum(monthData.month)
-                }
+                timeSelectionRef.current.updateSelectedMonth(monthData.year, monthData.month)
+                timeSelectionRef.current.setInitialTime(monthData.year, monthData.month)
             } else {
                 setEndMonth(`${monthData.monthName} ${monthData.year}`)
             }
         } catch (err) {
             setError(err.message)
-            setNdviTileUrl(null)
-            setRgbTileUrl(null)
+            overlayTilesRef.current.clearTiles()
             setEndMonth(null)
             setEndYear(null)
             setEndMonthNum(null)
-            setImageCount(null)
-            setInitialEndYear(null)
-            setInitialEndMonthNum(null)
+            imageFiltersRef.current.setImageCount(null)
+            timeSelectionRef.current.clearTime()
         } finally {
             setLoading(false)
             loadingRef.current = false
         }
     }, [])
 
-    const updateCloudTolerance = useCallback((cloud) => {
-        setCloudTolerance(cloud)
-    }, [])
-
-    const updateSelectedMonth = useCallback((year, month) => {
-        setSelectedYear(year)
-        setSelectedMonth(month)
-    }, [])
-
     const clearNdvi = useCallback(() => {
-        setNdviTileUrl(null)
-        setRgbTileUrl(null)
+        overlayTilesRef.current.clearTiles()
         setEndMonth(null)
         setEndYear(null)
         setEndMonthNum(null)
-        setImageCount(null)
-        setSelectedYear(null)
-        setSelectedMonth(null)
-        setInitialEndYear(null)
-        setInitialEndMonthNum(null)
+        imageFiltersRef.current.clearFilters()
+        timeSelectionRef.current.clearTime()
         setError(null)
     }, [])
 
-    const setOverlayTypeState = useCallback((type) => {
-        setOverlayType(type)
-    }, [])
-
-    const isImageAvailable = useCallback(() => {
-        return imageCount !== null && imageCount > 0
-    }, [imageCount])
-
-    const getMaxSliderValue = useCallback(() => {
-        if (!initialEndYear || !initialEndMonthNum) return 0
-        return monthYearToSliderValue(initialEndYear, initialEndMonthNum)
-    }, [initialEndYear, initialEndMonthNum])
-
-    const getCurrentSliderValue = useCallback(() => {
-        if (!selectedYear || !selectedMonth) return 0
-        return monthYearToSliderValue(selectedYear, selectedMonth)
-    }, [selectedYear, selectedMonth])
-
-    const getCurrentDateRange = useCallback(() => {
-        if (!selectedYear || !selectedMonth) return null
-        return getMonthDateRange(selectedYear, selectedMonth)
-    }, [selectedYear, selectedMonth])
-
     return {
-        ndviTileUrl,
-        rgbTileUrl,
-        overlayType,
+        ndviTileUrl: overlayTiles.ndviTileUrl,
+        rgbTileUrl: overlayTiles.rgbTileUrl,
+        overlayType: overlayTiles.overlayType,
         endMonth,
         endYear,
         endMonthNum,
-        imageCount,
+        imageCount: imageFilters.imageCount,
         loading,
+        overlayLoading: overlayTiles.overlayLoading,
         error,
-        cloudTolerance,
-        selectedYear,
-        selectedMonth,
+        cloudTolerance: imageFilters.cloudTolerance,
+        selectedYear: timeSelection.selectedYear,
+        selectedMonth: timeSelection.selectedMonth,
         loadNdviData,
-        updateCloudTolerance,
-        updateSelectedMonth,
+        updateCloudTolerance: imageFilters.updateCloudTolerance,
+        updateSelectedMonth: timeSelection.updateSelectedMonth,
         clearNdvi,
-        setOverlayType: setOverlayTypeState,
-        isImageAvailable,
-        getMaxSliderValue,
-        getCurrentSliderValue,
-        sliderValueToMonthYear,
-        monthYearToSliderValue,
-        getCurrentDateRange
+        setOverlayType: overlayTiles.setOverlayType,
+        loadOverlayTileOnly: overlayTiles.loadOverlayTile,
+        isImageAvailable: imageFilters.isImageAvailable,
+        getMaxSliderValue: timeSelection.getMaxSliderValue,
+        getCurrentSliderValue: timeSelection.getCurrentSliderValue,
+        sliderValueToMonthYear: timeSelection.sliderValueToMonthYear,
+        monthYearToSliderValue: timeSelection.monthYearToSliderValue,
+        getCurrentDateRange: timeSelection.getCurrentDateRange
     }
 }
