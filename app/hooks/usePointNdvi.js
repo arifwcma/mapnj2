@@ -33,7 +33,7 @@ export default function usePointNdvi(point, fetchPointNdvi, rectangleBounds, sel
             return
         }
 
-        if (!rectangleBounds || !selectedYear || !selectedMonth || !isImageAvailable()) {
+        if (!rectangleBounds || !selectedYear || !selectedMonth) {
             setNdvi(null)
             setIsLoading(false)
             if (pointChanged) {
