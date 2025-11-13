@@ -13,7 +13,7 @@ export default function InfoPanel({ lat, lon, secondPoint = null }) {
                     alt="Blue marker" 
                     style={{ width: "20px", height: "32px" }}
                 />
-                <span>: {lat.toFixed(6)},{lon.toFixed(6)}</span>
+                <span> {lat.toFixed(6)},{lon.toFixed(6)}</span>
             </div>
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
                 <div style={{ fontSize: "13px", color: "#333", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
@@ -22,7 +22,7 @@ export default function InfoPanel({ lat, lon, secondPoint = null }) {
                         alt="Red marker" 
                         style={{ width: "20px", height: "32px" }}
                     />
-                    <span>: {secondPoint.lat.toFixed(6)},{secondPoint.lon.toFixed(6)}</span>
+                    <span> {secondPoint.lat.toFixed(6)},{secondPoint.lon.toFixed(6)}</span>
                 </div>
             )}
         </div>
