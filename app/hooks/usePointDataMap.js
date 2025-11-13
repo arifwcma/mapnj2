@@ -2,13 +2,14 @@ import { useState, useRef, useCallback, useEffect } from "react"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { monthKey, parseMonthKey } from "@/app/lib/dateUtils"
 
-export default function usePointDataMap(point, rectangleBounds, cloudTolerance) {
+export default function usePointDataMap(point, rectangleBounds, cloudTolerance, pointType = "") {
     const [dataMap, setDataMap] = useState(new Map())
+    const dataMapRef = useRef(new Map())
     const fetchingMonthsRef = useRef(new Set())
     const previousPointRef = useRef(null)
     const previousCloudToleranceRef = useRef(cloudTolerance)
 
-    const fetchSingleMonth = useCallback(async (year, month, pointLat, pointLon) => {
+    const fetchSingleMonth = useCallback(async (year, month, pointLat, pointLon, pointType = "") => {
         if (!rectangleBounds) {
             return null
         }
@@ -22,6 +23,8 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance) 
             bbox: bboxStr,
             cloud: cloudTolerance.toString()
         })
+
+        console.log(`${pointType} Fetching ${year}-${month}`)
 
         try {
             const response = await fetch(`/api/ndvi/point/month?${params.toString()}`)
@@ -39,11 +42,17 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance) 
     }, [rectangleBounds, cloudTolerance])
 
     const reset = useCallback(() => {
-        setDataMap(new Map())
+        const emptyMap = new Map()
+        setDataMap(emptyMap)
+        dataMapRef.current = emptyMap
         fetchingMonthsRef.current.clear()
         previousPointRef.current = null
         previousCloudToleranceRef.current = cloudTolerance
     }, [cloudTolerance])
+
+    useEffect(() => {
+        dataMapRef.current = dataMap
+    }, [dataMap])
 
     useEffect(() => {
         if (!point || point.lat === null || point.lon === null) {
@@ -79,7 +88,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance) 
                 if (fetchingMonthsRef.current.has(key)) {
                     return false
                 }
-                if (dataMap.has(key)) {
+                if (dataMapRef.current.has(key)) {
                     return false
                 }
                 return true
@@ -95,7 +104,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance) 
         })
 
         const fetchPromises = monthsToFetch.map(async (m) => {
-            const result = await fetchSingleMonth(m.year, m.month, point.lat, point.lon)
+            const result = await fetchSingleMonth(m.year, m.month, point.lat, point.lon, pointType)
             const key = monthKey(m.year, m.month)
             fetchingMonthsRef.current.delete(key)
             
@@ -106,6 +115,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance) 
                 } else {
                     newMap.set(key, null)
                 }
+                dataMapRef.current = newMap
                 return newMap
             })
             
@@ -113,7 +123,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance) 
         })
 
         await Promise.allSettled(fetchPromises)
-    }, [point, rectangleBounds, dataMap, fetchSingleMonth])
+    }, [point, rectangleBounds, fetchSingleMonth])
 
     const isLoading = fetchingMonthsRef.current.size > 0
 

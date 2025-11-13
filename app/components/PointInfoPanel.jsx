@@ -108,8 +108,8 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     const firstPoint = lat !== null && lon !== null ? { lat, lon } : null
     const secondPointForHook = secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : null
 
-    const blueDataMap = usePointDataMap(firstPoint, rectangleBounds, cloudTolerance)
-    const redDataMap = usePointDataMap(secondPointForHook, rectangleBounds, cloudTolerance)
+    const blueDataMap = usePointDataMap(firstPoint, rectangleBounds, cloudTolerance, "BLUE")
+    const redDataMap = usePointDataMap(secondPointForHook, rectangleBounds, cloudTolerance, "RED")
 
     const [visibleRange, setVisibleRange] = useState(() => {
         if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
@@ -183,14 +183,11 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
 
-        if (firstPoint && secondPointForHook) {
-            Promise.all([
-                blueDataMap.fetchMissingMonths(monthKeys),
-                redDataMap.fetchMissingMonths(monthKeys)
-            ])
-        } else if (firstPoint) {
+        if (firstPoint) {
             blueDataMap.fetchMissingMonths(monthKeys)
-        } else if (secondPointForHook) {
+        }
+
+        if (secondPointForHook) {
             redDataMap.fetchMissingMonths(monthKeys)
         }
     }, [visibleRange, firstPoint, secondPointForHook])
@@ -314,7 +311,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     }, [visibleRange])
 
     const handleLeftArrow = useCallback(() => {
-        if (!visibleRange || blueDataMap.isLoading || redDataMap.isLoading) {
+        if (!visibleRange) {
             return
         }
 
@@ -350,10 +347,10 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 endMonth: prev.endMonth
             }))
         }, 1000)
-    }, [visibleRange, blueDataMap.isLoading, redDataMap.isLoading, canGoLeft])
+    }, [visibleRange, canGoLeft])
 
     const handleRightArrow = useCallback(() => {
-        if (!visibleRange || blueDataMap.isLoading || redDataMap.isLoading) {
+        if (!visibleRange) {
             return
         }
 
@@ -393,7 +390,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 endMonth: newEndMonth
             }))
         }, 1000)
-    }, [visibleRange, blueDataMap.isLoading, redDataMap.isLoading, canGoRight])
+    }, [visibleRange, canGoRight])
 
     const handleFirstPointToggle = () => {
         if (chartRef.current) {

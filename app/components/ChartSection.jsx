@@ -83,14 +83,14 @@ export default function ChartSection({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", padding: "0 10px" }}>
                 <button
                     onClick={onLeftArrow}
-                    disabled={!canGoLeft() || loading}
+                    disabled={!canGoLeft()}
                     style={{
                         background: "none",
                         border: "1px solid #ccc",
                         borderRadius: "4px",
                         padding: "8px 12px",
-                        cursor: (!canGoLeft() || loading) ? "not-allowed" : "pointer",
-                        opacity: (!canGoLeft() || loading) ? 0.5 : 1,
+                        cursor: !canGoLeft() ? "not-allowed" : "pointer",
+                        opacity: !canGoLeft() ? 0.5 : 1,
                         fontSize: "13px"
                     }}
                 >
@@ -98,14 +98,14 @@ export default function ChartSection({
                 </button>
                 <button
                     onClick={onRightArrow}
-                    disabled={!canGoRight() || loading}
+                    disabled={!canGoRight()}
                     style={{
                         background: "none",
                         border: "1px solid #ccc",
                         borderRadius: "4px",
                         padding: "8px 12px",
-                        cursor: (!canGoRight() || loading) ? "not-allowed" : "pointer",
-                        opacity: (!canGoRight() || loading) ? 0.5 : 1,
+                        cursor: !canGoRight() ? "not-allowed" : "pointer",
+                        opacity: !canGoRight() ? 0.5 : 1,
                         fontSize: "13px"
                     }}
                 >
