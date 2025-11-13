@@ -13,12 +13,14 @@ import {
 import { MIN_YEAR, MIN_MONTH } from "@/app/lib/constants"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
 import usePointDataMap from "@/app/hooks/usePointDataMap"
+import useRequestTracker from "@/app/hooks/useRequestTracker"
 import PointStatusMessage from "./PointStatusMessage"
 import PointNdviDisplay from "./PointNdviDisplay"
 import SecondPointNdviDisplay from "./SecondPointNdviDisplay"
 import ChartSection from "./ChartSection"
 import ChartAverages from "./ChartAverages"
 import ChartLoadingMessage from "./ChartLoadingMessage"
+import ToastMessage from "./ToastMessage"
 
 ChartJS.register(
     CategoryScale,
@@ -108,8 +110,56 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     const firstPoint = lat !== null && lon !== null ? { lat, lon } : null
     const secondPointForHook = secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : null
 
-    const blueDataMap = usePointDataMap(firstPoint, rectangleBounds, cloudTolerance, "BLUE")
-    const redDataMap = usePointDataMap(secondPointForHook, rectangleBounds, cloudTolerance, "RED")
+    const requestTracker = useRequestTracker()
+    const blueDataMap = usePointDataMap(firstPoint, rectangleBounds, cloudTolerance, "BLUE", requestTracker)
+    const redDataMap = usePointDataMap(secondPointForHook, rectangleBounds, cloudTolerance, "RED", requestTracker)
+
+    const [showToast, setShowToast] = useState(false)
+    const hadPendingRequestsRef = useRef(false)
+    const toastTimeoutRef = useRef(null)
+
+    useEffect(() => {
+        const hasPending = requestTracker.pendingCount > 0
+        const isComplete = requestTracker.allComplete
+
+        console.log('Toast Debug:', {
+            pendingCount: requestTracker.pendingCount,
+            allComplete: isComplete,
+            hasPending,
+            hadPendingRequests: hadPendingRequestsRef.current,
+            showToast
+        })
+
+        if (hasPending) {
+            hadPendingRequestsRef.current = true
+            setShowToast(false)
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current)
+                toastTimeoutRef.current = null
+            }
+        } else if (isComplete && hadPendingRequestsRef.current) {
+            console.log('Setting toast timeout - all requests complete')
+            hadPendingRequestsRef.current = false
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current)
+            }
+            toastTimeoutRef.current = setTimeout(() => {
+                console.log('Showing toast!', requestTracker.allComplete)
+                if (requestTracker.allComplete) {
+                    setShowToast(true)
+                    console.log('Toast state set to true')
+                }
+            }, 300)
+        }
+
+        return () => {
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current)
+            }
+        }
+    }, [requestTracker.allComplete, requestTracker.pendingCount])
+
+    const previousVisibleRangeRef = useRef(null)
 
     const [visibleRange, setVisibleRange] = useState(() => {
         if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
@@ -180,6 +230,13 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             return
         }
 
+        const rangeKey = `${visibleRange.startMonth.year}-${visibleRange.startMonth.month}-${visibleRange.endMonth.year}-${visibleRange.endMonth.month}`
+        if (previousVisibleRangeRef.current !== rangeKey) {
+            requestTracker.clearAll()
+            hadPendingRequestsRef.current = false
+            previousVisibleRangeRef.current = rangeKey
+        }
+
         const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
 
@@ -190,7 +247,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         if (secondPointForHook) {
             redDataMap.fetchMissingMonths(monthKeys)
         }
-    }, [visibleRange, firstPoint, secondPointForHook])
+    }, [visibleRange, firstPoint, secondPointForHook, requestTracker])
 
     const displayData = useMemo(() => {
         if (!visibleRange) {
@@ -454,9 +511,17 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                     />
                 </>
             )}
-            <ChartLoadingMessage 
-                loading={blueDataMap.isLoading || redDataMap.isLoading}
-            />
+            {showToast ? (
+                <ToastMessage 
+                    message="All available data loaded."
+                    onClose={() => setShowToast(false)}
+                    duration={5000}
+                />
+            ) : (
+                <ChartLoadingMessage 
+                    loading={blueDataMap.isLoading || redDataMap.isLoading}
+                />
+            )}
         </div>
     )
 }

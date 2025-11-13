@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { monthKey, parseMonthKey } from "@/app/lib/dateUtils"
 
-export default function usePointDataMap(point, rectangleBounds, cloudTolerance, pointType = "") {
+export default function usePointDataMap(point, rectangleBounds, cloudTolerance, pointType = "", requestTracker = null) {
     const [dataMap, setDataMap] = useState(new Map())
     const dataMapRef = useRef(new Map())
     const fetchingMonthsRef = useRef(new Set())
@@ -102,26 +102,40 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
         })
 
         const fetchPromises = monthsToFetch.map(async (m) => {
-            const result = await fetchSingleMonth(m.year, m.month, point.lat, point.lon, pointType)
             const key = monthKey(m.year, m.month)
-            fetchingMonthsRef.current.delete(key)
+            const requestKey = `${pointType}-${key}`
             
-            setDataMap(prev => {
-                const newMap = new Map(prev)
-                if (result) {
-                    newMap.set(key, result.ndvi)
-                } else {
-                    newMap.set(key, null)
+            if (requestTracker) {
+                console.log('Registering request:', requestKey)
+                requestTracker.registerRequest(requestKey)
+            }
+            
+            try {
+                const result = await fetchSingleMonth(m.year, m.month, point.lat, point.lon, pointType)
+                fetchingMonthsRef.current.delete(key)
+                
+                setDataMap(prev => {
+                    const newMap = new Map(prev)
+                    if (result) {
+                        newMap.set(key, result.ndvi)
+                    } else {
+                        newMap.set(key, null)
+                    }
+                    dataMapRef.current = newMap
+                    return newMap
+                })
+                
+                return result
+            } finally {
+                if (requestTracker) {
+                    console.log('Unregistering request:', requestKey)
+                    requestTracker.unregisterRequest(requestKey)
                 }
-                dataMapRef.current = newMap
-                return newMap
-            })
-            
-            return result
+            }
         })
 
         await Promise.allSettled(fetchPromises)
-    }, [point, rectangleBounds, fetchSingleMonth])
+    }, [point, rectangleBounds, fetchSingleMonth, requestTracker])
 
     const isLoading = fetchingMonthsRef.current.size > 0
 
