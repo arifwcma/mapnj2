@@ -183,11 +183,14 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
 
-        if (firstPoint) {
+        if (firstPoint && secondPointForHook) {
+            Promise.all([
+                blueDataMap.fetchMissingMonths(monthKeys),
+                redDataMap.fetchMissingMonths(monthKeys)
+            ])
+        } else if (firstPoint) {
             blueDataMap.fetchMissingMonths(monthKeys)
-        }
-
-        if (secondPointForHook) {
+        } else if (secondPointForHook) {
             redDataMap.fetchMissingMonths(monthKeys)
         }
     }, [visibleRange, firstPoint, secondPointForHook])
@@ -430,7 +433,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 selectedMonth={selectedMonth}
                 isLoading={secondPointNdviLoading}
             />
-            {!isReloading && !isLoading && displayData.blueData.length > 0 && (
+            {!isReloading && visibleRange && displayData.blueData.length > 0 && (
                 <>
                     <ChartSection 
                         chartData={chartData}
