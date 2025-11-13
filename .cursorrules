@@ -37,3 +37,13 @@
    - When active: hide "Click a point to analyse", show red "Click to choose the second point"
    - Second point clicks should NOT trigger first point analysis
    - For now: just show coordinates and place marker (testing phase)
+
+9. When I say "XXX" - understand this:
+   - Do not write code yet - we are talking. Confirm your understanding first.
+   - Any opportunity for code refactoring to reduce duplication and make it more natural? Your opinion on feature. Your opinion on code risk.
+
+10. When I say "REFAC?" - it means:
+   - "Any refactor opportunity to reduce duplication and making things more simpler and natural (but without causing risk and complexities)"
+
+11. When I say "DC" - it means:
+   - "Don't change code - just talking"

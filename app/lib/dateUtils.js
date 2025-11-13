@@ -30,3 +30,12 @@ export function formatMonthLabelFull(year, month) {
     return `${MONTH_NAMES_FULL[month - 1]} ${year}`
 }
 
+export function monthKey(year, month) {
+    return `${year}-${month}`
+}
+
+export function parseMonthKey(key) {
+    const [year, month] = key.split("-").map(Number)
+    return { year, month }
+}
+

@@ -30,7 +30,7 @@ const spinnerStyle = {
     animation: "spin 1s linear infinite"
 }
 
-export default function ChartLoadingMessage({ loading, secondLoading }) {
+export default function ChartLoadingMessage({ loading }) {
     return (
         <>
             <style>{`
@@ -42,13 +42,7 @@ export default function ChartLoadingMessage({ loading, secondLoading }) {
             {loading && (
                 <div style={loadingMessageStyle}>
                     <div style={spinnerStyle}></div>
-                    <span>Loading chart data...</span>
-                </div>
-            )}
-            {secondLoading && (
-                <div style={secondLoadingMessageStyle}>
-                    <div style={spinnerStyle}></div>
-                    <span>Loading second point on the chart ...</span>
+                    <span>Loading data ...</span>
                 </div>
             )}
         </>

@@ -13,6 +13,7 @@ import PointInteractionControls from "@/app/components/PointInteractionControls"
 import DataControls from "@/app/components/DataControls"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
+import usePointNdvi from "@/app/hooks/usePointNdvi"
 import { formatMonthLabelFull } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
 
@@ -65,8 +66,7 @@ export default function Page() {
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
     const [basemap, setBasemap] = useState("street")
-    const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null, ndvi: number | null }>({ lat: null, lon: null, ndvi: null })
-    const [pointLoading, setPointLoading] = useState(false)
+    const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [secondPointSelection, setSecondPointSelection] = useState(false)
     const [secondPoint, setSecondPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [secondPointLoading, setSecondPointLoading] = useState(false)
@@ -76,7 +76,6 @@ export default function Page() {
     const previousCloudToleranceRef = useRef(cloudTolerance)
     const previousSelectedYearRef = useRef(selectedYear)
     const previousSelectedMonthRef = useRef(selectedMonth)
-    const pointLoaded = selectedPoint.lat !== null && selectedPoint.lon !== null && selectedPoint.ndvi !== null
 
     const fetchPointNdvi = useCallback(async (lat: number, lon: number) => {
         if (!rectangleBounds || !selectedYear || !selectedMonth) {
@@ -119,6 +118,26 @@ export default function Page() {
             return null
         }
     }, [rectangleBounds, selectedYear, selectedMonth, getCurrentDateRange, cloudTolerance])
+
+    const firstPointNdvi = usePointNdvi(
+        selectedPoint.lat !== null && selectedPoint.lon !== null ? selectedPoint : null,
+        fetchPointNdvi,
+        rectangleBounds,
+        selectedYear,
+        selectedMonth,
+        cloudTolerance,
+        isImageAvailable
+    )
+
+    const secondPointNdvi = usePointNdvi(
+        secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : null,
+        fetchPointNdvi,
+        rectangleBounds,
+        selectedYear,
+        selectedMonth,
+        cloudTolerance,
+        isImageAvailable
+    )
 
     useEffect(() => {
         setLocalCloudTolerance(cloudTolerance)
@@ -174,43 +193,6 @@ export default function Page() {
         }
     }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, loadNdviData, loadOverlayTileOnly, clearNdvi])
 
-    useEffect(() => {
-        if (pointLoaded && !loading && isImageAvailable() && selectedPoint.lat !== null && selectedPoint.lon !== null) {
-            if (justSetPointRef.current) {
-                return
-            }
-            const refetchNdvi = async () => {
-                if (selectedPoint.lat === null || selectedPoint.lon === null) return
-                const ndvi = await fetchPointNdvi(selectedPoint.lat, selectedPoint.lon)
-                if (ndvi !== null) {
-                    setSelectedPoint(prev => ({ ...prev, ndvi }))
-                } else {
-                    setSelectedPoint(prev => ({ ...prev, ndvi: null }))
-                }
-            }
-            refetchNdvi()
-        }
-    }, [loading, pointLoaded, isImageAvailable, selectedPoint.lat, selectedPoint.lon, fetchPointNdvi])
-
-    useEffect(() => {
-        if (selectedPoint.lat !== null && selectedPoint.lon !== null && !loading && isImageAvailable() && rectangleBounds && selectedYear && selectedMonth) {
-            if (justSetPointRef.current) {
-                return
-            }
-            const refetchNdvi = async () => {
-                if (selectedPoint.lat === null || selectedPoint.lon === null) return
-                setPointLoading(true)
-                const ndvi = await fetchPointNdvi(selectedPoint.lat, selectedPoint.lon)
-                if (ndvi !== null) {
-                    setSelectedPoint(prev => ({ ...prev, ndvi }))
-                } else {
-                    setSelectedPoint(prev => ({ ...prev, ndvi: null }))
-                }
-                setPointLoading(false)
-            }
-            refetchNdvi()
-        }
-    }, [cloudTolerance, selectedYear, selectedMonth, isImageAvailable, selectedPoint.lat, selectedPoint.lon, rectangleBounds, loading, fetchPointNdvi])
 
     useEffect(() => {
         if (selectedYear && selectedMonth) {
@@ -234,7 +216,7 @@ export default function Page() {
         setIsMoveMode(false)
         resetRectangle()
         clearNdvi()
-        setSelectedPoint({ lat: null, lon: null, ndvi: null })
+        setSelectedPoint({ lat: null, lon: null })
         setSecondPoint({ lat: null, lon: null })
         setSecondPointSelection(false)
         setSecondPointLoading(false)
@@ -357,18 +339,8 @@ export default function Page() {
             return
         }
         
-        console.log("Setting loading state")
-        setPointLoading(true)
         justSetPointRef.current = true
-        setSelectedPoint({ lat, lon, ndvi: null })
-        const ndvi = await fetchPointNdvi(lat, lon)
-        if (ndvi !== null) {
-            console.log("Setting selected point:", { lat, lon, ndvi })
-            setSelectedPoint({ lat, lon, ndvi })
-        } else {
-            setSelectedPoint({ lat, lon, ndvi: null })
-        }
-        setPointLoading(false)
+        setSelectedPoint({ lat, lon })
         setTimeout(() => {
             justSetPointRef.current = false
         }, 100)
@@ -392,16 +364,8 @@ export default function Page() {
         if (isSecondPoint) {
             setSecondPoint({ lat, lon })
         } else {
-            setPointLoading(true)
             justSetPointRef.current = true
-            setSelectedPoint({ lat, lon, ndvi: null })
-            const ndvi = await fetchPointNdvi(lat, lon)
-            if (ndvi !== null) {
-                setSelectedPoint({ lat, lon, ndvi })
-            } else {
-                setSelectedPoint({ lat, lon, ndvi: null })
-            }
-            setPointLoading(false)
+            setSelectedPoint({ lat, lon })
             setTimeout(() => {
                 justSetPointRef.current = false
             }, 100)
@@ -454,7 +418,7 @@ export default function Page() {
                             )}
                             <PointInteractionControls 
                                 isImageAvailable={isImageAvailable()}
-                                pointLoaded={pointLoaded}
+                                pointLoaded={selectedPoint.lat !== null && selectedPoint.lon !== null && firstPointNdvi.ndvi !== null}
                                 secondPointSelection={secondPointSelection}
                                 isMoveMode={isMoveMode}
                                 secondPoint={secondPoint}
@@ -497,9 +461,9 @@ export default function Page() {
                     <PointInfoPanel
                         lat={selectedPoint.lat}
                         lon={selectedPoint.lon}
-                        ndvi={selectedPoint.ndvi}
-                        isReloading={loading && pointLoaded}
-                        isLoading={pointLoading}
+                        ndvi={firstPointNdvi.ndvi}
+                        isReloading={loading && (selectedPoint.lat !== null && selectedPoint.lon !== null)}
+                        isLoading={firstPointNdvi.isLoading}
                         selectedYear={selectedYear}
                         selectedMonth={selectedMonth}
                         endYear={endYear}
@@ -507,6 +471,8 @@ export default function Page() {
                         rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         secondPoint={(secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : undefined) as any}
+                        secondPointNdvi={secondPointNdvi.ndvi}
+                        secondPointNdviLoading={secondPointNdvi.isLoading}
                         onSecondPointLoadingChange={setSecondPointLoading as any}
                     />
                 )}

@@ -1,28 +1,20 @@
 "use client"
-import { formatMonthLabelFull } from "@/app/lib/dateUtils"
+import NdviDisplay from "./NdviDisplay"
 
-export default function SecondPointNdviDisplay({ secondPoint, secondPlotData, selectedYear, selectedMonth }) {
-    if (!secondPoint || !secondPoint.lat || !secondPoint.lon || secondPlotData.length === 0) {
+export default function SecondPointNdviDisplay({ secondPoint, secondNdvi, selectedYear, selectedMonth, isLoading = false }) {
+    if (!secondPoint || !secondPoint.lat || !secondPoint.lon) {
         return null
     }
 
-    const timeLabel = selectedYear && selectedMonth 
-        ? ` (${formatMonthLabelFull(selectedYear, selectedMonth)})`
-        : ""
-    const secondNdviData = secondPlotData.find(d => d.year === selectedYear && d.month === selectedMonth)
-    const secondNdvi = secondNdviData?.ndvi
-
-    const hasData = secondNdvi !== null && secondNdvi !== undefined
-
     return (
-        <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
-            <img 
-                src="images/marker-icon-red.png" 
-                alt="Red marker" 
-                style={{ width: "20px", height: "32px" }}
-            />
-            <span>NDVI{timeLabel}: {hasData ? <strong>{secondNdvi.toFixed(2)}</strong> : <strong>Not available.</strong>}</span>
-        </div>
+        <NdviDisplay
+            ndvi={secondNdvi}
+            selectedYear={selectedYear}
+            selectedMonth={selectedMonth}
+            isLoading={isLoading}
+            markerIcon="images/marker-icon-red.png"
+            markerAlt="Red marker"
+        />
     )
 }
 

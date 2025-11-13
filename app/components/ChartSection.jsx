@@ -19,7 +19,7 @@ export default function ChartSection({
 }) {
     return (
         <>
-            {secondPlotData.length > 0 && (
+            {secondPlotData.length > 0 ? (
                 <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginTop: "20px", marginBottom: "10px" }}>
                     <div 
                         style={{ 
@@ -54,6 +54,26 @@ export default function ChartSection({
                             style={{ width: "16px", height: "25px" }}
                         />
                         <div style={{ width: "30px", height: "3px", backgroundColor: "rgb(220, 53, 69)" }}></div>
+                    </div>
+                </div>
+            ) : (
+                <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginTop: "20px", marginBottom: "10px" }}>
+                    <div 
+                        style={{ 
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: "5px", 
+                            cursor: "pointer",
+                            opacity: firstPointHidden ? 0.5 : 1
+                        }}
+                        onClick={onFirstPointToggle}
+                    >
+                        <img 
+                            src="images/marker-icon.png" 
+                            alt="Blue marker" 
+                            style={{ width: "16px", height: "25px" }}
+                        />
+                        <div style={{ width: "30px", height: "3px", backgroundColor: "rgb(0, 123, 255)" }}></div>
                     </div>
                 </div>
             )}
