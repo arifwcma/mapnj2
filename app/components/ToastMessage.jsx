@@ -2,19 +2,20 @@
 import { useEffect, useState } from "react"
 
 const toastStyle = {
-    position: "fixed",
-    bottom: "20px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    backgroundColor: "#333",
-    color: "white",
-    padding: "12px 24px",
-    borderRadius: "4px",
     fontSize: "13px",
-    zIndex: 10000,
-    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
-    minWidth: "250px",
-    textAlign: "center"
+    color: "white",
+    backgroundColor: "#333",
+    border: "1px solid #555",
+    borderRadius: "4px",
+    padding: "10px 15px",
+    marginTop: "20px",
+    textAlign: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    position: "relative",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)"
 }
 
 const timerBarStyle = {
