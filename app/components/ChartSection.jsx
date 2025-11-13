@@ -19,7 +19,7 @@ export default function ChartSection({
 }) {
     return (
         <>
-            {secondPlotData.length > 0 ? (
+            {secondPlotData.some(d => d.ndvi !== null && d.ndvi !== undefined) ? (
                 <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginTop: "20px", marginBottom: "10px" }}>
                     <div 
                         style={{ 
