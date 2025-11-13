@@ -24,8 +24,6 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             cloud: cloudTolerance.toString()
         })
 
-        console.log(`${pointType} Fetching ${year}-${month}`)
-
         try {
             const response = await fetch(`/api/ndvi/point/month?${params.toString()}`)
 
