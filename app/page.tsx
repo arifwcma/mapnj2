@@ -410,7 +410,63 @@ export default function Page() {
 
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
-            <div style={{ width: "66.67%", height: "100vh" }}>
+            <div style={{ width: "25.71%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
+                <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} />
+                <AreaOfInterestControls 
+                    isDrawing={isDrawing}
+                    rectangleBounds={rectangleBounds}
+                    onStartDrawing={startDrawing}
+                    onReset={handleButtonClick}
+                />
+                {rectangleBounds && (
+                    <>
+                        <LoadingMessage 
+                            loading={loading}
+                            overlayLoading={overlayLoading}
+                            overlayType={overlayType}
+                            selectedYear={selectedYear}
+                            selectedMonth={selectedMonth}
+                            endMonth={endMonth}
+                            cloudTolerance={cloudTolerance}
+                        />
+                        <OverlayControls 
+                            overlayType={overlayType}
+                            endMonth={endMonth}
+                            imageCount={imageCount}
+                            isImageAvailable={isImageAvailable()}
+                            onOverlayChange={setOverlayType}
+                        />
+                        <DataControls endMonth={endMonth} imageCount={imageCount}>
+                            <CloudToleranceSlider 
+                                cloudTolerance={localCloudTolerance}
+                                onCloudChange={handleCloudChange}
+                                onCloudButtonClick={handleCloudButtonClick}
+                                onCloudButtonRelease={handleCloudButtonRelease}
+                            />
+                            {selectedYear && selectedMonth && (
+                                <TimeSlider 
+                                    sliderValue={localTimeSliderValue}
+                                    maxValue={getMaxSliderValue()}
+                                    label={getMonthYearLabel(localTimeSliderValue)}
+                                    onTimeChange={handleTimeChange}
+                                    onTimeButtonClick={handleTimeButtonClick}
+                                />
+                            )}
+                            <PointInteractionControls 
+                                isImageAvailable={isImageAvailable()}
+                                pointLoaded={pointLoaded}
+                                secondPointSelection={secondPointSelection}
+                                isMoveMode={isMoveMode}
+                                secondPoint={secondPoint}
+                                onMoveModeClick={() => setIsMoveMode(true)}
+                                onCancelMove={() => setIsMoveMode(false)}
+                                onCompareClick={() => setSecondPointSelection(true)}
+                            />
+                        </DataControls>
+                    </>
+                )}
+            </div>
+            <div style={{ width: "42.86%", height: "100vh" }}>
                 <MapView
                     isDrawing={isDrawing}
                     rectangleBounds={rectangleBounds}
@@ -431,87 +487,29 @@ export default function Page() {
                     onMarkerDragEnd={handleMarkerDragEnd}
                 />
             </div>
-            <div style={{ width: "33.33%", height: "100vh", display: "flex", flexDirection: "column", borderLeft: "1px solid #ccc", backgroundColor: "white" }}>
-                <div style={{ padding: "20px", overflowY: "auto", flex: "1 1 auto" }}>
-                    <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} />
-                    <AreaOfInterestControls 
-                        isDrawing={isDrawing}
-                        rectangleBounds={rectangleBounds}
-                        onStartDrawing={startDrawing}
-                        onReset={handleButtonClick}
-                    />
-                    {rectangleBounds && (
-                        <>
-                            <LoadingMessage 
-                                loading={loading}
-                                overlayLoading={overlayLoading}
-                                overlayType={overlayType}
-                                selectedYear={selectedYear}
-                                selectedMonth={selectedMonth}
-                                endMonth={endMonth}
-                                cloudTolerance={cloudTolerance}
-                            />
-                            <OverlayControls 
-                                overlayType={overlayType}
-                                endMonth={endMonth}
-                                imageCount={imageCount}
-                                isImageAvailable={isImageAvailable()}
-                                onOverlayChange={setOverlayType}
-                            />
-                            <DataControls endMonth={endMonth} imageCount={imageCount}>
-                                <CloudToleranceSlider 
-                                    cloudTolerance={localCloudTolerance}
-                                    onCloudChange={handleCloudChange}
-                                    onCloudButtonClick={handleCloudButtonClick}
-                                    onCloudButtonRelease={handleCloudButtonRelease}
-                                />
-                                {selectedYear && selectedMonth && (
-                                    <TimeSlider 
-                                        sliderValue={localTimeSliderValue}
-                                        maxValue={getMaxSliderValue()}
-                                        label={getMonthYearLabel(localTimeSliderValue)}
-                                        onTimeChange={handleTimeChange}
-                                        onTimeButtonClick={handleTimeButtonClick}
-                                    />
-                                )}
-                                <PointInteractionControls 
-                                    isImageAvailable={isImageAvailable()}
-                                    pointLoaded={pointLoaded}
-                                    secondPointSelection={secondPointSelection}
-                                    isMoveMode={isMoveMode}
-                                    secondPoint={secondPoint}
-                                    onMoveModeClick={() => setIsMoveMode(true)}
-                                    onCancelMove={() => setIsMoveMode(false)}
-                                    onCompareClick={() => setSecondPointSelection(true)}
-                                />
-                            </DataControls>
-                        </>
-                    )}
-                </div>
-                <div style={{ borderTop: "1px solid #ccc", padding: "20px", flex: "0 0 auto" }}>
-                    <InfoPanel 
-                        lat={selectedPoint.lat} 
+            <div style={{ width: "31.43%", height: "100vh", borderLeft: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
+                <InfoPanel 
+                    lat={selectedPoint.lat} 
+                    lon={selectedPoint.lon}
+                    secondPoint={secondPoint as any}
+                />
+                {selectedPoint.lat !== null && selectedPoint.lon !== null && (
+                    <PointInfoPanel
+                        lat={selectedPoint.lat}
                         lon={selectedPoint.lon}
-                        secondPoint={secondPoint as any}
+                        ndvi={selectedPoint.ndvi}
+                        isReloading={loading && pointLoaded}
+                        isLoading={pointLoading}
+                        selectedYear={selectedYear}
+                        selectedMonth={selectedMonth}
+                        endYear={endYear}
+                        endMonthNum={endMonthNum}
+                        rectangleBounds={rectangleBounds}
+                        cloudTolerance={cloudTolerance}
+                        secondPoint={(secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : undefined) as any}
+                        onSecondPointLoadingChange={setSecondPointLoading as any}
                     />
-                    {selectedPoint.lat !== null && selectedPoint.lon !== null && (
-                        <PointInfoPanel
-                            lat={selectedPoint.lat}
-                            lon={selectedPoint.lon}
-                            ndvi={selectedPoint.ndvi}
-                            isReloading={loading && pointLoaded}
-                            isLoading={pointLoading}
-                            selectedYear={selectedYear}
-                            selectedMonth={selectedMonth}
-                            endYear={endYear}
-                            endMonthNum={endMonthNum}
-                            rectangleBounds={rectangleBounds}
-                            cloudTolerance={cloudTolerance}
-                            secondPoint={(secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : undefined) as any}
-                            onSecondPointLoadingChange={setSecondPointLoading as any}
-                        />
-                    )}
-                </div>
+                )}
             </div>
         </div>
     )
