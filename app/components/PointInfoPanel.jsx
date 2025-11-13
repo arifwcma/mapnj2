@@ -641,21 +641,17 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 isLoading={isLoading}
                 ndvi={ndvi}
             />
-            {ndvi !== null && ndvi !== undefined && (
-                <>
-                    <PointNdviDisplay 
-                        ndvi={ndvi}
-                        selectedYear={selectedYear}
-                        selectedMonth={selectedMonth}
-                    />
-                    <SecondPointNdviDisplay 
-                        secondPoint={secondPoint}
-                        secondPlotData={secondPlotData}
-                        selectedYear={selectedYear}
-                        selectedMonth={selectedMonth}
-                    />
-                </>
-            )}
+            <PointNdviDisplay 
+                ndvi={ndvi}
+                selectedYear={selectedYear}
+                selectedMonth={selectedMonth}
+            />
+            <SecondPointNdviDisplay 
+                secondPoint={secondPoint}
+                secondPlotData={secondPlotData}
+                selectedYear={selectedYear}
+                selectedMonth={selectedMonth}
+            />
             {!isReloading && !isLoading && !loading && plotData.length > 0 && (
                 <>
                     <ChartSection 

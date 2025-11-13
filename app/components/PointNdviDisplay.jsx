@@ -15,7 +15,7 @@ export default function PointNdviDisplay({ ndvi, selectedYear, selectedMonth }) 
                 alt="Blue marker" 
                 style={{ width: "20px", height: "32px" }}
             />
-            <span>NDVI{timeLabel}: {hasData ? <strong>{ndvi.toFixed(2)}</strong> : <strong>Not available. Increase cloud tolerance.</strong>}</span>
+            <span>NDVI{timeLabel}: {hasData ? <strong>{ndvi.toFixed(2)}</strong> : <strong>Not available.</strong>}</span>
         </div>
     )
 }
