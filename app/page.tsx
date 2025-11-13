@@ -66,6 +66,7 @@ export default function Page() {
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
     const [basemap, setBasemap] = useState("street")
+    const [showFields, setShowFields] = useState(false)
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [secondPointSelection, setSecondPointSelection] = useState(false)
     const [secondPoint, setSecondPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
@@ -375,7 +376,7 @@ export default function Page() {
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
             <div style={{ width: "25.71%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
-                <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} />
+                <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} showFields={showFields} onShowFieldsChange={setShowFields} />
                 <AreaOfInterestControls 
                     isDrawing={isDrawing}
                     rectangleBounds={rectangleBounds}
@@ -443,6 +444,7 @@ export default function Page() {
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}
+                    showFields={showFields}
                     isPointAnalysisMode={isImageAvailable() && !isMoveMode}
                     onPointClick={handlePointClick}
                     selectedPoint={selectedPoint as any}
