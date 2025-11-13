@@ -12,9 +12,7 @@ export default function SecondPointNdviDisplay({ secondPoint, secondPlotData, se
     const secondNdviData = secondPlotData.find(d => d.year === selectedYear && d.month === selectedMonth)
     const secondNdvi = secondNdviData?.ndvi
 
-    const displayValue = secondNdvi === null || secondNdvi === undefined 
-        ? "Unavailable" 
-        : secondNdvi.toFixed(2)
+    const hasData = secondNdvi !== null && secondNdvi !== undefined
 
     return (
         <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
@@ -23,7 +21,7 @@ export default function SecondPointNdviDisplay({ secondPoint, secondPlotData, se
                 alt="Red marker" 
                 style={{ width: "20px", height: "32px" }}
             />
-            <span>NDVI{timeLabel}: <strong>{displayValue}</strong></span>
+            <span>NDVI{timeLabel}: {hasData ? <strong>{secondNdvi.toFixed(2)}</strong> : <strong>Not available. Increase cloud tolerance.</strong>}</span>
         </div>
     )
 }
