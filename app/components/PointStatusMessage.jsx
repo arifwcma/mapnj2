@@ -43,7 +43,7 @@ export default function PointStatusMessage({ isReloading, isLoading, ndvi }) {
         )
     }
 
-    if (isLoading || (ndvi === null || ndvi === undefined)) {
+    if (isLoading) {
         return (
             <>
                 <style>{`
