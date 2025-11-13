@@ -645,6 +645,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 ndvi={ndvi}
                 selectedYear={selectedYear}
                 selectedMonth={selectedMonth}
+                isLoading={isLoading}
             />
             <SecondPointNdviDisplay 
                 secondPoint={secondPoint}

@@ -43,23 +43,6 @@ export default function PointStatusMessage({ isReloading, isLoading, ndvi }) {
         )
     }
 
-    if (isLoading) {
-        return (
-            <>
-                <style>{`
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                `}</style>
-                <div style={statusMessageStyle}>
-                    <div style={spinnerStyle}></div>
-                    <span>Calculating NDVI ...</span>
-                </div>
-            </>
-        )
-    }
-
     return null
 }
 
