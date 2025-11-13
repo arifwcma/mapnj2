@@ -31,15 +31,16 @@ ChartJS.register(
 )
 
 function getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum) {
+    if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
+        return null
+    }
+    
     const months = []
     let year = selectedYear
     let month = selectedMonth
     
     for (let i = 0; i < 6; i++) {
         if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
-            break
-        }
-        if (year > endYear || (year === endYear && month > endMonthNum)) {
             break
         }
         
@@ -50,6 +51,10 @@ function getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNu
             year--
         } else {
             month--
+        }
+        
+        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
+            break
         }
     }
     
@@ -149,7 +154,18 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             return
         }
 
-        if (cloudChanged || timeChanged) {
+        if (cloudChanged) {
+            blueDataMap.reset()
+            redDataMap.reset()
+            setVisibleRange(() => {
+                if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
+                    return null
+                }
+                return getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum)
+            })
+        }
+
+        if (timeChanged) {
             setVisibleRange(() => {
                 if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
                     return null
@@ -160,7 +176,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
     }, [cloudTolerance, selectedYear, selectedMonth, endYear, endMonthNum, lat, lon, firstPoint])
 
     useEffect(() => {
-        if (!visibleRange || !firstPoint && !secondPointForHook) {
+        if (!visibleRange || (!firstPoint && !secondPointForHook)) {
             return
         }
 
@@ -174,7 +190,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         if (secondPointForHook) {
             redDataMap.fetchMissingMonths(monthKeys)
         }
-    }, [visibleRange, firstPoint, secondPointForHook, blueDataMap, redDataMap])
+    }, [visibleRange, firstPoint, secondPointForHook])
 
     const displayData = useMemo(() => {
         if (!visibleRange) {
