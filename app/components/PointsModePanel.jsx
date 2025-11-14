@@ -127,6 +127,9 @@ export default function PointsModePanel({
     useEffect(() => {
         const newRange = getInitialVisibleRange(selectedYear, selectedMonth)
         setVisibleRange(newRange)
+        if (selectedYear && selectedMonth) {
+            previousSelectedMonthRef.current = `${selectedYear}-${selectedMonth}`
+        }
     }, [selectedYear, selectedMonth])
     
     useEffect(() => {
@@ -332,41 +335,67 @@ export default function PointsModePanel({
         
         if (previousPending > 0 && currentPending === 0 && selectedPoints.length > 0 && selectedYear && selectedMonth) {
             setTimeout(() => {
-                const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
-                let hasNullValues = false
-                let missingKeys = []
-                let checkedMonths = []
+                if (requestTracker.pendingCount > 0) {
+                    return
+                }
                 
-                selectedPoints.forEach((point, index) => {
-                    const dataMap = pointDataMaps[index]?.dataMap || new Map()
-                    months.forEach(m => {
-                        const key = monthKey(m.year, m.month)
-                        checkedMonths.push(`${m.year}-${m.month}`)
-                        
-                        if (!dataMap.has(key)) {
-                            missingKeys.push(`${m.year}-${m.month}`)
-                            hasNullValues = true
-                            console.log(`[PointsModePanel] Missing key for point ${index}, month ${m.year}-${m.month}`)
-                        } else {
-                            const value = dataMap.get(key)
-                            if (value === null || value === undefined) {
+                setTimeout(() => {
+                    const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+                    console.log(`[PointsModePanel] API complete toast - checking months:`, months.map(m => `${m.year}-${m.month}`))
+                    let hasNullValues = false
+                    let missingKeys = []
+                    let checkedMonths = []
+                    
+                    const allMonthData = []
+                    selectedPoints.forEach((point, index) => {
+                        const dataMap = pointDataMaps[index]?.dataMap || new Map()
+                        const monthData = {}
+                        months.forEach(m => {
+                            const key = monthKey(m.year, m.month)
+                            checkedMonths.push(`${m.year}-${m.month}`)
+                            
+                            if (!dataMap.has(key)) {
+                                missingKeys.push(`${m.year}-${m.month}`)
+                                monthData[`${m.year}-${m.month}`] = "MISSING"
+                                console.log(`[PointsModePanel] Point ${index}, month ${m.year}-${m.month}: MISSING KEY`)
                                 hasNullValues = true
-                                console.log(`[PointsModePanel] Found null/undefined value for point ${index}, month ${m.year}-${m.month}, value:`, value)
+                            } else {
+                                const value = dataMap.get(key)
+                                monthData[`${m.year}-${m.month}`] = value
+                                console.log(`[PointsModePanel] Point ${index}, month ${m.year}-${m.month}: value =`, value)
+                                if (value === null || value === undefined) {
+                                    hasNullValues = true
+                                }
                             }
+                        })
+                        console.log(`[PointsModePanel] Point ${index} dataMap for visible range:`, monthData)
+                        if (index === 0) {
+                            Object.keys(monthData).forEach(monthKey => {
+                                const value = monthData[monthKey]
+                                if (value !== "MISSING" && value !== null && value !== undefined) {
+                                    allMonthData.push(`(${monthKey}: ${value.toFixed(2)})`)
+                                } else if (value === null || value === undefined) {
+                                    allMonthData.push(`(${monthKey}: null)`)
+                                } else {
+                                    allMonthData.push(`(${monthKey}: MISSING)`)
+                                }
+                            })
                         }
                     })
-                })
-                
-                console.log(`[PointsModePanel] Toast check - hasNullValues: ${hasNullValues}, missingKeys: ${missingKeys.length}, checkedMonths:`, checkedMonths)
-                
-                const message = hasNullValues
-                    ? "All available data loaded.\nSome data is not available. Consider increasing cloud tolerance."
-                    : "All data loaded"
-                const duration = hasNullValues ? 10000 : 10000
-                
-                setToastMessage(message)
-                setToastDuration(duration)
-                setShowToast(true)
+                    
+                    console.log(`[PointsModePanel] API complete toast - hasNullValues: ${hasNullValues}, missingKeys: ${missingKeys.length}, checkedMonths:`, checkedMonths)
+                    
+                    const message = hasNullValues
+                        ? "All available data loaded.\nSome data is not available. Consider increasing cloud tolerance."
+                        : "All data loaded"
+                    const duration = hasNullValues ? 10000 : 10000
+                    
+                    const monthDataStr = allMonthData.join(",")
+                    console.log(`[PointsModePanel] SHOWING TOAST - hasNullValues: ${hasNullValues}, message: "${message}" ${monthDataStr}`)
+                    setToastMessage(message)
+                    setToastDuration(duration)
+                    setShowToast(true)
+                }, 200)
             }, 100)
         }
         
@@ -382,40 +411,65 @@ export default function PointsModePanel({
         const currentMonthKey = selectedYear && selectedMonth ? `${selectedYear}-${selectedMonth}` : null
         const previousMonthKey = previousSelectedMonthRef.current
         
-        if (selectedPoints.length > 0 && selectedYear && selectedMonth && requestTracker.pendingCount === 0 && currentMonthKey !== previousMonthKey) {
-            previousSelectedMonthRef.current = currentMonthKey
-            
+        if (selectedPoints.length > 0 && selectedYear && selectedMonth && requestTracker.pendingCount === 0 && currentMonthKey !== null && currentMonthKey !== previousMonthKey && previousMonthKey !== null) {
             setTimeout(() => {
                 if (requestTracker.pendingCount > 0) {
                     return
                 }
                 
+                previousSelectedMonthRef.current = currentMonthKey
+                
                 const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+                console.log(`[PointsModePanel] Dropdown change toast - checking months:`, months.map(m => `${m.year}-${m.month}`))
                 let hasNullValues = false
                 
+                const allMonthData = []
                 selectedPoints.forEach((point, index) => {
                     const dataMap = pointDataMaps[index]?.dataMap || new Map()
+                    const monthData = {}
                     months.forEach(m => {
                         const key = monthKey(m.year, m.month)
                         if (!dataMap.has(key)) {
+                            monthData[`${m.year}-${m.month}`] = "MISSING"
+                            console.log(`[PointsModePanel] Point ${index}, month ${m.year}-${m.month}: MISSING KEY`)
                             hasNullValues = true
                         } else {
                             const value = dataMap.get(key)
+                            monthData[`${m.year}-${m.month}`] = value
+                            console.log(`[PointsModePanel] Point ${index}, month ${m.year}-${m.month}: value =`, value)
                             if (value === null || value === undefined) {
                                 hasNullValues = true
                             }
                         }
                     })
+                    console.log(`[PointsModePanel] Point ${index} dataMap for visible range:`, monthData)
+                    if (index === 0) {
+                        Object.keys(monthData).forEach(monthKey => {
+                            const value = monthData[monthKey]
+                            if (value !== "MISSING" && value !== null && value !== undefined) {
+                                allMonthData.push(`(${monthKey}: ${value.toFixed(2)})`)
+                            } else if (value === null || value === undefined) {
+                                allMonthData.push(`(${monthKey}: null)`)
+                            } else {
+                                allMonthData.push(`(${monthKey}: MISSING)`)
+                            }
+                        })
+                    }
                 })
+                
+                console.log(`[PointsModePanel] Dropdown change toast - hasNullValues:`, hasNullValues)
                 
                 const message = hasNullValues
                     ? "All available data loaded.\nSome data is not available. Consider increasing cloud tolerance."
                     : "All data loaded"
                 const duration = 10000
                 
-                setToastMessage(message)
-                setToastDuration(duration)
-                setShowToast(true)
+                    const monthDataStr = allMonthData.join(",")
+                    console.log(`[PointsModePanel] SHOWING TOAST - hasNullValues: ${hasNullValues}, message: "${message}" ${monthDataStr}`)
+                    setToastMessage(message)
+                    setToastDuration(duration)
+                    setShowToast(true)
+                }, 200)
             }, 100)
         }
     }, [selectedYear, selectedMonth, selectedPoints, pointDataMaps, requestTracker.pendingCount])
