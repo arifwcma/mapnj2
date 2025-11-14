@@ -13,8 +13,8 @@ const FIELDS_STYLE = {
 }
 
 const FIELDS_STYLE_HOVER = {
-    color: "blue",
-    weight: 4,
+    color: "red",
+    weight: 5,
     fillOpacity: 0,
     opacity: 1
 }
