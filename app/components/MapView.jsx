@@ -346,7 +346,34 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }: { isDrawing?: boolean, rectangleBounds?: any, currentBounds?: any, onStart?: any, onUpdate?: any, onEnd?: any, onReset?: any, ndviTileUrl?: string | null, rgbTileUrl?: string | null, overlayType?: string, basemap?: string, isPointAnalysisMode?: boolean, onPointClick?: any, selectedPoint?: any, secondPoint?: any, isMoveMode?: boolean, onMarkerDragEnd?: any, fieldSelectionMode?: boolean, fieldsData?: any, boundsSource?: 'rectangle' | 'field' | null, selectedFieldFeature?: any, onFieldClick?: any, currentZoom?: number | null, onZoomChange?: any }) {
+/**
+ * @param {Object} props
+ * @param {boolean} [props.isDrawing]
+ * @param {any} [props.rectangleBounds]
+ * @param {any} [props.currentBounds]
+ * @param {any} [props.onStart]
+ * @param {any} [props.onUpdate]
+ * @param {any} [props.onEnd]
+ * @param {any} [props.onReset]
+ * @param {string|null} [props.ndviTileUrl]
+ * @param {string|null} [props.rgbTileUrl]
+ * @param {string} [props.overlayType]
+ * @param {string} [props.basemap]
+ * @param {boolean} [props.isPointAnalysisMode]
+ * @param {any} [props.onPointClick]
+ * @param {any} [props.selectedPoint]
+ * @param {any} [props.secondPoint]
+ * @param {boolean} [props.isMoveMode]
+ * @param {any} [props.onMarkerDragEnd]
+ * @param {boolean} [props.fieldSelectionMode]
+ * @param {any} [props.fieldsData]
+ * @param {'rectangle'|'field'|null} [props.boundsSource]
+ * @param {any} [props.selectedFieldFeature]
+ * @param {any} [props.onFieldClick]
+ * @param {number|null} [props.currentZoom]
+ * @param {any} [props.onZoomChange]
+ */
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
