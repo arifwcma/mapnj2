@@ -244,11 +244,11 @@ export default function Page() {
 
     const handleStartFieldSelection = useCallback(() => {
         setFieldSelectionMode(true)
-        setFieldsLoading(true)
         if (fieldsData) {
             setFieldsLoading(false)
             return
         }
+        setFieldsLoading(false)
         fetch("/api/fields/geojson")
             .then(async response => {
                 if (!response.ok) {
@@ -259,11 +259,9 @@ export default function Page() {
             })
             .then(data => {
                 setFieldsData(data)
-                setFieldsLoading(false)
             })
             .catch(err => {
                 console.error("Error loading fields:", err.message || err)
-                setFieldsLoading(false)
                 setFieldSelectionMode(false)
             })
     }, [fieldsData])
