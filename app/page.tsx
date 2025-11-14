@@ -16,6 +16,7 @@ import useNdviData from "@/app/hooks/useNdviData"
 import usePointNdvi from "@/app/hooks/usePointNdvi"
 import { formatMonthLabelFull } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
+import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 
 export default function Page() {
     const {
@@ -74,6 +75,7 @@ export default function Page() {
     const [fieldsData, setFieldsData] = useState<any>(null)
     const [boundsSource, setBoundsSource] = useState<'rectangle' | 'field' | null>(null)
     const [selectedFieldFeature, setSelectedFieldFeature] = useState<any>(null)
+    const [currentZoom, setCurrentZoom] = useState<number | null>(null)
     const [secondPointSelection, setSecondPointSelection] = useState(false)
     const [secondPoint, setSecondPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [secondPointLoading, setSecondPointLoading] = useState(false)
@@ -266,6 +268,12 @@ export default function Page() {
             })
     }, [fieldsData])
 
+    useEffect(() => {
+        if (fieldSelectionMode && currentZoom !== null && currentZoom < FIELD_SELECTION_MIN_ZOOM) {
+            setFieldSelectionMode(false)
+        }
+    }, [currentZoom, fieldSelectionMode])
+
     const handleCancelFieldSelection = useCallback(() => {
         setFieldSelectionMode(false)
     }, [])
@@ -445,6 +453,7 @@ export default function Page() {
                     rectangleBounds={rectangleBounds}
                     fieldSelectionMode={fieldSelectionMode}
                     fieldsLoading={fieldsLoading}
+                    currentZoom={currentZoom}
                     onStartDrawing={handleStartDrawing}
                     onStartFieldSelection={handleStartFieldSelection}
                     onCancelFieldSelection={handleCancelFieldSelection}
@@ -524,6 +533,8 @@ export default function Page() {
                     boundsSource={boundsSource}
                     selectedFieldFeature={selectedFieldFeature}
                     onFieldClick={handleFieldClick}
+                    currentZoom={currentZoom}
+                    onZoomChange={setCurrentZoom}
                 />
             </div>
             <div style={{ width: "31.43%", height: "100vh", borderLeft: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>

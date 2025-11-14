@@ -1,4 +1,5 @@
 "use client"
+import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 
 const linkStyle = {
     background: "none",
@@ -47,6 +48,7 @@ export default function AreaOfInterestControls({
     rectangleBounds, 
     fieldSelectionMode,
     fieldsLoading,
+    currentZoom,
     onStartDrawing, 
     onStartFieldSelection,
     onCancelDrawing,
@@ -78,12 +80,14 @@ export default function AreaOfInterestControls({
     }
 
     if (fieldSelectionMode) {
+        const zoomSufficient = currentZoom !== null && currentZoom !== undefined && currentZoom >= FIELD_SELECTION_MIN_ZOOM
+        
         return (
             <div>
                 <div style={messageStyle}>
-                    {fieldsLoading ? "Loading fields ..." : "Click field to select"}
+                    {fieldsLoading ? "Loading fields ..." : (zoomSufficient ? "Click field to select" : "Zoom in further to see fields")}
                 </div>
-                {!fieldsLoading && (
+                {!fieldsLoading && zoomSufficient && (
                     <div style={buttonContainerStyle}>
                         <button
                             onClick={onCancelFieldSelection}

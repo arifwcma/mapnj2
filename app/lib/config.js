@@ -19,3 +19,5 @@ export const DEBUG_CONFIG = {
     ZOOM_LOGGING: true
 }
 
+export const FIELD_SELECTION_MIN_ZOOM = 13
+

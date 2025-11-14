@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic"
 import { useEffect, useState, useRef } from "react"
 import { useMap } from "react-leaflet"
+import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 
@@ -65,12 +66,14 @@ export default function FieldsLayer({
     fieldsData, 
     fieldsLoading, 
     boundsSource,
-    onFieldClick 
+    onFieldClick,
+    currentZoom
 }) {
     const map = useMap()
     const layerRef = useRef(null)
 
-    const shouldShow = fieldSelectionMode
+    const zoomSufficient = currentZoom !== null && currentZoom !== undefined && currentZoom >= FIELD_SELECTION_MIN_ZOOM
+    const shouldShow = fieldSelectionMode && zoomSufficient
 
     useEffect(() => {
         if (layerRef.current && shouldShow && fieldsData) {

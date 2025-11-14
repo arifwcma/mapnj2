@@ -8,7 +8,7 @@ import RectangleDrawHandler from "./RectangleDrawHandler"
 import NdviOverlay from "./NdviOverlay"
 import FieldsLayer from "./FieldsLayer"
 import useBoundary from "@/app/hooks/useBoundary"
-import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG } from "@/app/lib/config"
+import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG, FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 import { validatePointInBounds } from "@/app/lib/bboxUtils"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
@@ -232,6 +232,34 @@ function ZoomLogger() {
     return null
 }
 
+function ZoomTracker({ onZoomChange }) {
+    const map = useMap()
+    
+    useEffect(() => {
+        if (!map || !onZoomChange) {
+            return
+        }
+        
+        const handleZoomEnd = () => {
+            const zoom = map.getZoom()
+            onZoomChange(zoom)
+        }
+        
+        const timeout = setTimeout(() => {
+            const initialZoom = map.getZoom()
+            onZoomChange(initialZoom)
+            map.on("zoomend", handleZoomEnd)
+        }, 500)
+        
+        return () => {
+            clearTimeout(timeout)
+            map.off("zoomend", handleZoomEnd)
+        }
+    }, [map, onZoomChange])
+    
+    return null
+}
+
 function PointClickHandler({ isActive, onPointClick }) {
     const map = useMap()
     
@@ -318,7 +346,7 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
@@ -334,6 +362,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
             <ZoomLogger />
+            {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
             {!isDrawing && !isMoveMode && !fieldSelectionMode && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
             {isMoveMode && <MoveModeHandler isActive={isMoveMode} onMarkerDragEnd={onMarkerDragEnd} />}
@@ -393,6 +422,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 fieldsLoading={fieldsLoading}
                 boundsSource={boundsSource}
                 onFieldClick={onFieldClick}
+                currentZoom={currentZoom}
             />
         </MapContainer>
     )
