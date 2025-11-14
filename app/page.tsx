@@ -268,11 +268,6 @@ export default function Page() {
             })
     }, [fieldsData])
 
-    useEffect(() => {
-        if (fieldSelectionMode && currentZoom !== null && currentZoom < FIELD_SELECTION_MIN_ZOOM) {
-            setFieldSelectionMode(false)
-        }
-    }, [currentZoom, fieldSelectionMode])
 
     const handleCancelFieldSelection = useCallback(() => {
         setFieldSelectionMode(false)
