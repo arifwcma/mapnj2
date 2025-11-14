@@ -86,7 +86,7 @@ export default function AreaOfInterestControls({
         return (
             <div>
                 <div style={messageStyle}>
-                    {!fieldsLoaded ? "Loading fields ..." : (zoomSufficient ? "Click field to select" : "Zoom in further to see fields")}
+                    {!fieldsLoaded ? "Loading parcels ..." : (zoomSufficient ? "Click parcel to select" : "Zoom in further to see parcels")}
                 </div>
                 {fieldsLoaded && zoomSufficient && (
                     <div style={buttonContainerStyle}>
@@ -145,7 +145,7 @@ export default function AreaOfInterestControls({
                         }
                     }}
                 >
-                    Select field
+                    Select parcel
                 </button>
             </div>
         )
