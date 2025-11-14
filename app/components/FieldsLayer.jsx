@@ -93,7 +93,7 @@ export default function FieldsLayer({
         }
     }, [shouldShow, fieldsData])
 
-    if (!shouldShow || !fieldsData || fieldsLoading) {
+    if (!shouldShow || !fieldsData) {
         return null
     }
 

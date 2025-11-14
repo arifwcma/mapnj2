@@ -47,7 +47,7 @@ export default function AreaOfInterestControls({
     isDrawing, 
     rectangleBounds, 
     fieldSelectionMode,
-    fieldsLoading,
+    fieldsData,
     currentZoom,
     onStartDrawing, 
     onStartFieldSelection,
@@ -81,13 +81,14 @@ export default function AreaOfInterestControls({
 
     if (fieldSelectionMode) {
         const zoomSufficient = currentZoom !== null && currentZoom !== undefined && currentZoom >= FIELD_SELECTION_MIN_ZOOM
+        const fieldsLoaded = fieldsData !== null
         
         return (
             <div>
                 <div style={messageStyle}>
-                    {fieldsLoading ? "Loading fields ..." : (zoomSufficient ? "Click field to select" : "Zoom in further to see fields")}
+                    {!fieldsLoaded ? "Loading fields ..." : (zoomSufficient ? "Click field to select" : "Zoom in further to see fields")}
                 </div>
-                {!fieldsLoading && zoomSufficient && (
+                {fieldsLoaded && zoomSufficient && (
                     <div style={buttonContainerStyle}>
                         <button
                             onClick={onCancelFieldSelection}

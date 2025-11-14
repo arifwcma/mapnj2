@@ -71,7 +71,6 @@ export default function Page() {
     const [basemap, setBasemap] = useState("street")
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [fieldSelectionMode, setFieldSelectionMode] = useState(false)
-    const [fieldsLoading, setFieldsLoading] = useState(false)
     const [fieldsData, setFieldsData] = useState<any>(null)
     const [boundsSource, setBoundsSource] = useState<'rectangle' | 'field' | null>(null)
     const [selectedFieldFeature, setSelectedFieldFeature] = useState<any>(null)
@@ -245,10 +244,8 @@ export default function Page() {
     const handleStartFieldSelection = useCallback(() => {
         setFieldSelectionMode(true)
         if (fieldsData) {
-            setFieldsLoading(false)
             return
         }
-        setFieldsLoading(false)
         fetch("/api/fields/geojson")
             .then(async response => {
                 if (!response.ok) {
@@ -445,7 +442,7 @@ export default function Page() {
                     isDrawing={isDrawing}
                     rectangleBounds={rectangleBounds}
                     fieldSelectionMode={fieldSelectionMode}
-                    fieldsLoading={fieldsLoading}
+                    fieldsData={fieldsData}
                     currentZoom={currentZoom}
                     onStartDrawing={handleStartDrawing}
                     onStartFieldSelection={handleStartFieldSelection}
@@ -522,7 +519,6 @@ export default function Page() {
                     onMarkerDragEnd={handleMarkerDragEnd}
                     fieldSelectionMode={fieldSelectionMode}
                     fieldsData={fieldsData}
-                    fieldsLoading={fieldsLoading}
                     boundsSource={boundsSource}
                     selectedFieldFeature={selectedFieldFeature}
                     onFieldClick={handleFieldClick}

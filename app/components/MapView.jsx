@@ -346,7 +346,7 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
@@ -419,7 +419,6 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <FieldsLayer 
                 fieldSelectionMode={fieldSelectionMode}
                 fieldsData={fieldsData}
-                fieldsLoading={fieldsLoading}
                 boundsSource={boundsSource}
                 onFieldClick={onFieldClick}
                 currentZoom={currentZoom}
