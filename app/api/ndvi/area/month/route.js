@@ -3,8 +3,10 @@ import { getAverageNdviForArea } from "@/app/lib/earthengineUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 
 export async function GET(request) {
+    console.log("[API] GET /api/ndvi/area/month - Request received")
     try {
         const { searchParams } = new URL(request.url)
+        console.log("[API] /api/ndvi/area/month - Params:", { year: searchParams.get("year"), month: searchParams.get("month"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
         const geometryParam = searchParams.get("geometry")
         const year = searchParams.get("year")
         const month = searchParams.get("month")

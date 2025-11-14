@@ -42,7 +42,7 @@ export default function ChartLoadingMessage({ loading }) {
             {loading && (
                 <div style={loadingMessageStyle}>
                     <div style={spinnerStyle}></div>
-                    <span>Loading data ...</span>
+                    <span>Loading data...</span>
                 </div>
             )}
         </>

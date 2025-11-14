@@ -2,40 +2,25 @@
 
 export default function BasemapSelector({ basemap, onBasemapChange }) {
     return (
-        <div style={{ padding: "10px 0", marginBottom: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "13px", color: "#333" }}>Basemap:</span>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                    <input
-                        type="radio"
-                        name="basemap"
-                        value="street"
-                        checked={basemap === "street"}
-                        onChange={(e) => onBasemapChange(e.target.value)}
-                    />
-                    <span style={{ fontSize: "13px", color: "#333" }}>Street</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                    <input
-                        type="radio"
-                        name="basemap"
-                        value="satellite"
-                        checked={basemap === "satellite"}
-                        onChange={(e) => onBasemapChange(e.target.value)}
-                    />
-                    <span style={{ fontSize: "13px", color: "#333" }}>Satellite</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                    <input
-                        type="radio"
-                        name="basemap"
-                        value="topographic"
-                        checked={basemap === "topographic"}
-                        onChange={(e) => onBasemapChange(e.target.value)}
-                    />
-                    <span style={{ fontSize: "13px", color: "#333" }}>Topographic</span>
-                </label>
-            </div>
+        <div style={{ marginBottom: "15px" }}>
+            <label style={{ fontSize: "13px", color: "#333", marginBottom: "5px", display: "block" }}>
+                Basemap:
+            </label>
+            <select
+                value={basemap}
+                onChange={(e) => onBasemapChange(e.target.value)}
+                style={{
+                    width: "100%",
+                    padding: "8px",
+                    fontSize: "13px",
+                    border: "1px solid #ccc",
+                    borderRadius: "4px"
+                }}
+            >
+                <option value="street">Street</option>
+                <option value="satellite">Satellite</option>
+                <option value="topographic">Topographic</option>
+            </select>
         </div>
     )
 }

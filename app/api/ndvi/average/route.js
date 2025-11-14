@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import { getAverageNdviTile } from "@/app/lib/earthengineUtils"
 
 export async function GET(request) {
+    console.log("[API] GET /api/ndvi/average - Request received")
     const { searchParams } = new URL(request.url)
+    console.log("[API] /api/ndvi/average - Params:", { start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud"), hasGeometry: !!searchParams.get("geometry") })
     const start = searchParams.get("start")
     const end = searchParams.get("end")
     const bbox = searchParams.get("bbox")

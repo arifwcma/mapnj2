@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
 
 export async function GET(request) {
+    console.log("[API] GET /api/ndvi/point - Request received")
     const { searchParams } = new URL(request.url)
+    console.log("[API] /api/ndvi/point - Params:", { lat: searchParams.get("lat"), lon: searchParams.get("lon"), start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
     const lat = searchParams.get("lat")
     const lon = searchParams.get("lon")
     const start = searchParams.get("start")

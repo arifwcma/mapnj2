@@ -16,12 +16,17 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 function AreaMonthsDataWrapper({ area, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
     const dataMap = useAreaDataMap(area, rectangleBounds, cloudTolerance, "AREA_MONTHS", requestTracker)
+    const dataMapRef = useRef(dataMap)
     
     useEffect(() => {
-        if (dataMap) {
-            onDataMapReady(dataMap)
+        dataMapRef.current = dataMap
+    }, [dataMap])
+    
+    useEffect(() => {
+        if (dataMapRef.current) {
+            onDataMapReady(dataMapRef.current)
         }
-    }, [dataMap, onDataMapReady])
+    }, [onDataMapReady])
     
     return null
 }
@@ -34,9 +39,9 @@ export default function AreaMonthsModePanel({
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
-    const [selectedMonths, setSelectedMonths] = useState<Array<{ year: number, month: number }>>([])
-    const [selectedYear, setSelectedYear] = useState<number | null>(null)
-    const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
+    const [selectedMonths, setSelectedMonths] = useState([])
+    const [selectedYear, setSelectedYear] = useState(null)
+    const [selectedMonth, setSelectedMonth] = useState(null)
     
     const prevMonth = getPreviousCalendarMonth()
     
@@ -67,7 +72,7 @@ export default function AreaMonthsModePanel({
         }
     }, [selectedYear, selectedMonth, dataMap])
     
-    const handleMonthDropdownChange = useCallback((year: number, month: number) => {
+    const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)
         setSelectedMonth(month)
         onMonthChange(year, month)
@@ -121,7 +126,7 @@ export default function AreaMonthsModePanel({
                 display: false
             },
             tooltip: {
-                mode: "index" as const,
+                mode: "index",
                 intersect: false
             }
         },

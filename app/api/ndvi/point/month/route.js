@@ -3,8 +3,10 @@ import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 
 export async function GET(request) {
+    console.log("[API] GET /api/ndvi/point/month - Request received")
     try {
         const { searchParams } = new URL(request.url)
+        console.log("[API] /api/ndvi/point/month - Params:", Object.fromEntries(searchParams))
         const lat = searchParams.get("lat")
         const lon = searchParams.get("lon")
         const year = searchParams.get("year")

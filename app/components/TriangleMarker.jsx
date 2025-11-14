@@ -4,7 +4,7 @@ import { Marker } from "react-leaflet"
 import L from "leaflet"
 
 export default function TriangleMarker({ position, color, index }) {
-    const [icon, setIcon] = useState<L.DivIcon | null>(null)
+    const [icon, setIcon] = useState(null)
     
     useEffect(() => {
         if (typeof window !== 'undefined') {

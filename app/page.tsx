@@ -30,6 +30,7 @@ export default function Page() {
     const [currentZoom, setCurrentZoom] = useState<number | null>(null)
     const [selectedYear, setSelectedYear] = useState<number | null>(null)
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
+    const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | null>(null)
     
     const current = getCurrentMonth()
     useEffect(() => {
@@ -64,7 +65,7 @@ export default function Page() {
     } = useNdviData()
     
     const cloudToleranceRef = useRef(cloudTolerance)
-    const sliderDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const sliderDebounceTimeoutRef = useRef(null)
     
     useEffect(() => {
         cloudToleranceRef.current = cloudTolerance
@@ -112,7 +113,7 @@ export default function Page() {
         }, 1000)
     }
     
-    const handlePointClick = useCallback((lat: number, lon: number) => {
+    const handlePointClick = useCallback((lat, lon) => {
         if (analysisMode === "point" && compareMode === "points") {
             const newPoint = {
                 id: `point_${Date.now()}_${Math.random()}`,
@@ -125,7 +126,7 @@ export default function Page() {
         }
     }, [analysisMode, compareMode])
     
-    const handleRemovePoint = useCallback((index: number) => {
+    const handleRemovePoint = useCallback((index) => {
         setSelectedPoints(prev => prev.filter((_, i) => i !== index))
     }, [])
     
@@ -222,12 +223,12 @@ export default function Page() {
         }
     }, [rectangleBounds, cloudTolerance, overlayType, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi])
     
-    const isPointClickMode = analysisMode === "point" && compareMode === "points" && rectangleBounds && isImageAvailable()
-    const isPointSelectMode = analysisMode === "point" && compareMode === "months" && rectangleBounds && isImageAvailable()
+    const isPointClickMode = analysisMode === "point" && compareMode === "points"
+    const isPointSelectMode = analysisMode === "point" && compareMode === "months"
     
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
-            <div style={{ width: "25.71%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
+            <div style={{ width: "10%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
                 <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} />
                 <AnalysisModeSelector analysisMode={analysisMode} onAnalysisModeChange={handleAnalysisModeChange} />
                 <CompareModeSelector 
@@ -243,46 +244,63 @@ export default function Page() {
                     />
                 )}
                 
-                {analysisMode === "point" && compareMode === "points" && rectangleBounds && (
-                    <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px" }}>
-                        Click to place a point
+                <CloudToleranceSlider 
+                    cloudTolerance={cloudTolerance}
+                    onCloudChange={handleCloudChange}
+                    onCloudButtonClick={() => {}}
+                    onCloudButtonRelease={() => {}}
+                />
+                
+                {rectangleBounds && (
+                    <button
+                        onClick={handleReset}
+                        style={{
+                            marginTop: "15px",
+                            padding: "8px 16px",
+                            fontSize: "13px",
+                            cursor: "pointer",
+                            backgroundColor: "#dc3545",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px"
+                        }}
+                    >
+                        Reset
+                    </button>
+                )}
+                
+                {analysisMode === "point" && compareMode === "points" && (
+                    <div style={{
+                        marginTop: "10px",
+                        fontSize: "13px",
+                        color: "#555",
+                        backgroundColor: "#f8f9fa",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "4px",
+                        padding: "8px 12px",
+                        textAlign: "center"
+                    }}>
+                        Click on the map to place a point
                     </div>
                 )}
                 
-                {analysisMode === "point" && compareMode === "months" && rectangleBounds && (
-                    <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px" }}>
+                {analysisMode === "point" && compareMode === "months" && (
+                    <div style={{
+                        marginTop: "10px",
+                        fontSize: "13px",
+                        color: "#555",
+                        backgroundColor: "#f8f9fa",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "4px",
+                        padding: "8px 12px",
+                        textAlign: "center"
+                    }}>
                         Click to select a point
                     </div>
                 )}
-                
-                {rectangleBounds && (
-                    <>
-                        <CloudToleranceSlider 
-                            cloudTolerance={cloudTolerance}
-                            onCloudChange={handleCloudChange}
-                            onCloudButtonClick={() => {}}
-                            onCloudButtonRelease={() => {}}
-                        />
-                        <button
-                            onClick={handleReset}
-                            style={{
-                                marginTop: "15px",
-                                padding: "8px 16px",
-                                fontSize: "13px",
-                                cursor: "pointer",
-                                backgroundColor: "#dc3545",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px"
-                            }}
-                        >
-                            Reset
-                        </button>
-                    </>
-                )}
             </div>
             
-            <div style={{ width: "42.86%", height: "100vh" }}>
+            <div style={{ width: "60%", height: "100vh" }}>
                 <MapView
                     isDrawing={isDrawing}
                     rectangleBounds={rectangleBounds}
@@ -295,6 +313,7 @@ export default function Page() {
                     overlayType={overlayType}
                     basemap={basemap}
                     isPointClickMode={isPointClickMode || isPointSelectMode}
+                    isPointSelectMode={isPointSelectMode}
                     selectedPoints={selectedPoints}
                     selectedPoint={selectedPoint}
                     selectedAreas={selectedAreas}
@@ -307,16 +326,17 @@ export default function Page() {
                     onFieldClick={handleFieldClick}
                     currentZoom={currentZoom}
                     onZoomChange={setCurrentZoom}
+                    onMapBoundsChange={setMapBounds}
                 />
             </div>
             
-            <div style={{ width: "31.43%", height: "100vh", borderLeft: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
+            <div style={{ width: "30%", height: "100vh", borderLeft: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
                 {analysisMode === "point" && compareMode === "points" && selectedPoints.length > 0 && (
                     <PointsModePanel
                         selectedPoints={selectedPoints}
                         selectedYear={selectedYear}
                         selectedMonth={selectedMonth}
-                        rectangleBounds={rectangleBounds}
+                        rectangleBounds={rectangleBounds || mapBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onRemovePoint={handleRemovePoint}
@@ -326,7 +346,7 @@ export default function Page() {
                 {analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null && (
                     <PointMonthsModePanel
                         selectedPoint={selectedPoint}
-                        rectangleBounds={rectangleBounds}
+                        rectangleBounds={rectangleBounds || mapBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                     />

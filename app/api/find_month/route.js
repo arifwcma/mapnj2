@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import { findAvailableMonth } from "@/app/lib/earthengineUtils"
 
 export async function GET(request) {
+    console.log("[API] GET /api/find_month - Request received")
     const { searchParams } = new URL(request.url)
+    console.log("[API] /api/find_month - Params:", { bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
     const bbox = searchParams.get("bbox")
     const cloudParam = searchParams.get("cloud")
     const cloud = cloudParam ? parseFloat(cloudParam) : 30

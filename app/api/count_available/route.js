@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import { countAvailableImages } from "@/app/lib/earthengineUtils"
 
 export async function GET(request) {
+    console.log("[API] GET /api/count_available - Request received")
     const { searchParams } = new URL(request.url)
+    console.log("[API] /api/count_available - Params:", { start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
     const start = searchParams.get("start")
     const end = searchParams.get("end")
     const bbox = searchParams.get("bbox")

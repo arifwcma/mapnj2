@@ -17,6 +17,7 @@ function transformCoordinates(coords, transformFn) {
 }
 
 export async function GET() {
+    console.log("[API] GET /api/fields/geojson - Request received")
     try {
         const shapefilePath = join(process.cwd(), "public", "data", "wparcel", "PARCEL_VIEW.shp")
         const dbfPath = join(process.cwd(), "public", "data", "wparcel", "PARCEL_VIEW.dbf")

@@ -241,7 +241,7 @@ export default function Page() {
                 
                 {analysisMode === "point" && compareMode === "points" && rectangleBounds && (
                     <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px" }}>
-                        Click to place a point
+                        Click on the map to place a point
                     </div>
                 )}
                 

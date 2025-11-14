@@ -63,7 +63,7 @@ export default function ToastMessage({ message, duration = 3000, onClose }) {
 
     return (
         <div style={toastStyle}>
-            {message}
+            <div style={{ whiteSpace: "pre-line" }}>{message}</div>
             <div style={{ ...timerBarStyle, width: `${width}%` }}></div>
         </div>
     )

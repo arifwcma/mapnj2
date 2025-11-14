@@ -46,7 +46,9 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
         })
 
         try {
-            const response = await fetch(`/api/ndvi/area/month?${params.toString()}`)
+            const url = `/api/ndvi/area/month?${params.toString()}`
+            console.log(`[HOOK] useAreaDataMap - Calling: ${url}`)
+            const response = await fetch(url)
 
             if (!response.ok) {
                 throw new Error("Failed to fetch month data")

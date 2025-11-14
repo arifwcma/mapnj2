@@ -68,10 +68,15 @@ function buildDisplayDataItem(month, dataMap) {
 
 function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
     const dataMap = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker)
+    const dataMapRef = useRef(dataMap)
     
     useEffect(() => {
-        onDataMapReady(index, dataMap)
-    }, [dataMap, index, onDataMapReady])
+        dataMapRef.current = dataMap
+    }, [dataMap])
+    
+    useEffect(() => {
+        onDataMapReady(index, dataMapRef.current)
+    }, [index, onDataMapReady])
     
     return null
 }
@@ -89,8 +94,8 @@ export default function AreasModePanel({
     const [areaDataMaps, setAreaDataMaps] = useState([])
     const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
     const [showToast, setShowToast] = useState(false)
-    const leftArrowDebounceRef = useRef<NodeJS.Timeout | null>(null)
-    const rightArrowDebounceRef = useRef<NodeJS.Timeout | null>(null)
+    const leftArrowDebounceRef = useRef(null)
+    const rightArrowDebounceRef = useRef(null)
     const chartRef = useRef(null)
     
     const handleDataMapReady = useCallback((index, dataMap) => {
@@ -196,10 +201,10 @@ export default function AreasModePanel({
         plugins: {
             legend: {
                 display: true,
-                position: "top" as const
+                position: "top"
             },
             tooltip: {
-                mode: "index" as const,
+                mode: "index",
                 intersect: false
             }
         },
@@ -305,10 +310,18 @@ export default function AreasModePanel({
                                     <div style={{
                                         width: "20px",
                                         height: "20px",
-                                        backgroundColor: getColorForIndex(index),
+                                        border: `2px solid ${getColorForIndex(index)}`,
                                         borderRadius: "50%",
-                                        display: "inline-block"
-                                    }} />
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "10px",
+                                        fontWeight: "bold",
+                                        color: getColorForIndex(index),
+                                        backgroundColor: "white"
+                                    }}>
+                                        {index + 1}
+                                    </div>
                                 </td>
                                 <td style={{ padding: "8px" }}>{area.label || `Area ${index + 1}`}</td>
                                 <td style={{ padding: "8px" }}>

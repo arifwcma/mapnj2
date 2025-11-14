@@ -11,9 +11,11 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
 
     const fetchSingleMonth = useCallback(async (year, month, pointLat, pointLon, pointType = "") => {
         if (!rectangleBounds) {
+            console.log(`[HOOK] usePointDataMap - Skipping fetch for ${year}-${month}: no rectangleBounds`)
             return null
         }
 
+        console.log(`[HOOK] usePointDataMap - Fetching NDVI for point (${pointLat}, ${pointLon}) for ${year}-${month}`)
         const bboxStr = bboxToString(rectangleBounds)
         const params = new URLSearchParams({
             lat: pointLat.toString(),
@@ -25,16 +27,19 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
         })
 
         try {
-            const response = await fetch(`/api/ndvi/point/month?${params.toString()}`)
+            const url = `/api/ndvi/point/month?${params.toString()}`
+            console.log(`[HOOK] usePointDataMap - Calling: ${url}`)
+            const response = await fetch(url)
 
             if (!response.ok) {
                 throw new Error("Failed to fetch month data")
             }
 
             const data = await response.json()
+            console.log(`[HOOK] usePointDataMap - Received data for ${year}-${month}:`, data)
             return data
         } catch (error) {
-            console.error(`Error fetching NDVI for ${year}-${month}:`, error)
+            console.error(`[HOOK] usePointDataMap - Error fetching NDVI for ${year}-${month}:`, error)
             return { year, month, ndvi: null }
         }
     }, [rectangleBounds, cloudTolerance])
@@ -117,11 +122,13 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
                 setDataMap(prev => {
                     const newMap = new Map(prev)
                     if (result) {
+                        console.log(`[HOOK] usePointDataMap - Setting data for ${key}:`, result.ndvi)
                         newMap.set(key, result.ndvi)
                     } else {
                         newMap.set(key, null)
                     }
                     dataMapRef.current = newMap
+                    console.log(`[HOOK] usePointDataMap - Updated dataMap, size:`, newMap.size)
                     return newMap
                 })
                 

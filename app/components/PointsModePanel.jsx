@@ -67,11 +67,26 @@ function buildDisplayDataItem(month, dataMap) {
 }
 
 function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
-    const dataMap = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker)
+    const { dataMap, fetchMissingMonths } = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker)
+    const dataMapSizeRef = useRef(0)
+    const dataMapRef = useRef(dataMap)
     
     useEffect(() => {
-        onDataMapReady(index, dataMap)
-    }, [dataMap, index, onDataMapReady])
+        dataMapRef.current = dataMap
+    }, [dataMap])
+    
+    useEffect(() => {
+        const currentSize = dataMap?.size || 0
+        if (currentSize !== dataMapSizeRef.current) {
+            console.log(`[PointDataWrapper] DataMap size changed for index ${index}: ${dataMapSizeRef.current} -> ${currentSize}`)
+            dataMapSizeRef.current = currentSize
+            onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths })
+        }
+    }, [index, dataMap?.size, fetchMissingMonths, onDataMapReady])
+    
+    useEffect(() => {
+        onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths })
+    }, [index, onDataMapReady])
     
     return null
 }
@@ -89,14 +104,19 @@ export default function PointsModePanel({
     const [pointDataMaps, setPointDataMaps] = useState([])
     const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
     const [showToast, setShowToast] = useState(false)
-    const leftArrowDebounceRef = useRef<NodeJS.Timeout | null>(null)
-    const rightArrowDebounceRef = useRef<NodeJS.Timeout | null>(null)
+    const [toastMessage, setToastMessage] = useState("")
+    const [toastDuration, setToastDuration] = useState(3000)
+    const previousPendingCountRef = useRef(0)
+    const leftArrowDebounceRef = useRef(null)
+    const rightArrowDebounceRef = useRef(null)
     const chartRef = useRef(null)
     
-    const handleDataMapReady = useCallback((index, dataMap) => {
+    const handleDataMapReady = useCallback((index, dataMapObj) => {
+        console.log(`[PointsModePanel] handleDataMapReady called for index ${index}, dataMap size:`, dataMapObj?.dataMap?.size || 0)
         setPointDataMaps(prev => {
             const newMaps = [...prev]
-            newMaps[index] = dataMap
+            newMaps[index] = dataMapObj
+            console.log(`[PointsModePanel] Updated pointDataMaps[${index}], new size:`, dataMapObj?.dataMap?.size || 0)
             return newMaps
         })
     }, [])
@@ -115,7 +135,7 @@ export default function PointsModePanel({
         const monthKeys = months.map(m => monthKey(m.year, m.month))
         
         selectedPoints.forEach((point, index) => {
-            if (pointDataMaps[index]) {
+            if (pointDataMaps[index]?.fetchMissingMonths) {
                 pointDataMaps[index].fetchMissingMonths(monthKeys)
             }
         })
@@ -134,17 +154,26 @@ export default function PointsModePanel({
     }, [visibleRange, selectedPoints, pointDataMaps])
     
     const tableData = useMemo(() => {
-        if (!visibleRange) {
-            return []
+        if (!selectedYear || !selectedMonth) {
+            return selectedPoints.map((point, index) => ({
+                point,
+                index,
+                averageNdvi: null,
+                currentNdvi: null
+            }))
         }
         
         const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
         return selectedPoints.map((point, index) => {
             const dataMap = pointDataMaps[index]?.dataMap || new Map()
+            console.log(`[PointsModePanel] tableData for point ${index}, dataMap size:`, dataMap.size, 'months:', months.length)
             const monthValues = months.map(m => {
                 const key = monthKey(m.year, m.month)
-                return dataMap.get(key)
+                const value = dataMap.get(key)
+                console.log(`[PointsModePanel] Month ${m.year}-${m.month} (key: ${key}):`, value)
+                return value
             }).filter(v => v !== null && v !== undefined)
+            console.log(`[PointsModePanel] Filtered monthValues for point ${index}:`, monthValues)
             
             const avg = monthValues.length > 0 
                 ? monthValues.reduce((sum, val) => sum + val, 0) / monthValues.length 
@@ -196,10 +225,10 @@ export default function PointsModePanel({
         plugins: {
             legend: {
                 display: true,
-                position: "top" as const
+                position: "top"
             },
             tooltip: {
-                mode: "index" as const,
+                mode: "index",
                 intersect: false
             }
         },
@@ -265,7 +294,41 @@ export default function PointsModePanel({
         }, 1000)
     }, [visibleRange, canGoRight, onMonthChange])
     
-    const isLoading = pointDataMaps.some(map => map && map.isLoading)
+    const isLoading = requestTracker.pendingCount > 0
+    
+    useEffect(() => {
+        const currentPending = requestTracker.pendingCount
+        const previousPending = previousPendingCountRef.current
+        
+        if (previousPending > 0 && currentPending === 0 && selectedPoints.length > 0 && selectedYear && selectedMonth) {
+            setTimeout(() => {
+                const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+                let hasNullValues = false
+                
+                selectedPoints.forEach((point, index) => {
+                    const dataMap = pointDataMaps[index]?.dataMap || new Map()
+                    months.forEach(m => {
+                        const key = monthKey(m.year, m.month)
+                        const value = dataMap.get(key)
+                        if (value === null || value === undefined) {
+                            hasNullValues = true
+                        }
+                    })
+                })
+                
+                if (hasNullValues) {
+                    setToastMessage("All available data loaded.\nSome data is not available. Consider increasing cloud tolerance.")
+                    setToastDuration(15000)
+                } else {
+                    setToastMessage("All data loaded")
+                    setToastDuration(3000)
+                }
+                setShowToast(true)
+            }, 100)
+        }
+        
+        previousPendingCountRef.current = currentPending
+    }, [requestTracker.pendingCount, selectedPoints, selectedYear, selectedMonth, pointDataMaps])
     
     return (
         <div>
@@ -306,10 +369,18 @@ export default function PointsModePanel({
                                     <div style={{
                                         width: "20px",
                                         height: "20px",
-                                        backgroundColor: getColorForIndex(index),
+                                        border: `2px solid ${getColorForIndex(index)}`,
                                         borderRadius: "50%",
-                                        display: "inline-block"
-                                    }} />
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "10px",
+                                        fontWeight: "bold",
+                                        color: getColorForIndex(index),
+                                        backgroundColor: "white"
+                                    }}>
+                                        {index + 1}
+                                    </div>
                                 </td>
                                 <td style={{ padding: "8px" }}>{point.lat.toFixed(6)}</td>
                                 <td style={{ padding: "8px" }}>{point.lon.toFixed(6)}</td>
@@ -373,11 +444,17 @@ export default function PointsModePanel({
                 </>
             )}
             
-            {showToast ? (
-                <ToastMessage message="All available data loaded." onClose={() => setShowToast(false)} duration={5000} />
-            ) : (
-                <ChartLoadingMessage loading={isLoading} />
+            {showToast && toastMessage && (
+                <ToastMessage 
+                    message={toastMessage} 
+                    onClose={() => {
+                        setShowToast(false)
+                        setToastMessage("")
+                    }} 
+                    duration={toastDuration} 
+                />
             )}
+            <ChartLoadingMessage loading={isLoading} />
         </div>
     )
 }
