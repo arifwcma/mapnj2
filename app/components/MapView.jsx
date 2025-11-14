@@ -211,36 +211,20 @@ function ZoomLogger() {
     
     useEffect(() => {
         if (!map) {
-            console.log("ZoomLogger: map not available")
             return
-        }
-        
-        console.log("ZoomLogger: setting up zoom listeners")
-        
-        const handleZoom = (e) => {
-            const zoom = map.getZoom()
-            console.log("Zoom level:", zoom, "Event:", e?.type || "unknown")
-        }
-        
-        const handleZoomStart = () => {
-            console.log("Zoom start")
         }
         
         const handleZoomEnd = () => {
             const zoom = map.getZoom()
-            console.log("Zoom end, level:", zoom)
+            console.log("Zoom level:", zoom)
         }
         
-        map.on("zoomstart", handleZoomStart)
-        map.on("zoom", handleZoom)
-        map.on("zoomend", handleZoomEnd)
-        
-        console.log("ZoomLogger: listeners attached, current zoom:", map.getZoom())
+        const timeout = setTimeout(() => {
+            map.on("zoomend", handleZoomEnd)
+        }, 500)
         
         return () => {
-            console.log("ZoomLogger: cleaning up")
-            map.off("zoomstart", handleZoomStart)
-            map.off("zoom", handleZoom)
+            clearTimeout(timeout)
             map.off("zoomend", handleZoomEnd)
         }
     }, [map])
