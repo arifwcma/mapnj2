@@ -8,7 +8,7 @@ import RectangleDrawHandler from "./RectangleDrawHandler"
 import NdviOverlay from "./NdviOverlay"
 import FieldsLayer from "./FieldsLayer"
 import useBoundary from "@/app/hooks/useBoundary"
-import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG, FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
+import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, TILE_LAYER_TOPOGRAPHIC, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG, FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 import { validatePointInBounds } from "@/app/lib/bboxUtils"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
@@ -375,9 +375,15 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  */
 export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }) {
     const { boundary, loading, error } = useBoundary()
-    const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
+    const tileUrl = basemap === "satellite" 
+        ? TILE_LAYER_SATELLITE 
+        : basemap === "topographic" 
+        ? TILE_LAYER_TOPOGRAPHIC 
+        : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
         ? '&copy; <a href="https://www.esri.com/">Esri</a>'
+        : basemap === "topographic"
+        ? '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
         : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
     if (error) {
