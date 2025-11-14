@@ -121,14 +121,16 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
                 
                 setDataMap(prev => {
                     const newMap = new Map(prev)
-                    if (result) {
+                    if (result && result.ndvi !== null && result.ndvi !== undefined) {
                         console.log(`[HOOK] usePointDataMap - Setting data for ${key}:`, result.ndvi)
                         newMap.set(key, result.ndvi)
                     } else {
+                        const ndviValue = result?.ndvi ?? null
+                        console.log(`[HOOK] usePointDataMap - Setting null for ${key}, result:`, result, `ndviValue:`, ndviValue)
                         newMap.set(key, null)
                     }
                     dataMapRef.current = newMap
-                    console.log(`[HOOK] usePointDataMap - Updated dataMap, size:`, newMap.size)
+                    console.log(`[HOOK] usePointDataMap - Updated dataMap, size:`, newMap.size, `value for ${key}:`, newMap.get(key))
                     return newMap
                 })
                 

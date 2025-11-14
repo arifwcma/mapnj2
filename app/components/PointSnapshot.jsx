@@ -7,72 +7,7 @@ export default function PointSnapshot({ ndvi, size = 40 }) {
     const color = ndviToColor(ndvi)
     
     if (ndvi === null || ndvi === undefined) {
-        return (
-            <div style={{ display: "inline-block", textAlign: "center" }}>
-                <div
-                    style={{
-                        width: `${size}px`,
-                        height: `${size}px`,
-                        borderRadius: "50%",
-                        backgroundColor: "#808080",
-                        border: "1px solid #ccc",
-                        cursor: "pointer",
-                        display: "inline-block"
-                    }}
-                    onClick={() => setShowPopup(true)}
-                    title="No data"
-                />
-                {showPopup && (
-                    <div
-                        style={{
-                            position: "fixed",
-                            top: "50%",
-                            left: "50%",
-                            transform: "translate(-50%, -50%)",
-                            backgroundColor: "white",
-                            border: "2px solid #333",
-                            borderRadius: "8px",
-                            padding: "20px",
-                            zIndex: 10000,
-                            boxShadow: "0 4px 6px rgba(0,0,0,0.3)"
-                        }}
-                    >
-                        <div style={{ marginBottom: "10px", fontSize: "16px", fontWeight: "bold" }}>
-                            NDVI Snapshot
-                        </div>
-                        <div
-                            style={{
-                                width: "200px",
-                                height: "200px",
-                                borderRadius: "50%",
-                                backgroundColor: "#808080",
-                                border: "2px solid #333",
-                                margin: "0 auto 10px"
-                            }}
-                        />
-                        <div style={{ textAlign: "center", marginBottom: "10px" }}>
-                            NDVI: N/A
-                        </div>
-                        <button
-                            onClick={() => setShowPopup(false)}
-                            style={{
-                                display: "block",
-                                margin: "0 auto",
-                                padding: "8px 16px",
-                                fontSize: "14px",
-                                cursor: "pointer",
-                                backgroundColor: "#dc3545",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px"
-                            }}
-                        >
-                            Close
-                        </button>
-                    </div>
-                )}
-            </div>
-        )
+        return null
     }
     
     return (
