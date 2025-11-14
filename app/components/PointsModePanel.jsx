@@ -102,6 +102,7 @@ export default function PointsModePanel({
 }) {
     const requestTracker = useRequestTracker()
     const [pointDataMaps, setPointDataMaps] = useState([])
+    const pointDataMapsRef = useRef([])
     const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
     const [showToast, setShowToast] = useState(false)
     const [toastMessage, setToastMessage] = useState("")
@@ -113,6 +114,10 @@ export default function PointsModePanel({
     const leftArrowDebounceRef = useRef(null)
     const rightArrowDebounceRef = useRef(null)
     const chartRef = useRef(null)
+    
+    useEffect(() => {
+        pointDataMapsRef.current = pointDataMaps
+    }, [pointDataMaps])
     
     const handleDataMapReady = useCallback((index, dataMapObj) => {
         console.log(`[PointsModePanel] handleDataMapReady called for index ${index}, dataMap size:`, dataMapObj?.dataMap?.size || 0)
@@ -347,8 +352,10 @@ export default function PointsModePanel({
                     let checkedMonths = []
                     
                     const allMonthData = []
+                    const latestDataMaps = pointDataMapsRef.current
                     selectedPoints.forEach((point, index) => {
-                        const dataMap = pointDataMaps[index]?.dataMap || new Map()
+                        const dataMap = latestDataMaps[index]?.dataMap || new Map()
+                        console.log(`[PointsModePanel] Point ${index} dataMap size:`, dataMap.size, `keys:`, Array.from(dataMap.keys()))
                         const monthData = {}
                         months.forEach(m => {
                             const key = monthKey(m.year, m.month)
@@ -357,7 +364,7 @@ export default function PointsModePanel({
                             if (!dataMap.has(key)) {
                                 missingKeys.push(`${m.year}-${m.month}`)
                                 monthData[`${m.year}-${m.month}`] = "MISSING"
-                                console.log(`[PointsModePanel] Point ${index}, month ${m.year}-${m.month}: MISSING KEY`)
+                                console.log(`[PointsModePanel] Point ${index}, month ${m.year}-${m.month}: MISSING KEY (looking for "${key}")`)
                                 hasNullValues = true
                             } else {
                                 const value = dataMap.get(key)
@@ -424,14 +431,16 @@ export default function PointsModePanel({
                 let hasNullValues = false
                 
                 const allMonthData = []
+                const latestDataMaps = pointDataMapsRef.current
                 selectedPoints.forEach((point, index) => {
-                    const dataMap = pointDataMaps[index]?.dataMap || new Map()
+                    const dataMap = latestDataMaps[index]?.dataMap || new Map()
+                    console.log(`[PointsModePanel] Dropdown toast - Point ${index} dataMap size:`, dataMap.size, `keys:`, Array.from(dataMap.keys()))
                     const monthData = {}
                     months.forEach(m => {
                         const key = monthKey(m.year, m.month)
                         if (!dataMap.has(key)) {
                             monthData[`${m.year}-${m.month}`] = "MISSING"
-                            console.log(`[PointsModePanel] Point ${index}, month ${m.year}-${m.month}: MISSING KEY`)
+                            console.log(`[PointsModePanel] Point ${index}, month ${m.year}-${m.month}: MISSING KEY (looking for "${key}")`)
                             hasNullValues = true
                         } else {
                             const value = dataMap.get(key)
@@ -464,13 +473,12 @@ export default function PointsModePanel({
                     : "All data loaded"
                 const duration = 10000
                 
-                    const monthDataStr = allMonthData.join(",")
-                    console.log(`[PointsModePanel] SHOWING TOAST - hasNullValues: ${hasNullValues}, message: "${message}" ${monthDataStr}`)
-                    setToastMessage(message)
-                    setToastDuration(duration)
-                    setShowToast(true)
-                }, 200)
-            }, 100)
+                const monthDataStr = allMonthData.join(",")
+                console.log(`[PointsModePanel] SHOWING TOAST - hasNullValues: ${hasNullValues}, message: "${message}" ${monthDataStr}`)
+                setToastMessage(message)
+                setToastDuration(duration)
+                setShowToast(true)
+            }, 200)
         }
     }, [selectedYear, selectedMonth, selectedPoints, pointDataMaps, requestTracker.pendingCount])
     
