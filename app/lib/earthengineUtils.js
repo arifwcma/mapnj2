@@ -1,5 +1,5 @@
 import { ee, initEarthEngine } from "@/app/lib/earthengine"
-import { MONTH_NAMES_FULL } from "@/app/lib/constants"
+import { MONTH_NAMES_FULL } from "@/app/lib/config"
 import { getMonthDateRange, getPreviousMonth } from "@/app/lib/dateUtils"
 import { bboxToArray } from "@/app/lib/bboxUtils"
 

@@ -1,4 +1,4 @@
-import { MIN_YEAR, MIN_MONTH } from "./constants"
+import { MIN_YEAR, MIN_MONTH } from "./config"
 
 export function monthYearToSliderValue(year, month) {
     return (year - MIN_YEAR) * 12 + (month - MIN_MONTH)

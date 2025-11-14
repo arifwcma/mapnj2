@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from "react"
 import { useOverlayTiles } from "./useOverlayTiles"
 import { useTimeSelection } from "./useTimeSelection"
 import { useImageFilters } from "./useImageFilters"
-import { MONTH_NAMES_FULL } from "@/app/lib/constants"
+import { MONTH_NAMES_FULL } from "@/app/lib/config"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
 

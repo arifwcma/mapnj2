@@ -8,7 +8,7 @@ import RectangleDrawHandler from "./RectangleDrawHandler"
 import NdviOverlay from "./NdviOverlay"
 import FieldsLayer from "./FieldsLayer"
 import useBoundary from "@/app/hooks/useBoundary"
-import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE } from "@/app/lib/mapConfig"
+import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG } from "@/app/lib/config"
 import { validatePointInBounds } from "@/app/lib/bboxUtils"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
@@ -210,7 +210,7 @@ function ZoomLogger() {
     const map = useMap()
     
     useEffect(() => {
-        if (!map) {
+        if (!DEBUG_CONFIG.ZOOM_LOGGING || !map) {
             return
         }
         

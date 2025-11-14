@@ -1,4 +1,4 @@
-import { MONTH_NAMES_FULL, MONTH_NAMES_SHORT } from "./constants"
+import { MONTH_NAMES_FULL, MONTH_NAMES_SHORT } from "./config"
 
 export function getMonthDateRange(year, month) {
     const start = `${year}-${String(month).padStart(2, "0")}-01`

@@ -2,7 +2,7 @@
 import dynamic from "next/dynamic"
 import { useEffect } from "react"
 import { useMap } from "react-leaflet"
-import { BOUNDARY_STYLE } from "@/app/lib/mapConfig"
+import { BOUNDARY_STYLE } from "@/app/lib/config"
 
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 

@@ -10,7 +10,7 @@ import {
     Tooltip,
     Legend
 } from "chart.js"
-import { MIN_YEAR, MIN_MONTH } from "@/app/lib/constants"
+import { MIN_YEAR, MIN_MONTH } from "@/app/lib/config"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
 import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"

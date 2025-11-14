@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { BOUNDARY_FILE_PATH } from "@/app/lib/mapConfig"
+import { BOUNDARY_FILE_PATH } from "@/app/lib/config"
 
 export default function useBoundary() {
     const [boundary, setBoundary] = useState(null)
