@@ -346,7 +346,7 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }: { isDrawing?: boolean, rectangleBounds?: any, currentBounds?: any, onStart?: any, onUpdate?: any, onEnd?: any, onReset?: any, ndviTileUrl?: string | null, rgbTileUrl?: string | null, overlayType?: string, basemap?: string, isPointAnalysisMode?: boolean, onPointClick?: any, selectedPoint?: any, secondPoint?: any, isMoveMode?: boolean, onMarkerDragEnd?: any, fieldSelectionMode?: boolean, fieldsData?: any, boundsSource?: 'rectangle' | 'field' | null, selectedFieldFeature?: any, onFieldClick?: any, currentZoom?: number | null, onZoomChange?: any }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
