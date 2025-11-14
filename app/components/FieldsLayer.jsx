@@ -6,51 +6,76 @@ import { useMap } from "react-leaflet"
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 
 const FIELDS_STYLE = {
-    color: "yellow",
+    color: "blue",
     weight: 3,
     fillOpacity: 0,
     opacity: 1
 }
 
-export default function FieldsLayer({ showFields }) {
-    console.log("FieldsLayer component rendered, showFields:", showFields)
+const FIELDS_STYLE_HOVER = {
+    color: "blue",
+    weight: 4,
+    fillOpacity: 0,
+    opacity: 1
+}
+
+function calculateBounds(feature) {
+    if (!feature || !feature.geometry) {
+        return null
+    }
+
+    const coords = feature.geometry.coordinates
+
+    const extractCoords = (geometry) => {
+        if (geometry.type === "Point") {
+            return [[geometry.coordinates[1], geometry.coordinates[0]]]
+        } else if (geometry.type === "LineString" || geometry.type === "MultiPoint") {
+            return geometry.coordinates.map(c => [c[1], c[0]])
+        } else if (geometry.type === "Polygon" || geometry.type === "MultiLineString") {
+            return geometry.coordinates.flat().map(c => [c[1], c[0]])
+        } else if (geometry.type === "MultiPolygon") {
+            return geometry.coordinates.flat(2).map(c => [c[1], c[0]])
+        }
+        return []
+    }
+
+    const allCoords = extractCoords(feature.geometry)
+
+    if (allCoords.length === 0) {
+        return null
+    }
+
+    let minLat = allCoords[0][0]
+    let maxLat = allCoords[0][0]
+    let minLng = allCoords[0][1]
+    let maxLng = allCoords[0][1]
+
+    allCoords.forEach(([lat, lng]) => {
+        minLat = Math.min(minLat, lat)
+        maxLat = Math.max(maxLat, lat)
+        minLng = Math.min(minLng, lng)
+        maxLng = Math.max(maxLng, lng)
+    })
+
+    return [[minLat, minLng], [maxLat, maxLng]]
+}
+
+export default function FieldsLayer({ 
+    fieldSelectionMode, 
+    fieldsData, 
+    fieldsLoading, 
+    boundsSource,
+    onFieldClick 
+}) {
     const map = useMap()
-    const [geoJsonData, setGeoJsonData] = useState(null)
     const layerRef = useRef(null)
 
-    useEffect(() => {
-        if (!showFields) {
-            setGeoJsonData(null)
-            return
-        }
-
-        if (geoJsonData) {
-            return
-        }
-
-        fetch("/api/fields/geojson")
-            .then(async response => {
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-                    throw new Error(errorData.error || errorData.details || "Failed to fetch fields data")
-                }
-                return response.json()
-            })
-            .then(data => {
-                console.log("Fields data loaded:", data)
-                console.log("Number of features:", data.features?.length || 0)
-                setGeoJsonData(data)
-            })
-            .catch(err => {
-                console.error("Error loading fields:", err.message || err)
-            })
-    }, [showFields, geoJsonData])
+    const shouldShow = fieldSelectionMode
 
     useEffect(() => {
-        if (layerRef.current && showFields && geoJsonData) {
+        if (layerRef.current && shouldShow && fieldsData) {
             const layer = layerRef.current.leafletElement || layerRef.current
             if (layer) {
-                console.log("Bringing fields layer to front")
                 if (typeof layer.bringToFront === 'function') {
                     layer.bringToFront()
                 }
@@ -63,17 +88,45 @@ export default function FieldsLayer({ showFields }) {
                 }
             }
         }
-    }, [showFields, geoJsonData])
+    }, [shouldShow, fieldsData])
 
-    useEffect(() => {
-        console.log("FieldsLayer render state:", { showFields, hasData: !!geoJsonData, featuresCount: geoJsonData?.features?.length })
-    }, [showFields, geoJsonData])
-
-    if (!showFields || !geoJsonData) {
+    if (!shouldShow || !fieldsData || fieldsLoading) {
         return null
     }
 
-    console.log("Rendering GeoJSON layer with", geoJsonData.features?.length || 0, "features")
-    return <GeoJSON ref={layerRef} data={geoJsonData} style={FIELDS_STYLE} />
-}
+    const onEachFeature = (feature, layer) => {
+        if (!fieldSelectionMode) {
+            return
+        }
 
+        layer.on({
+            mouseover: (e) => {
+                const layer = e.target
+                layer.setStyle(FIELDS_STYLE_HOVER)
+                if (typeof layer.bringToFront === 'function') {
+                    layer.bringToFront()
+                }
+            },
+            mouseout: (e) => {
+                const layer = e.target
+                layer.setStyle(FIELDS_STYLE)
+            },
+            click: (e) => {
+                e.originalEvent.stopPropagation()
+                const bounds = calculateBounds(feature)
+                if (bounds && onFieldClick) {
+                    onFieldClick(bounds, feature)
+                }
+            }
+        })
+    }
+
+    return (
+        <GeoJSON 
+            ref={layerRef} 
+            data={fieldsData} 
+            style={FIELDS_STYLE}
+            onEachFeature={onEachFeature}
+        />
+    )
+}

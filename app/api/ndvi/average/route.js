@@ -7,6 +7,7 @@ export async function GET(request) {
     const end = searchParams.get("end")
     const bbox = searchParams.get("bbox")
     const cloudParam = searchParams.get("cloud")
+    const geometryParam = searchParams.get("geometry")
     const cloud = cloudParam ? parseFloat(cloudParam) : 30
 
     if (!start || !end || !bbox) {
@@ -23,8 +24,20 @@ export async function GET(request) {
         )
     }
 
+    let geometry = null
+    if (geometryParam) {
+        try {
+            geometry = JSON.parse(geometryParam)
+        } catch (e) {
+            return NextResponse.json(
+                { error: "Invalid geometry parameter. Must be valid JSON" },
+                { status: 400 }
+            )
+        }
+    }
+
     try {
-        const tileUrl = await getAverageNdviTile(start, end, bbox, cloud)
+        const tileUrl = await getAverageNdviTile(start, end, bbox, cloud, geometry)
         return NextResponse.json({ tileUrl, start, end, bbox, cloud })
     } catch (error) {
         console.error("Error getting NDVI tile:", error)

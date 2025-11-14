@@ -46,6 +46,13 @@ export default function useRectangleDraw() {
         stopDrawing()
     }, [currentBounds, stopDrawing])
 
+    const setBounds = useCallback((bounds) => {
+        setRectangleBounds(bounds)
+        setIsDrawing(false)
+        setStartPoint(null)
+        setCurrentBounds(null)
+    }, [])
+
     return {
         isDrawing,
         rectangleBounds,
@@ -56,7 +63,8 @@ export default function useRectangleDraw() {
         resetRectangle,
         setStart,
         updateBounds,
-        finalizeRectangle
+        finalizeRectangle,
+        setBounds
     }
 }
 

@@ -84,7 +84,32 @@ export async function findAvailableMonth(bbox, cloud = 30) {
     }
 }
 
-export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
+function geoJsonToEeGeometry(geoJson) {
+    if (!geoJson || !geoJson.geometry) {
+        return null
+    }
+
+    const geom = geoJson.geometry
+    const coords = geom.coordinates
+
+    if (geom.type === "Polygon") {
+        const rings = coords.map(ring => 
+            ring.map(([lng, lat]) => [lng, lat])
+        )
+        return ee.Geometry.Polygon(rings)
+    } else if (geom.type === "MultiPolygon") {
+        const polygons = coords.map(polygon =>
+            polygon.map(ring =>
+                ring.map(([lng, lat]) => [lng, lat])
+            )
+        )
+        return ee.Geometry.MultiPolygon(polygons)
+    }
+
+    return null
+}
+
+export async function getAverageNdviTile(start, end, bbox, cloud = 30, geometry = null) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -98,6 +123,11 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
     const endDate = ee.Date(end).advance(1, "day")
 
     const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+    const clipGeometry = geometry ? geoJsonToEeGeometry(geometry) : rectangle
+
+    if (!clipGeometry) {
+        throw new Error("Invalid geometry format")
+    }
 
     const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
         .filterBounds(rectangle)
@@ -105,7 +135,7 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
-    const mean = collection.mean().clip(rectangle)
+    const mean = collection.mean().clip(clipGeometry)
     const vis = { min: -1, max: 1, palette: ["darkred", "orangered", "red", "yellow", "darkgreen"] }
 
 
@@ -121,7 +151,7 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30) {
     })
 }
 
-export async function getAverageRgbTile(start, end, bbox, cloud = 30) {
+export async function getAverageRgbTile(start, end, bbox, cloud = 30, geometry = null) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -135,6 +165,11 @@ export async function getAverageRgbTile(start, end, bbox, cloud = 30) {
     const endDate = ee.Date(end).advance(1, "day")
 
     const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+    const clipGeometry = geometry ? geoJsonToEeGeometry(geometry) : rectangle
+
+    if (!clipGeometry) {
+        throw new Error("Invalid geometry format")
+    }
 
     const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
         .filterBounds(rectangle)
@@ -142,7 +177,7 @@ export async function getAverageRgbTile(start, end, bbox, cloud = 30) {
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .select(["B4", "B3", "B2"])
 
-    const mean = collection.mean().clip(rectangle)
+    const mean = collection.mean().clip(clipGeometry)
     const vis = { min: 0, max: 3000, bands: ["B4", "B3", "B2"] }
 
     return await new Promise((resolve, reject) => {

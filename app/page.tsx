@@ -26,7 +26,9 @@ export default function Page() {
         setStart,
         updateBounds,
         finalizeRectangle,
-        startDrawing
+        startDrawing,
+        stopDrawing,
+        setBounds
     } = useRectangleDraw()
 
     const {
@@ -66,8 +68,12 @@ export default function Page() {
     const [localCloudTolerance, setLocalCloudTolerance] = useState(cloudTolerance)
     const [localTimeSliderValue, setLocalTimeSliderValue] = useState(0)
     const [basemap, setBasemap] = useState("street")
-    const [showFields, setShowFields] = useState(false)
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
+    const [fieldSelectionMode, setFieldSelectionMode] = useState(false)
+    const [fieldsLoading, setFieldsLoading] = useState(false)
+    const [fieldsData, setFieldsData] = useState<any>(null)
+    const [boundsSource, setBoundsSource] = useState<'rectangle' | 'field' | null>(null)
+    const [selectedFieldFeature, setSelectedFieldFeature] = useState<any>(null)
     const [secondPointSelection, setSecondPointSelection] = useState(false)
     const [secondPoint, setSecondPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [secondPointLoading, setSecondPointLoading] = useState(false)
@@ -77,6 +83,8 @@ export default function Page() {
     const previousCloudToleranceRef = useRef(cloudTolerance)
     const previousSelectedYearRef = useRef(selectedYear)
     const previousSelectedMonthRef = useRef(selectedMonth)
+    const previousBoundsSourceRef = useRef(boundsSource)
+    const previousSelectedFieldFeatureRef = useRef(selectedFieldFeature)
 
     const fetchPointNdvi = useCallback(async (lat: number, lon: number) => {
         if (!rectangleBounds || !selectedYear || !selectedMonth) {
@@ -152,6 +160,8 @@ export default function Page() {
             const cloudChanged = previousCloudToleranceRef.current !== cloudTolerance
             const yearChanged = previousSelectedYearRef.current !== selectedYear
             const monthChanged = previousSelectedMonthRef.current !== selectedMonth
+            const boundsSourceChanged = previousBoundsSourceRef.current !== boundsSource
+            const geometryChanged = previousSelectedFieldFeatureRef.current !== selectedFieldFeature
             
             const isFirstLoad = !previousRectangleBoundsRef.current
             
@@ -163,15 +173,17 @@ export default function Page() {
                 previousOverlayTypeRef.current = overlayType
             }
             
+            const geometry = boundsSource === 'field' ? selectedFieldFeature : null
+            
             if (!selectedYear || !selectedMonth) {
                 if (!isInitialLoadRef.current) {
                     isInitialLoadRef.current = true
-                    loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType)
+                    loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
                 }
-            } else if (overlayTypeChanged && !rectangleChanged && !cloudChanged && !yearChanged && !monthChanged && selectedYear && selectedMonth) {
-                loadOverlayTileOnly(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType)
-            } else if ((rectangleChanged || cloudChanged || yearChanged || monthChanged) && !isInitialLoadRef.current) {
-                loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType)
+            } else if (overlayTypeChanged && !rectangleChanged && !cloudChanged && !yearChanged && !monthChanged && !boundsSourceChanged && !geometryChanged && selectedYear && selectedMonth) {
+                loadOverlayTileOnly(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, geometry)
+            } else if ((rectangleChanged || cloudChanged || yearChanged || monthChanged || boundsSourceChanged || geometryChanged) && !isInitialLoadRef.current) {
+                loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, geometry)
             }
             
             if (isInitialLoadRef.current && selectedYear && selectedMonth) {
@@ -183,6 +195,8 @@ export default function Page() {
             previousCloudToleranceRef.current = cloudTolerance
             previousSelectedYearRef.current = selectedYear
             previousSelectedMonthRef.current = selectedMonth
+            previousBoundsSourceRef.current = boundsSource
+            previousSelectedFieldFeatureRef.current = selectedFieldFeature
         } else {
             clearNdvi()
             isInitialLoadRef.current = false
@@ -192,7 +206,7 @@ export default function Page() {
             previousSelectedYearRef.current = selectedYear
             previousSelectedMonthRef.current = selectedMonth
         }
-    }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, loadNdviData, loadOverlayTileOnly, clearNdvi])
+    }, [rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, loadNdviData, loadOverlayTileOnly, clearNdvi, boundsSource, selectedFieldFeature])
 
 
     useEffect(() => {
@@ -221,10 +235,59 @@ export default function Page() {
         setSecondPoint({ lat: null, lon: null })
         setSecondPointSelection(false)
         setSecondPointLoading(false)
+        setFieldSelectionMode(false)
+        setBoundsSource(null)
+        setSelectedFieldFeature(null)
     }
+
+    const handleStartFieldSelection = useCallback(() => {
+        setFieldSelectionMode(true)
+        setFieldsLoading(true)
+        if (fieldsData) {
+            setFieldsLoading(false)
+            return
+        }
+        fetch("/api/fields/geojson")
+            .then(async response => {
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                    throw new Error(errorData.error || errorData.details || "Failed to fetch fields data")
+                }
+                return response.json()
+            })
+            .then(data => {
+                setFieldsData(data)
+                setFieldsLoading(false)
+            })
+            .catch(err => {
+                console.error("Error loading fields:", err.message || err)
+                setFieldsLoading(false)
+                setFieldSelectionMode(false)
+            })
+    }, [fieldsData])
+
+    const handleCancelFieldSelection = useCallback(() => {
+        setFieldSelectionMode(false)
+    }, [])
+
+    const handleFieldClick = useCallback((bounds: [[number, number], [number, number]], feature: any) => {
+        setBounds(bounds)
+        setBoundsSource('field')
+        setSelectedFieldFeature(feature)
+        setFieldSelectionMode(false)
+    }, [setBounds])
+
+    const handleStartDrawing = useCallback(() => {
+        setFieldSelectionMode(false)
+        setSelectedFieldFeature(null)
+        startDrawing()
+        setBoundsSource('rectangle')
+    }, [startDrawing])
 
     const handleFinalize = () => {
         finalizeRectangle()
+        setBoundsSource('rectangle')
+        setSelectedFieldFeature(null)
     }
 
     const handleCloudChange = (newValue: number) => {
@@ -376,11 +439,16 @@ export default function Page() {
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
             <div style={{ width: "25.71%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
-                <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} showFields={showFields} onShowFieldsChange={setShowFields} />
+                <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} />
                 <AreaOfInterestControls 
                     isDrawing={isDrawing}
                     rectangleBounds={rectangleBounds}
-                    onStartDrawing={startDrawing}
+                    fieldSelectionMode={fieldSelectionMode}
+                    fieldsLoading={fieldsLoading}
+                    onStartDrawing={handleStartDrawing}
+                    onStartFieldSelection={handleStartFieldSelection}
+                    onCancelFieldSelection={handleCancelFieldSelection}
+                    onCancelDrawing={stopDrawing}
                     onReset={handleButtonClick}
                 />
                 {rectangleBounds && (
@@ -444,13 +512,18 @@ export default function Page() {
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}
-                    showFields={showFields}
                     isPointAnalysisMode={isImageAvailable() && !isMoveMode}
                     onPointClick={handlePointClick}
                     selectedPoint={selectedPoint as any}
                     secondPoint={secondPoint as any}
                     isMoveMode={isMoveMode}
                     onMarkerDragEnd={handleMarkerDragEnd}
+                    fieldSelectionMode={fieldSelectionMode}
+                    fieldsData={fieldsData}
+                    fieldsLoading={fieldsLoading}
+                    boundsSource={boundsSource}
+                    selectedFieldFeature={selectedFieldFeature}
+                    onFieldClick={handleFieldClick}
                 />
             </div>
             <div style={{ width: "31.43%", height: "100vh", borderLeft: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>

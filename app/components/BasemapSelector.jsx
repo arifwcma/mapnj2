@@ -1,9 +1,9 @@
 "use client"
 
-export default function BasemapSelector({ basemap, onBasemapChange, showFields, onShowFieldsChange }) {
+export default function BasemapSelector({ basemap, onBasemapChange }) {
     return (
         <div style={{ padding: "10px 0", marginBottom: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <span style={{ fontSize: "13px", color: "#333" }}>Basemap:</span>
                 <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
                     <input
@@ -26,17 +26,6 @@ export default function BasemapSelector({ basemap, onBasemapChange, showFields, 
                     <span style={{ fontSize: "13px", color: "#333" }}>Satellite</span>
                 </label>
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                <input
-                    type="checkbox"
-                    checked={showFields}
-                    onChange={(e) => {
-                        console.log("Checkbox changed:", e.target.checked)
-                        onShowFieldsChange(e.target.checked)
-                    }}
-                />
-                <span style={{ fontSize: "13px", color: "#333" }}>Show fields</span>
-            </label>
         </div>
     )
 }

@@ -26,7 +26,7 @@ export default function useNdviData() {
     timeSelectionRef.current = timeSelection
     imageFiltersRef.current = imageFilters
 
-    const loadNdviData = useCallback(async (bbox, cloud = 30, year = null, month = null, overlay = "NDVI") => {
+    const loadNdviData = useCallback(async (bbox, cloud = 30, year = null, month = null, overlay = "NDVI", geometry = null) => {
         if (!bbox || loadingRef.current) {
             return
         }
@@ -60,7 +60,7 @@ export default function useNdviData() {
             }
 
             if (monthData.count > 0) {
-                await overlayTilesRef.current.loadOverlayTile(bbox, cloud, monthData.year, monthData.month, overlay)
+                await overlayTilesRef.current.loadOverlayTile(bbox, cloud, monthData.year, monthData.month, overlay, geometry)
             } else {
                 overlayTilesRef.current.clearTiles()
             }

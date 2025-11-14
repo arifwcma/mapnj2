@@ -15,6 +15,7 @@ const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContai
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
 const Rectangle = dynamic(() => import("react-leaflet").then(m => m.Rectangle), { ssr: false })
 const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false })
+const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 
 function FixMarkerIcon() {
     useEffect(() => {
@@ -205,6 +206,48 @@ function ZoomToRectangle({ bounds }) {
     return null
 }
 
+function ZoomLogger() {
+    const map = useMap()
+    
+    useEffect(() => {
+        if (!map) {
+            console.log("ZoomLogger: map not available")
+            return
+        }
+        
+        console.log("ZoomLogger: setting up zoom listeners")
+        
+        const handleZoom = (e) => {
+            const zoom = map.getZoom()
+            console.log("Zoom level:", zoom, "Event:", e?.type || "unknown")
+        }
+        
+        const handleZoomStart = () => {
+            console.log("Zoom start")
+        }
+        
+        const handleZoomEnd = () => {
+            const zoom = map.getZoom()
+            console.log("Zoom end, level:", zoom)
+        }
+        
+        map.on("zoomstart", handleZoomStart)
+        map.on("zoom", handleZoom)
+        map.on("zoomend", handleZoomEnd)
+        
+        console.log("ZoomLogger: listeners attached, current zoom:", map.getZoom())
+        
+        return () => {
+            console.log("ZoomLogger: cleaning up")
+            map.off("zoomstart", handleZoomStart)
+            map.off("zoom", handleZoom)
+            map.off("zoomend", handleZoomEnd)
+        }
+    }, [map])
+    
+    return null
+}
+
 function PointClickHandler({ isActive, onPointClick }) {
     const map = useMap()
     
@@ -291,7 +334,7 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, showFields = false }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" ? TILE_LAYER_SATELLITE : TILE_LAYER_STREET
     const attribution = basemap === "satellite" 
@@ -306,8 +349,9 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
         <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
             <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
+            <ZoomLogger />
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
-            {!isDrawing && !isMoveMode && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
+            {!isDrawing && !isMoveMode && !fieldSelectionMode && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
             {isMoveMode && <MoveModeHandler isActive={isMoveMode} onMarkerDragEnd={onMarkerDragEnd} />}
             {boundary && <BoundaryLayer data={boundary} />}
             {isDrawing && (
@@ -319,9 +363,21 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 />
             )}
             {currentBounds && <Rectangle bounds={currentBounds} pathOptions={RECTANGLE_STYLE} />}
-            {rectangleBounds && (
+            {rectangleBounds && boundsSource !== 'field' && (
                 <>
                     <Rectangle bounds={rectangleBounds} pathOptions={RECTANGLE_BORDER_STYLE} />
+                    <ZoomToRectangle bounds={rectangleBounds} />
+                </>
+            )}
+            {rectangleBounds && boundsSource === 'field' && selectedFieldFeature && (
+                <>
+                    <GeoJSON 
+                        data={{
+                            type: "FeatureCollection",
+                            features: [selectedFieldFeature]
+                        }} 
+                        style={RECTANGLE_BORDER_STYLE} 
+                    />
                     <ZoomToRectangle bounds={rectangleBounds} />
                 </>
             )}
@@ -347,7 +403,13 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     rectangleBounds={rectangleBounds}
                 />
             )}
-            <FieldsLayer showFields={showFields} />
+            <FieldsLayer 
+                fieldSelectionMode={fieldSelectionMode}
+                fieldsData={fieldsData}
+                fieldsLoading={fieldsLoading}
+                boundsSource={boundsSource}
+                onFieldClick={onFieldClick}
+            />
         </MapContainer>
     )
 }
