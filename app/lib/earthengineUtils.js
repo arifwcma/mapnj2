@@ -260,3 +260,78 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
         })
     })
 }
+
+export async function getAverageNdviForArea(start, end, bbox, cloud = 30, geometry) {
+    await initEarthEngine()
+
+    const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
+    const [minLng, minLat, maxLng, maxLat] = bboxArray || []
+
+    if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
+        throw new Error("Invalid bbox format")
+    }
+
+    if (!geometry) {
+        throw new Error("Geometry is required for area NDVI calculation")
+    }
+
+    const startDate = ee.Date(start)
+    const endDate = ee.Date(end).advance(1, "day")
+
+    const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+    const clipGeometry = geoJsonToEeGeometry(geometry)
+
+    if (!clipGeometry) {
+        throw new Error("Invalid geometry format")
+    }
+
+    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+        .filterBounds(rectangle)
+        .filterDate(startDate, endDate)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
+        .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
+
+    return await new Promise((resolve, reject) => {
+        collection.size().getInfo((size, err) => {
+            if (err) {
+                const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
+                console.error("Earth Engine error checking collection size:", errorMsg)
+                reject(new Error(errorMsg))
+                return
+            }
+            
+            if (size === 0) {
+                reject(new Error("No images found for the specified criteria"))
+                return
+            }
+            
+            const mean = collection.mean().clip(clipGeometry)
+            const reduced = mean.reduceRegion({
+                reducer: ee.Reducer.mean(),
+                geometry: clipGeometry,
+                scale: 10,
+                maxPixels: 1e9,
+                tileScale: 2
+            })
+            
+            reduced.getInfo((result, err) => {
+                if (err) {
+                    const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
+                    console.error("Earth Engine error:", errorMsg)
+                    reject(new Error(errorMsg))
+                    return
+                }
+                const ndviValue = result?.NDVI
+                if (ndviValue === null || ndviValue === undefined) {
+                    console.log("No NDVI value found for area")
+                    reject(new Error("No NDVI value found for this area"))
+                    return
+                }
+                const startDate = new Date(start)
+                const monthYear = `${MONTH_NAMES_FULL[startDate.getMonth()]} ${startDate.getFullYear()}`
+                console.log(`Average NDVI value retrieved for ${monthYear}:`, ndviValue)
+                resolve(ndviValue)
+            })
+        })
+    })
+}

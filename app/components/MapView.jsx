@@ -7,9 +7,11 @@ import BoundaryLayer from "./BoundaryLayer"
 import RectangleDrawHandler from "./RectangleDrawHandler"
 import NdviOverlay from "./NdviOverlay"
 import FieldsLayer from "./FieldsLayer"
+import TriangleMarker from "./TriangleMarker"
 import useBoundary from "@/app/hooks/useBoundary"
 import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, TILE_LAYER_TOPOGRAPHIC, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG, FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 import { validatePointInBounds } from "@/app/lib/bboxUtils"
+import { getColorForIndex } from "@/app/lib/colorUtils"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
@@ -359,9 +361,10 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {string|null} [props.rgbTileUrl]
  * @param {string} [props.overlayType]
  * @param {string} [props.basemap]
- * @param {boolean} [props.isPointAnalysisMode]
+ * @param {boolean} [props.isPointClickMode]
  * @param {any} [props.onPointClick]
  * @param {any} [props.selectedPoint]
+ * @param {Array} [props.selectedPoints]
  * @param {any} [props.secondPoint]
  * @param {boolean} [props.isMoveMode]
  * @param {any} [props.onMarkerDragEnd]
@@ -372,8 +375,10 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {any} [props.onFieldClick]
  * @param {number|null} [props.currentZoom]
  * @param {any} [props.onZoomChange]
+ * @param {Array} [props.selectedAreas]
+ * @param {string} [props.analysisMode]
  */
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointAnalysisMode = false, onPointClick, selectedPoint = null, secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point" }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" 
         ? TILE_LAYER_SATELLITE 
@@ -397,7 +402,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <ZoomLogger />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
             <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
-            {!isDrawing && !isMoveMode && !fieldSelectionMode && <PointClickHandler isActive={isPointAnalysisMode} onPointClick={onPointClick || (() => {})} />}
+            {!isDrawing && !isMoveMode && !fieldSelectionMode && <PointClickHandler isActive={isPointClickMode} onPointClick={onPointClick || (() => {})} />}
             {isMoveMode && <MoveModeHandler isActive={isMoveMode} onMarkerDragEnd={onMarkerDragEnd} />}
             {boundary && <BoundaryLayer data={boundary} />}
             {isDrawing && (
@@ -409,13 +414,36 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 />
             )}
             {currentBounds && <Rectangle bounds={currentBounds} pathOptions={RECTANGLE_STYLE} />}
-            {rectangleBounds && boundsSource !== 'field' && (
+            {analysisMode === "area" && selectedAreas.map((area, index) => {
+                if (area.boundsSource === 'field' && area.geometry) {
+                    return (
+                        <GeoJSON
+                            key={area.id}
+                            data={{
+                                type: "FeatureCollection",
+                                features: [area.geometry]
+                            }}
+                            style={{ color: area.color, fillOpacity: 0, weight: 2 }}
+                        />
+                    )
+                } else if (area.boundsSource === 'rectangle') {
+                    return (
+                        <Rectangle
+                            key={area.id}
+                            bounds={area.bounds}
+                            pathOptions={{ color: area.color, fillOpacity: 0, weight: 2 }}
+                        />
+                    )
+                }
+                return null
+            })}
+            {analysisMode === "point" && rectangleBounds && boundsSource !== 'field' && (
                 <>
                     <Rectangle bounds={rectangleBounds} pathOptions={RECTANGLE_BORDER_STYLE} />
                     <ZoomToRectangle bounds={rectangleBounds} />
                 </>
             )}
-            {rectangleBounds && boundsSource === 'field' && selectedFieldFeature && (
+            {analysisMode === "point" && rectangleBounds && boundsSource === 'field' && selectedFieldFeature && (
                 <>
                     <GeoJSON 
                         data={{
@@ -433,7 +461,15 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             {rgbTileUrl && rectangleBounds && overlayType === "RGB" && (
                 <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
             )}
-            {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
+            {selectedPoints && selectedPoints.length > 0 && selectedPoints.map((point, index) => (
+                <TriangleMarker
+                    key={point.id}
+                    position={[point.lat, point.lon]}
+                    color={getColorForIndex(index)}
+                    index={index}
+                />
+            ))}
+            {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && !selectedPoints?.length && (
                 <DraggableMarker 
                     position={[selectedPoint.lat, selectedPoint.lon]}
                     draggable={isMoveMode}

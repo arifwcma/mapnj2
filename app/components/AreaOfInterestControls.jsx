@@ -49,6 +49,7 @@ export default function AreaOfInterestControls({
     fieldSelectionMode,
     fieldsData,
     currentZoom,
+    analysisMode,
     onStartDrawing, 
     onStartFieldSelection,
     onCancelDrawing,
@@ -103,6 +104,69 @@ export default function AreaOfInterestControls({
                             Cancel
                         </button>
                     </div>
+                )}
+            </div>
+        )
+    }
+
+    if (analysisMode === "area") {
+        return (
+            <div>
+                <button
+                    onClick={onStartDrawing}
+                    style={linkStyle}
+                    onMouseEnter={(e) => {
+                        const target = e.target
+                        if (target instanceof HTMLElement) {
+                            target.style.textDecoration = "underline"
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        const target = e.target
+                        if (target instanceof HTMLElement) {
+                            target.style.textDecoration = "none"
+                        }
+                    }}
+                >
+                    Select area of interest
+                </button>
+                <button
+                    onClick={onStartFieldSelection}
+                    style={linkStyle}
+                    onMouseEnter={(e) => {
+                        const target = e.target
+                        if (target instanceof HTMLElement) {
+                            target.style.textDecoration = "underline"
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        const target = e.target
+                        if (target instanceof HTMLElement) {
+                            target.style.textDecoration = "none"
+                        }
+                    }}
+                >
+                    Select parcel
+                </button>
+                {rectangleBounds && (
+                    <button
+                        onClick={onReset}
+                        style={linkStyle}
+                        onMouseEnter={(e) => {
+                            const target = e.target
+                            if (target instanceof HTMLElement) {
+                                target.style.textDecoration = "underline"
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            const target = e.target
+                            if (target instanceof HTMLElement) {
+                                target.style.textDecoration = "none"
+                            }
+                        }}
+                    >
+                        Reset area of interest
+                    </button>
                 )}
             </div>
         )

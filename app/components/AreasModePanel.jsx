@@ -1,0 +1,390 @@
+"use client"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import {
+    Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend
+} from "chart.js"
+import { Line } from "react-chartjs-2"
+import MonthDropdown from "./MonthDropdown"
+import useAreaDataMap from "@/app/hooks/useAreaDataMap"
+import useRequestTracker from "@/app/hooks/useRequestTracker"
+import { getColorForIndex } from "@/app/lib/colorUtils"
+import { getSixMonthsBackFrom, getCurrentMonth } from "@/app/lib/monthUtils"
+import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
+import { MIN_YEAR, MIN_MONTH } from "@/app/lib/config"
+import ChartLoadingMessage from "./ChartLoadingMessage"
+import ToastMessage from "./ToastMessage"
+import AreaSnapshot from "./AreaSnapshot"
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+
+function getInitialVisibleRange(selectedYear, selectedMonth) {
+    if (!selectedYear || !selectedMonth) {
+        return null
+    }
+    
+    const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+    if (months.length === 0) {
+        return null
+    }
+    
+    return {
+        startMonth: months[0],
+        endMonth: months[months.length - 1]
+    }
+}
+
+function getAllMonthsInRange(startMonth, endMonth) {
+    const months = []
+    let year = startMonth.year
+    let month = startMonth.month
+    
+    while (year < endMonth.year || (year === endMonth.year && month <= endMonth.month)) {
+        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
+            break
+        }
+        months.push({ year, month })
+        
+        if (month === 12) {
+            year++
+            month = 1
+        } else {
+            month++
+        }
+    }
+    
+    return months
+}
+
+function buildDisplayDataItem(month, dataMap) {
+    const key = monthKey(month.year, month.month)
+    const ndvi = dataMap.get(key)
+    return {
+        label: formatMonthLabel(month.year, month.month),
+        ndvi: ndvi !== null && ndvi !== undefined ? ndvi : null,
+        year: month.year,
+        month: month.month
+    }
+}
+
+function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
+    const dataMap = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker)
+    
+    useEffect(() => {
+        onDataMapReady(index, dataMap)
+    }, [dataMap, index, onDataMapReady])
+    
+    return null
+}
+
+export default function AreasModePanel({ 
+    selectedAreas, 
+    selectedYear, 
+    selectedMonth, 
+    rectangleBounds, 
+    cloudTolerance,
+    onMonthChange,
+    onRemoveArea 
+}) {
+    const requestTracker = useRequestTracker()
+    const [areaDataMaps, setAreaDataMaps] = useState([])
+    const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
+    const [showToast, setShowToast] = useState(false)
+    const leftArrowDebounceRef = useRef<NodeJS.Timeout | null>(null)
+    const rightArrowDebounceRef = useRef<NodeJS.Timeout | null>(null)
+    const chartRef = useRef(null)
+    
+    const handleDataMapReady = useCallback((index, dataMap) => {
+        setAreaDataMaps(prev => {
+            const newMaps = [...prev]
+            newMaps[index] = dataMap
+            return newMaps
+        })
+    }, [])
+    
+    useEffect(() => {
+        const newRange = getInitialVisibleRange(selectedYear, selectedMonth)
+        setVisibleRange(newRange)
+    }, [selectedYear, selectedMonth])
+    
+    useEffect(() => {
+        if (!visibleRange || selectedAreas.length === 0) {
+            return
+        }
+        
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const monthKeys = months.map(m => monthKey(m.year, m.month))
+        
+        selectedAreas.forEach((area, index) => {
+            if (areaDataMaps[index]) {
+                areaDataMaps[index].fetchMissingMonths(monthKeys)
+            }
+        })
+    }, [visibleRange, selectedAreas, areaDataMaps])
+    
+    const displayData = useMemo(() => {
+        if (!visibleRange) {
+            return selectedAreas.map(() => [])
+        }
+        
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        return selectedAreas.map((area, index) => {
+            const dataMap = areaDataMaps[index]?.dataMap || new Map()
+            return months.map(m => buildDisplayDataItem(m, dataMap))
+        })
+    }, [visibleRange, selectedAreas, areaDataMaps])
+    
+    const tableData = useMemo(() => {
+        if (!visibleRange) {
+            return []
+        }
+        
+        const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+        return selectedAreas.map((area, index) => {
+            const dataMap = areaDataMaps[index]?.dataMap || new Map()
+            const monthValues = months.map(m => {
+                const key = monthKey(m.year, m.month)
+                return dataMap.get(key)
+            }).filter(v => v !== null && v !== undefined)
+            
+            const avg = monthValues.length > 0 
+                ? monthValues.reduce((sum, val) => sum + val, 0) / monthValues.length 
+                : null
+            
+            const currentMonthKey = monthKey(selectedYear, selectedMonth)
+            const currentNdvi = dataMap.get(currentMonthKey)
+            
+            return {
+                area,
+                index,
+                averageNdvi: avg !== null ? parseFloat(avg.toFixed(2)) : null,
+                currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null
+            }
+        })
+    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps])
+    
+    const chartData = useMemo(() => {
+        if (displayData.length === 0 || displayData[0].length === 0) {
+            return { labels: [], datasets: [] }
+        }
+        
+        const labels = displayData[0].map(d => d.label)
+        const datasets = selectedAreas.map((area, index) => {
+            const values = labels.map(label => {
+                const item = displayData[index].find(d => d.label === label)
+                return item ? item.ndvi : null
+            })
+            const color = getColorForIndex(index)
+            
+            return {
+                label: area.label || `Area ${index + 1}`,
+                data: values,
+                borderColor: color,
+                backgroundColor: color.replace("rgb", "rgba").replace(")", ", 0.1)"),
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: color,
+                tension: 0.1
+            }
+        })
+        
+        return { labels, datasets }
+    }, [displayData, selectedAreas])
+    
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: "top" as const
+            },
+            tooltip: {
+                mode: "index" as const,
+                intersect: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                min: -1,
+                max: 1
+            }
+        }
+    }
+    
+    const canGoLeft = useCallback(() => {
+        if (!visibleRange) return false
+        const { year, month } = visibleRange.startMonth
+        return year > MIN_YEAR || (year === MIN_YEAR && month > MIN_MONTH)
+    }, [visibleRange])
+    
+    const canGoRight = useCallback(() => {
+        if (!visibleRange) return false
+        const current = getCurrentMonth()
+        const { year, month } = visibleRange.endMonth
+        return year < current.year || (year === current.year && month < current.month)
+    }, [visibleRange])
+    
+    const handleLeftArrow = useCallback(() => {
+        if (!canGoLeft() || !visibleRange) return
+        
+        if (leftArrowDebounceRef.current) {
+            clearTimeout(leftArrowDebounceRef.current)
+        }
+        
+        leftArrowDebounceRef.current = setTimeout(() => {
+            const prev = getPreviousMonth(visibleRange.startMonth.year, visibleRange.startMonth.month)
+            setVisibleRange({
+                startMonth: prev,
+                endMonth: getPreviousMonth(visibleRange.endMonth.year, visibleRange.endMonth.month)
+            })
+        }, 1000)
+    }, [visibleRange, canGoLeft])
+    
+    const handleRightArrow = useCallback(() => {
+        if (!canGoRight() || !visibleRange) return
+        
+        if (rightArrowDebounceRef.current) {
+            clearTimeout(rightArrowDebounceRef.current)
+        }
+        
+        rightArrowDebounceRef.current = setTimeout(() => {
+            const nextEnd = getNextMonth(visibleRange.endMonth.year, visibleRange.endMonth.month)
+            const current = getCurrentMonth()
+            
+            if (nextEnd.year > current.year || (nextEnd.year === current.year && nextEnd.month > current.month)) {
+                return
+            }
+            
+            setVisibleRange({
+                startMonth: getNextMonth(visibleRange.startMonth.year, visibleRange.startMonth.month),
+                endMonth: nextEnd
+            })
+            
+            onMonthChange(nextEnd.year, nextEnd.month)
+        }, 1000)
+    }, [visibleRange, canGoRight, onMonthChange])
+    
+    const isLoading = areaDataMaps.some(map => map && map.isLoading)
+    
+    return (
+        <div>
+            {selectedAreas.map((area, index) => (
+                <AreaDataWrapper
+                    key={area.id}
+                    area={area}
+                    index={index}
+                    rectangleBounds={rectangleBounds}
+                    cloudTolerance={cloudTolerance}
+                    requestTracker={requestTracker}
+                    onDataMapReady={handleDataMapReady}
+                />
+            ))}
+            
+            <MonthDropdown 
+                selectedYear={selectedYear} 
+                selectedMonth={selectedMonth} 
+                onMonthChange={onMonthChange} 
+            />
+            
+            {tableData.length > 0 && (
+                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px", fontSize: "13px" }}>
+                    <thead>
+                        <tr style={{ borderBottom: "2px solid #ccc" }}>
+                            <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>Area</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tableData.map(({ area, index, averageNdvi, currentNdvi }) => (
+                            <tr key={area.id} style={{ borderBottom: "1px solid #eee" }}>
+                                <td style={{ padding: "8px" }}>
+                                    <div style={{
+                                        width: "20px",
+                                        height: "20px",
+                                        backgroundColor: getColorForIndex(index),
+                                        borderRadius: "50%",
+                                        display: "inline-block"
+                                    }} />
+                                </td>
+                                <td style={{ padding: "8px" }}>{area.label || `Area ${index + 1}`}</td>
+                                <td style={{ padding: "8px" }}>
+                                    {averageNdvi !== null ? averageNdvi.toFixed(2) : "N/A"}
+                                </td>
+                                <td style={{ padding: "8px" }}>
+                                    <AreaSnapshot 
+                                        area={area}
+                                        year={selectedYear}
+                                        month={selectedMonth}
+                                        rectangleBounds={rectangleBounds}
+                                        cloudTolerance={cloudTolerance}
+                                        ndvi={currentNdvi}
+                                        size={30}
+                                    />
+                                </td>
+                                <td style={{ padding: "8px" }}>
+                                    <button
+                                        onClick={() => onRemoveArea(index)}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            fontSize: "18px",
+                                            color: "#dc3545"
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
+            
+            {visibleRange && displayData.length > 0 && displayData[0].length > 0 && (
+                <>
+                    <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
+                        <Line ref={chartRef} data={chartData} options={chartOptions} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", padding: "0 10px" }}>
+                        <button 
+                            onClick={handleLeftArrow} 
+                            disabled={!canGoLeft()}
+                            style={{
+                                padding: "8px 16px",
+                                fontSize: "16px",
+                                cursor: canGoLeft() ? "pointer" : "not-allowed",
+                                opacity: canGoLeft() ? 1 : 0.5
+                            }}
+                        >
+                            ←
+                        </button>
+                        <button 
+                            onClick={handleRightArrow} 
+                            disabled={!canGoRight()}
+                            style={{
+                                padding: "8px 16px",
+                                fontSize: "16px",
+                                cursor: canGoRight() ? "pointer" : "not-allowed",
+                                opacity: canGoRight() ? 1 : 0.5
+                            }}
+                        >
+                            →
+                        </button>
+                    </div>
+                </>
+            )}
+            
+            {showToast ? (
+                <ToastMessage message="All available data loaded." onClose={() => setShowToast(false)} duration={5000} />
+            ) : (
+                <ChartLoadingMessage loading={isLoading} />
+            )}
+        </div>
+    )
+}
+

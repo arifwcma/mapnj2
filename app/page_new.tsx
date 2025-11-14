@@ -8,8 +8,6 @@ import AreaSelectionPrompt from "@/app/components/AreaSelectionPrompt"
 import CloudToleranceSlider from "@/app/components/CloudToleranceSlider"
 import PointsModePanel from "@/app/components/PointsModePanel"
 import PointMonthsModePanel from "@/app/components/PointMonthsModePanel"
-import AreasModePanel from "@/app/components/AreasModePanel"
-import AreaMonthsModePanel from "@/app/components/AreaMonthsModePanel"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
@@ -44,8 +42,6 @@ export default function Page() {
         rectangleBounds,
         currentBounds,
         resetRectangle,
-        setStart,
-        updateBounds,
         finalizeRectangle,
         startDrawing,
         stopDrawing,
@@ -287,8 +283,6 @@ export default function Page() {
                     isDrawing={isDrawing}
                     rectangleBounds={rectangleBounds}
                     currentBounds={currentBounds}
-                    onStart={setStart}
-                    onUpdate={updateBounds}
                     onEnd={handleFinalize}
                     ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
@@ -333,24 +327,11 @@ export default function Page() {
                 )}
                 
                 {analysisMode === "area" && compareMode === "areas" && selectedAreas.length > 0 && (
-                    <AreasModePanel
-                        selectedAreas={selectedAreas}
-                        selectedYear={selectedYear}
-                        selectedMonth={selectedMonth}
-                        rectangleBounds={rectangleBounds}
-                        cloudTolerance={cloudTolerance}
-                        onMonthChange={handleMonthChange}
-                        onRemoveArea={(index) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
-                    />
+                    <div>Areas mode panel - to be implemented</div>
                 )}
                 
                 {analysisMode === "area" && compareMode === "months" && selectedAreas.length > 0 && (
-                    <AreaMonthsModePanel
-                        selectedArea={selectedAreas[0]}
-                        rectangleBounds={rectangleBounds}
-                        cloudTolerance={cloudTolerance}
-                        onMonthChange={handleMonthChange}
-                    />
+                    <div>Area months mode panel - to be implemented</div>
                 )}
             </div>
         </div>
