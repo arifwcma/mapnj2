@@ -65,7 +65,7 @@ export default function Page() {
     } = useNdviData()
     
     const cloudToleranceRef = useRef(cloudTolerance)
-    const sliderDebounceTimeoutRef = useRef(null)
+    const sliderDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     
     useEffect(() => {
         cloudToleranceRef.current = cloudTolerance
