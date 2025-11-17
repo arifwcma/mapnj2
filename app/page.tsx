@@ -113,7 +113,7 @@ export default function Page() {
         }, 1000)
     }
     
-    const handlePointClick = useCallback((lat, lon) => {
+    const handlePointClick = useCallback((lat: number, lon: number) => {
         if (analysisMode === "point" && compareMode === "points") {
             const newPoint = {
                 id: `point_${Date.now()}_${Math.random()}`,
@@ -126,7 +126,7 @@ export default function Page() {
         }
     }, [analysisMode, compareMode])
     
-    const handleRemovePoint = useCallback((index) => {
+    const handleRemovePoint = useCallback((index: number) => {
         setSelectedPoints(prev => prev.filter((_, i) => i !== index))
     }, [])
     
