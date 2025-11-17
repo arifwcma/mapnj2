@@ -138,8 +138,11 @@ export default function PointsModePanel({
         }
     }, [selectedYear, selectedMonth])
     
+    const previousSelectedPointsLengthRef = useRef(0)
+    
     useEffect(() => {
         if (!visibleRange || selectedPoints.length === 0) {
+            previousSelectedPointsLengthRef.current = selectedPoints.length
             return
         }
         
@@ -168,6 +171,15 @@ export default function PointsModePanel({
         })
         
         console.log(`[PointsModePanel] currentBatchMonthsRef after setup:`, Array.from(currentBatchMonthsRef.current))
+        
+        const hasNewDataToFetch = currentBatchMonthsRef.current.size > 0
+        const isAddingPoints = selectedPoints.length > previousSelectedPointsLengthRef.current
+        
+        if (hasNewDataToFetch || isAddingPoints) {
+            waitingForCompletionRef.current = true
+        }
+        
+        previousSelectedPointsLengthRef.current = selectedPoints.length
         
         selectedPoints.forEach((point, index) => {
             if (pointDataMaps[index]?.fetchMissingMonths) {
@@ -381,15 +393,22 @@ export default function PointsModePanel({
         }, 1000)
     }, [visibleRange, canGoRight, requestTracker.pendingCount, selectedPoints.length, checkAndShowToast])
     
+    const previousPendingCountRef = useRef(0)
+    
     useEffect(() => {
-        if (waitingForCompletionRef.current && requestTracker.pendingCount === 0 && selectedPoints.length > 0 && visibleRange) {
+        const currentPending = requestTracker.pendingCount
+        const previousPending = previousPendingCountRef.current
+        
+        if (waitingForCompletionRef.current && previousPending > 0 && currentPending === 0 && selectedPoints.length > 0 && visibleRange) {
             setTimeout(() => {
                 if (requestTracker.pendingCount === 0 && waitingForCompletionRef.current) {
                     checkAndShowToast()
                 }
             }, 200)
         }
-    }, [requestTracker.pendingCount, checkAndShowToast, selectedPoints.length, visibleRange])
+        
+        previousPendingCountRef.current = currentPending
+    }, [requestTracker.pendingCount, checkAndShowToast, visibleRange])
     
     useEffect(() => {
         setShowToast(false)
@@ -404,7 +423,7 @@ export default function PointsModePanel({
         if (requestTracker.pendingCount === 0 && selectedPoints.length > 0 && visibleRange) {
             checkAndShowToast()
         }
-    }, [cloudTolerance, requestTracker.pendingCount, selectedPoints.length, visibleRange, checkAndShowToast])
+    }, [cloudTolerance, requestTracker.pendingCount, visibleRange, checkAndShowToast])
     
     useEffect(() => {
         const currentMonthKey = selectedYear && selectedMonth ? `${selectedYear}-${selectedMonth}` : null
