@@ -65,7 +65,7 @@ export default function Page() {
     } = useNdviData()
     
     const cloudToleranceRef = useRef(cloudTolerance)
-    const sliderDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const sliderDebounceTimeoutRef = useRef(null)
     
     useEffect(() => {
         cloudToleranceRef.current = cloudTolerance
@@ -113,7 +113,7 @@ export default function Page() {
         }, 1000)
     }
     
-    const handlePointClick = useCallback((lat: number, lon: number) => {
+    const handlePointClick = useCallback((lat, lon) => {
         if (analysisMode === "point" && compareMode === "points") {
             const newPoint = {
                 id: `point_${Date.now()}_${Math.random()}`,
@@ -126,7 +126,7 @@ export default function Page() {
         }
     }, [analysisMode, compareMode])
     
-    const handleRemovePoint = useCallback((index: number) => {
+    const handleRemovePoint = useCallback((index) => {
         setSelectedPoints(prev => prev.filter((_, i) => i !== index))
     }, [])
     
@@ -360,7 +360,7 @@ export default function Page() {
                         rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
-                        onRemoveArea={(index: number) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
+                        onRemoveArea={(index) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
                     />
                 )}
                 

@@ -391,7 +391,6 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {string} [props.overlayType]
  * @param {string} [props.basemap]
  * @param {boolean} [props.isPointClickMode]
- * @param {boolean} [props.isPointSelectMode]
  * @param {any} [props.onPointClick]
  * @param {any} [props.selectedPoint]
  * @param {Array} [props.selectedPoints]
@@ -409,7 +408,7 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {string} [props.analysisMode]
  * @param {Function} [props.onMapBoundsChange]
  */
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", onMapBoundsChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", onMapBoundsChange }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" 
         ? TILE_LAYER_SATELLITE 
