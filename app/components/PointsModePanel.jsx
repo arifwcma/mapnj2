@@ -268,7 +268,7 @@ export default function PointsModePanel({
             const prev = getPreviousMonth(visibleRange.startMonth.year, visibleRange.startMonth.month)
             setVisibleRange({
                 startMonth: prev,
-                endMonth: getPreviousMonth(visibleRange.endMonth.year, visibleRange.endMonth.month)
+                endMonth: visibleRange.endMonth
             })
         }, 1000)
     }, [visibleRange, canGoLeft])
@@ -289,27 +289,12 @@ export default function PointsModePanel({
             }
             
             setVisibleRange({
-                startMonth: getNextMonth(visibleRange.startMonth.year, visibleRange.startMonth.month),
+                startMonth: visibleRange.startMonth,
                 endMonth: nextEnd
             })
         }, 1000)
     }, [visibleRange, canGoRight])
     
-    const [showLoadingMessage, setShowLoadingMessage] = useState(false)
-    const previousPendingCountRef = useRef(0)
-    
-    useEffect(() => {
-        const currentPending = requestTracker.pendingCount
-        const previousPending = previousPendingCountRef.current
-        
-        if (previousPending === 0 && currentPending > 0) {
-            setShowLoadingMessage(true)
-        } else if (previousPending > 0 && currentPending === 0) {
-            setShowLoadingMessage(false)
-        }
-        
-        previousPendingCountRef.current = currentPending
-    }, [requestTracker.pendingCount])
     
     
     return (
@@ -405,7 +390,12 @@ export default function PointsModePanel({
                                 padding: "8px 16px",
                                 fontSize: "16px",
                                 cursor: canGoLeft() ? "pointer" : "not-allowed",
-                                opacity: canGoLeft() ? 1 : 0.5
+                                opacity: canGoLeft() ? 1 : 0.5,
+                                backgroundColor: "white",
+                                color: "#333",
+                                border: "1px solid #ddd",
+                                borderRadius: "8px",
+                                fontWeight: "500"
                             }}
                         >
                             ←
@@ -417,7 +407,12 @@ export default function PointsModePanel({
                                 padding: "8px 16px",
                                 fontSize: "16px",
                                 cursor: canGoRight() ? "pointer" : "not-allowed",
-                                opacity: canGoRight() ? 1 : 0.5
+                                opacity: canGoRight() ? 1 : 0.5,
+                                backgroundColor: "white",
+                                color: "#333",
+                                border: "1px solid #ddd",
+                                borderRadius: "8px",
+                                fontWeight: "500"
                             }}
                         >
                             →
@@ -426,25 +421,6 @@ export default function PointsModePanel({
                 </>
             )}
             
-            {showLoadingMessage && (
-                <div style={{
-                    position: "fixed",
-                    top: "20px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    backgroundColor: "#333",
-                    color: "white",
-                    padding: "12px 24px",
-                    borderRadius: "4px",
-                    fontSize: "13px",
-                    zIndex: 10000,
-                    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
-                    minWidth: "250px",
-                    textAlign: "center"
-                }}>
-                    Loading data...
-                </div>
-            )}
             <ChartLoadingMessage loading={isLoading} />
         </div>
     )

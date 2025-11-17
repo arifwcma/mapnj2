@@ -65,7 +65,7 @@ export default function Page() {
     } = useNdviData()
     
     const cloudToleranceRef = useRef(cloudTolerance)
-    const sliderDebounceTimeoutRef = useRef(null)
+    const sliderDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     
     useEffect(() => {
         cloudToleranceRef.current = cloudTolerance
@@ -113,7 +113,7 @@ export default function Page() {
         }, 1000)
     }
     
-    const handlePointClick = useCallback((lat, lon) => {
+    const handlePointClick = useCallback((lat: number, lon: number) => {
         if (analysisMode === "point" && compareMode === "points") {
             const newPoint = {
                 id: `point_${Date.now()}_${Math.random()}`,
@@ -126,7 +126,7 @@ export default function Page() {
         }
     }, [analysisMode, compareMode])
     
-    const handleRemovePoint = useCallback((index) => {
+    const handleRemovePoint = useCallback((index: number) => {
         setSelectedPoints(prev => prev.filter((_, i) => i !== index))
     }, [])
     
@@ -312,7 +312,7 @@ export default function Page() {
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}
-                    isPointClickMode={isPointClickMode || isPointSelectMode}
+                    isPointClickMode={!!(isPointClickMode || isPointSelectMode)}
                     isPointSelectMode={isPointSelectMode}
                     selectedPoints={selectedPoints}
                     selectedPoint={selectedPoint}
@@ -360,7 +360,7 @@ export default function Page() {
                         rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
-                        onRemoveArea={(index) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
+                        onRemoveArea={(index: number) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
                     />
                 )}
                 
