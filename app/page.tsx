@@ -360,7 +360,7 @@ export default function Page() {
                         rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
-                        onRemoveArea={(index) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
+                        onRemoveArea={(index: number) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
                     />
                 )}
                 

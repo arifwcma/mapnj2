@@ -288,7 +288,7 @@ export default function Page() {
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}
-                    isPointClickMode={isPointClickMode || isPointSelectMode}
+                    isPointClickMode={!!(isPointClickMode || isPointSelectMode)}
                     selectedPoints={selectedPoints}
                     selectedPoint={selectedPoint}
                     selectedAreas={selectedAreas}

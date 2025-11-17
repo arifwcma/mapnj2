@@ -569,7 +569,7 @@ export default function Page() {
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}
-                    isPointAnalysisMode={analysisMode === "point" && isImageAvailable() && !isMoveMode}
+                    isPointClickMode={analysisMode === "point" && isImageAvailable() && !isMoveMode}
                     selectedAreas={selectedAreas}
                     analysisMode={analysisMode}
                     onPointClick={handlePointClick}
