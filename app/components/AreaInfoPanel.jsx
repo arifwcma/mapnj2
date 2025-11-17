@@ -16,7 +16,6 @@ import useAreaDataMap from "@/app/hooks/useAreaDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
 import { Line } from "react-chartjs-2"
 import ChartLoadingMessage from "./ChartLoadingMessage"
-import ToastMessage from "./ToastMessage"
 
 ChartJS.register(
     CategoryScale,
@@ -141,39 +140,6 @@ export default function AreaInfoPanel({ selectedAreas, selectedYear, selectedMon
         })
     }, [])
 
-    const [showToast, setShowToast] = useState(false)
-    const hadPendingRequestsRef = useRef(false)
-    const toastTimeoutRef = useRef(null)
-
-    useEffect(() => {
-        const hasPending = requestTracker.pendingCount > 0
-        const isComplete = requestTracker.allComplete
-
-        if (hasPending) {
-            hadPendingRequestsRef.current = true
-            setShowToast(false)
-            if (toastTimeoutRef.current) {
-                clearTimeout(toastTimeoutRef.current)
-                toastTimeoutRef.current = null
-            }
-        } else if (isComplete && hadPendingRequestsRef.current) {
-            hadPendingRequestsRef.current = false
-            if (toastTimeoutRef.current) {
-                clearTimeout(toastTimeoutRef.current)
-            }
-            toastTimeoutRef.current = setTimeout(() => {
-                if (requestTracker.allComplete) {
-                    setShowToast(true)
-                }
-            }, 300)
-        }
-
-        return () => {
-            if (toastTimeoutRef.current) {
-                clearTimeout(toastTimeoutRef.current)
-            }
-        }
-    }, [requestTracker.allComplete, requestTracker.pendingCount])
 
     const previousVisibleRangeRef = useRef(null)
 
@@ -236,7 +202,6 @@ export default function AreaInfoPanel({ selectedAreas, selectedYear, selectedMon
         const rangeKey = `${visibleRange.startMonth.year}-${visibleRange.startMonth.month}-${visibleRange.endMonth.year}-${visibleRange.endMonth.month}`
         if (previousVisibleRangeRef.current !== rangeKey) {
             requestTracker.clearAll()
-            hadPendingRequestsRef.current = false
             previousVisibleRangeRef.current = rangeKey
         }
 
@@ -517,17 +482,9 @@ export default function AreaInfoPanel({ selectedAreas, selectedYear, selectedMon
                     })}
                 </>
             )}
-            {showToast ? (
-                <ToastMessage 
-                    message="All available data loaded."
-                    onClose={() => setShowToast(false)}
-                    duration={5000}
-                />
-            ) : (
-                <ChartLoadingMessage 
-                    loading={isLoading}
-                />
-            )}
+            <ChartLoadingMessage 
+                loading={isLoading}
+            />
         </div>
     )
 }

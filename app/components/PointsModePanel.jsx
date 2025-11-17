@@ -10,9 +10,8 @@ import useRequestTracker from "@/app/hooks/useRequestTracker"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getSixMonthsBackFrom, getCurrentMonth } from "@/app/lib/monthUtils"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
-import { MIN_YEAR, MIN_MONTH, TOAST_DURATION } from "@/app/lib/config"
+import { MIN_YEAR, MIN_MONTH } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
-import ToastMessage from "./ToastMessage"
 import PointSnapshot from "./PointSnapshot"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
@@ -104,17 +103,9 @@ export default function PointsModePanel({
     const [pointDataMaps, setPointDataMaps] = useState([])
     const pointDataMapsRef = useRef([])
     const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
-    const [showToast, setShowToast] = useState(false)
-    const [toastMessage, setToastMessage] = useState("")
-    const [toastDuration, setToastDuration] = useState(TOAST_DURATION)
-    const waitingForCompletionRef = useRef(false)
-    const lastFetchedMonthsRef = useRef(new Set())
-    const currentBatchMonthsRef = useRef(new Set())
-    const previousSelectedMonthRef = useRef(null)
     const leftArrowDebounceRef = useRef(null)
     const rightArrowDebounceRef = useRef(null)
     const chartRef = useRef(null)
-    const toastTimeoutRef = useRef(null)
     
     useEffect(() => {
         pointDataMapsRef.current = pointDataMaps
@@ -133,60 +124,22 @@ export default function PointsModePanel({
     useEffect(() => {
         const newRange = getInitialVisibleRange(selectedYear, selectedMonth)
         setVisibleRange(newRange)
-        if (selectedYear && selectedMonth) {
-            previousSelectedMonthRef.current = `${selectedYear}-${selectedMonth}`
-        }
     }, [selectedYear, selectedMonth])
-    
-    const previousSelectedPointsLengthRef = useRef(0)
     
     useEffect(() => {
         if (!visibleRange || selectedPoints.length === 0) {
-            previousSelectedPointsLengthRef.current = selectedPoints.length
             return
         }
         
         const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
-        lastFetchedMonthsRef.current = new Set(monthKeys)
-        currentBatchMonthsRef.current = new Set()
-        
-        const initialPendingCount = requestTracker.pendingCount
-        
-        selectedPoints.forEach((point, index) => {
-            if (pointDataMaps[index]?.dataMap) {
-                const dataMap = pointDataMaps[index].dataMap
-                monthKeys.forEach(key => {
-                    if (!dataMap.has(key)) {
-                        currentBatchMonthsRef.current.add(key)
-                        console.log(`[PointsModePanel] Adding ${key} to currentBatchMonthsRef (not in dataMap)`)
-                    }
-                })
-            } else {
-                monthKeys.forEach(key => {
-                    currentBatchMonthsRef.current.add(key)
-                    console.log(`[PointsModePanel] Adding ${key} to currentBatchMonthsRef (no dataMap yet)`)
-                })
-            }
-        })
-        
-        console.log(`[PointsModePanel] currentBatchMonthsRef after setup:`, Array.from(currentBatchMonthsRef.current))
-        
-        const hasNewDataToFetch = currentBatchMonthsRef.current.size > 0
-        const isAddingPoints = selectedPoints.length > previousSelectedPointsLengthRef.current
-        
-        if (hasNewDataToFetch || isAddingPoints) {
-            waitingForCompletionRef.current = true
-        }
-        
-        previousSelectedPointsLengthRef.current = selectedPoints.length
         
         selectedPoints.forEach((point, index) => {
             if (pointDataMaps[index]?.fetchMissingMonths) {
                 pointDataMaps[index].fetchMissingMonths(monthKeys)
             }
         })
-    }, [visibleRange, selectedPoints, pointDataMaps, requestTracker.pendingCount])
+    }, [visibleRange, selectedPoints, pointDataMaps])
     
     const displayData = useMemo(() => {
         if (!visibleRange) {
@@ -303,56 +256,9 @@ export default function PointsModePanel({
     
     const isLoading = requestTracker.pendingCount > 0
     
-    const checkAndShowToast = useCallback(() => {
-        if (!selectedPoints.length || !visibleRange) {
-            return
-        }
-        
-        if (toastTimeoutRef.current) {
-            clearTimeout(toastTimeoutRef.current)
-        }
-        
-        toastTimeoutRef.current = setTimeout(() => {
-            if (requestTracker.pendingCount > 0) {
-                return
-            }
-            
-            const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
-            let hasNullValues = false
-            
-            const latestDataMaps = pointDataMapsRef.current
-            selectedPoints.forEach((point, index) => {
-                const dataMap = latestDataMaps[index]?.dataMap || new Map()
-                months.forEach(m => {
-                    const key = monthKey(m.year, m.month)
-                    if (!dataMap.has(key)) {
-                        hasNullValues = true
-                    } else {
-                        const value = dataMap.get(key)
-                        if (value === null || value === undefined) {
-                            hasNullValues = true
-                        }
-                    }
-                })
-            })
-            
-            const message = hasNullValues
-                ? "All available data loaded.\nSome data is not available. Consider increasing cloud tolerance."
-                : "All data loaded"
-            
-            setToastMessage(message)
-            setToastDuration(TOAST_DURATION)
-            setShowToast(true)
-            waitingForCompletionRef.current = false
-        }, 200)
-    }, [selectedPoints, visibleRange, requestTracker.pendingCount])
     
     const handleLeftArrow = useCallback(() => {
         if (!canGoLeft() || !visibleRange) return
-        
-        setShowToast(false)
-        setToastMessage("")
-        waitingForCompletionRef.current = true
         
         if (leftArrowDebounceRef.current) {
             clearTimeout(leftArrowDebounceRef.current)
@@ -365,14 +271,10 @@ export default function PointsModePanel({
                 endMonth: getPreviousMonth(visibleRange.endMonth.year, visibleRange.endMonth.month)
             })
         }, 1000)
-    }, [visibleRange, canGoLeft, requestTracker.pendingCount, selectedPoints.length, checkAndShowToast])
+    }, [visibleRange, canGoLeft])
     
     const handleRightArrow = useCallback(() => {
         if (!canGoRight() || !visibleRange) return
-        
-        setShowToast(false)
-        setToastMessage("")
-        waitingForCompletionRef.current = true
         
         if (rightArrowDebounceRef.current) {
             clearTimeout(rightArrowDebounceRef.current)
@@ -391,52 +293,24 @@ export default function PointsModePanel({
                 endMonth: nextEnd
             })
         }, 1000)
-    }, [visibleRange, canGoRight, requestTracker.pendingCount, selectedPoints.length, checkAndShowToast])
+    }, [visibleRange, canGoRight])
     
+    const [showLoadingMessage, setShowLoadingMessage] = useState(false)
     const previousPendingCountRef = useRef(0)
     
     useEffect(() => {
         const currentPending = requestTracker.pendingCount
         const previousPending = previousPendingCountRef.current
         
-        if (waitingForCompletionRef.current && previousPending > 0 && currentPending === 0 && selectedPoints.length > 0 && visibleRange) {
-            setTimeout(() => {
-                if (requestTracker.pendingCount === 0 && waitingForCompletionRef.current) {
-                    checkAndShowToast()
-                }
-            }, 200)
+        if (previousPending === 0 && currentPending > 0) {
+            setShowLoadingMessage(true)
+        } else if (previousPending > 0 && currentPending === 0) {
+            setShowLoadingMessage(false)
         }
         
         previousPendingCountRef.current = currentPending
-    }, [requestTracker.pendingCount, checkAndShowToast, visibleRange])
+    }, [requestTracker.pendingCount])
     
-    useEffect(() => {
-        setShowToast(false)
-        setToastMessage("")
-        waitingForCompletionRef.current = true
-        
-        if (toastTimeoutRef.current) {
-            clearTimeout(toastTimeoutRef.current)
-            toastTimeoutRef.current = null
-        }
-        
-        if (requestTracker.pendingCount === 0 && selectedPoints.length > 0 && visibleRange) {
-            checkAndShowToast()
-        }
-    }, [cloudTolerance, requestTracker.pendingCount, visibleRange, checkAndShowToast])
-    
-    useEffect(() => {
-        const currentMonthKey = selectedYear && selectedMonth ? `${selectedYear}-${selectedMonth}` : null
-        const previousMonthKey = previousSelectedMonthRef.current
-        
-        if (currentMonthKey && currentMonthKey !== previousMonthKey && previousMonthKey !== null) {
-            previousSelectedMonthRef.current = currentMonthKey
-            
-            if (waitingForCompletionRef.current && requestTracker.pendingCount === 0 && selectedPoints.length > 0) {
-                checkAndShowToast()
-            }
-        }
-    }, [selectedYear, selectedMonth, requestTracker.pendingCount, selectedPoints.length, checkAndShowToast])
     
     return (
         <div>
@@ -455,12 +329,7 @@ export default function PointsModePanel({
             <MonthDropdown 
                 selectedYear={selectedYear} 
                 selectedMonth={selectedMonth} 
-                onMonthChange={(year, month) => {
-                    setShowToast(false)
-                    setToastMessage("")
-                    waitingForCompletionRef.current = true
-                    onMonthChange(year, month)
-                }} 
+                onMonthChange={onMonthChange} 
             />
             
             {tableData.length > 0 && (
@@ -557,15 +426,24 @@ export default function PointsModePanel({
                 </>
             )}
             
-            {showToast && toastMessage && (
-                <ToastMessage 
-                    message={toastMessage} 
-                    onClose={() => {
-                        setShowToast(false)
-                        setToastMessage("")
-                    }} 
-                    duration={toastDuration} 
-                />
+            {showLoadingMessage && (
+                <div style={{
+                    position: "fixed",
+                    top: "20px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    backgroundColor: "#333",
+                    color: "white",
+                    padding: "12px 24px",
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                    zIndex: 10000,
+                    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+                    minWidth: "250px",
+                    textAlign: "center"
+                }}>
+                    Loading data...
+                </div>
             )}
             <ChartLoadingMessage loading={isLoading} />
         </div>

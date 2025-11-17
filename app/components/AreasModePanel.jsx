@@ -12,7 +12,6 @@ import { getSixMonthsBackFrom, getCurrentMonth } from "@/app/lib/monthUtils"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
 import { MIN_YEAR, MIN_MONTH } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
-import ToastMessage from "./ToastMessage"
 import AreaSnapshot from "./AreaSnapshot"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
@@ -93,7 +92,6 @@ export default function AreasModePanel({
     const requestTracker = useRequestTracker()
     const [areaDataMaps, setAreaDataMaps] = useState([])
     const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
-    const [showToast, setShowToast] = useState(false)
     const leftArrowDebounceRef = useRef(null)
     const rightArrowDebounceRef = useRef(null)
     const chartRef = useRef(null)
@@ -392,11 +390,7 @@ export default function AreasModePanel({
                 </>
             )}
             
-            {showToast ? (
-                <ToastMessage message="All available data loaded." onClose={() => setShowToast(false)} duration={5000} />
-            ) : (
-                <ChartLoadingMessage loading={isLoading} />
-            )}
+            <ChartLoadingMessage loading={isLoading} />
         </div>
     )
 }
