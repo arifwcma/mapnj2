@@ -33,13 +33,13 @@ export default function Page() {
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
     const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | null>(null)
     
-    const current = getCurrentMonth()
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
+            const current = getCurrentMonth()
             setSelectedYear(current.year)
             setSelectedMonth(current.month)
         }
-    }, [])
+    }, [selectedYear, selectedMonth])
     
     const {
         isDrawing,
@@ -82,24 +82,24 @@ export default function Page() {
         setFieldSelectionMode(false)
         setBoundsSource(null)
         setSelectedFieldFeature(null)
+        setSelectedYear(null)
+        setSelectedMonth(null)
         setCompareMode(mode === "point" ? "points" : "areas")
     }, [resetRectangle, clearNdvi])
     
     const handleCompareModeChange = useCallback((mode: "points" | "areas" | "months") => {
         setCompareMode(mode)
-        if (mode === "months") {
-            if (analysisMode === "point") {
-                if (selectedPoints.length > 0) {
-                    setSelectedPoint(selectedPoints[0])
-                }
-                setSelectedPoints([])
-            } else {
-                if (selectedAreas.length > 0) {
-                    setSelectedAreas([selectedAreas[0]])
-                }
-            }
-        }
-    }, [analysisMode, selectedPoints, selectedAreas])
+        resetRectangle()
+        clearNdvi()
+        setSelectedPoints([])
+        setSelectedPoint({ lat: null, lon: null })
+        setSelectedAreas([])
+        setFieldSelectionMode(false)
+        setBoundsSource(null)
+        setSelectedFieldFeature(null)
+        setSelectedYear(null)
+        setSelectedMonth(null)
+    }, [resetRectangle, clearNdvi])
     
     const handleCloudChange = (newValue: number) => {
         cloudToleranceRef.current = newValue

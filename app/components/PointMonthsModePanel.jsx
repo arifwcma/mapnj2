@@ -104,7 +104,7 @@ export default function PointMonthsModePanel({
         
         if (exists) {
             const monthName = MONTH_NAMES_FULL[month - 1]
-            setToastMessage(`[${year} ${monthName} already present]`)
+            setToastMessage(`${year} ${monthName} already present`)
             return false
         } else {
             setSelectedMonths(prev => {
