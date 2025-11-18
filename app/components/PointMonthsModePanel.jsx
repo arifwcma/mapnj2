@@ -9,7 +9,7 @@ import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
 import { MONTH_NAMES_FULL } from "@/app/lib/config"
-import { getPreviousCalendarMonth } from "@/app/lib/monthUtils"
+import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
@@ -50,14 +50,14 @@ export default function PointMonthsModePanel({
     const [selectedMonth, setSelectedMonth] = useState(null)
     const [toastMessage, setToastMessage] = useState(null)
     
-    const prevMonth = getPreviousCalendarMonth()
+    const currentMonth = getCurrentMonth()
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
-            setSelectedYear(prevMonth.year)
-            setSelectedMonth(prevMonth.month)
+            setSelectedYear(currentMonth.year)
+            setSelectedMonth(currentMonth.month)
         }
-    }, [selectedYear, selectedMonth, prevMonth])
+    }, [selectedYear, selectedMonth, currentMonth.year, currentMonth.month])
     
     useEffect(() => {
         if (!selectedPoint || selectedPoint.lat === null || selectedPoint.lon === null) {
