@@ -9,7 +9,7 @@ import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
 import { MONTH_NAMES_FULL } from "@/app/lib/config"
-import { getPreviousCalendarMonth, getCurrentMonth } from "@/app/lib/monthUtils"
+import { getPreviousCalendarMonth } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
@@ -49,10 +49,8 @@ export default function PointMonthsModePanel({
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
     const [toastMessage, setToastMessage] = useState(null)
-    const hasAutoAddedRef = useRef(null)
     
     const prevMonth = getPreviousCalendarMonth()
-    const currentMonth = getCurrentMonth()
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -62,19 +60,10 @@ export default function PointMonthsModePanel({
     }, [selectedYear, selectedMonth, prevMonth])
     
     useEffect(() => {
-        if (selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null) {
-            const pointKey = `${selectedPoint.lat},${selectedPoint.lon}`
-            if (hasAutoAddedRef.current !== pointKey) {
-                hasAutoAddedRef.current = pointKey
-                setSelectedMonths([{ year: currentMonth.year, month: currentMonth.month }])
-                setSelectedYear(prevMonth.year)
-                setSelectedMonth(prevMonth.month)
-            }
-        } else {
-            hasAutoAddedRef.current = null
+        if (!selectedPoint || selectedPoint.lat === null || selectedPoint.lon === null) {
             setSelectedMonths([])
         }
-    }, [selectedPoint, currentMonth, prevMonth])
+    }, [selectedPoint])
     
     useEffect(() => {
         if (dataMap && selectedMonths.length > 0) {

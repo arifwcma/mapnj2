@@ -18,6 +18,7 @@ const Rectangle = dynamic(() => import("react-leaflet").then(m => m.Rectangle), 
 const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false })
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 const TriangleMarker = dynamic(() => import("./TriangleMarker"), { ssr: false })
+const PointMonthsMarker = dynamic(() => import("./PointMonthsMarker"), { ssr: false })
 
 function FixMarkerIcon() {
     useEffect(() => {
@@ -502,12 +503,21 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 />
             ))}
             {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && !selectedPoints?.length && (
-                <DraggableMarker 
-                    position={[selectedPoint.lat, selectedPoint.lon]}
-                    draggable={isMoveMode}
-                    onDragEnd={onMarkerDragEnd}
-                    rectangleBounds={rectangleBounds}
-                />
+                isPointSelectMode ? (
+                    <PointMonthsMarker 
+                        position={[selectedPoint.lat, selectedPoint.lon]}
+                        draggable={isMoveMode}
+                        onDragEnd={onMarkerDragEnd}
+                        rectangleBounds={rectangleBounds}
+                    />
+                ) : (
+                    <DraggableMarker 
+                        position={[selectedPoint.lat, selectedPoint.lon]}
+                        draggable={isMoveMode}
+                        onDragEnd={onMarkerDragEnd}
+                        rectangleBounds={rectangleBounds}
+                    />
+                )
             )}
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
                 <SecondPointMarker 
