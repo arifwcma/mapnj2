@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
     Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend
 } from "chart.js"
@@ -7,8 +7,9 @@ import { Line } from "react-chartjs-2"
 import MonthDropdown from "./MonthDropdown"
 import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
-import { formatMonthLabel } from "@/app/lib/dateUtils"
-import { getPreviousCalendarMonth } from "@/app/lib/monthUtils"
+import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
+import { getPreviousCalendarMonth, getCurrentMonth } from "@/app/lib/monthUtils"
+import { getColorForIndex } from "@/app/lib/colorUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
 
@@ -16,17 +17,13 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 function PointMonthsDataWrapper({ point, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
     const dataMap = usePointDataMap(point, rectangleBounds, cloudTolerance, "POINT_MONTHS", requestTracker)
-    const dataMapRef = useRef(dataMap)
+    const mapSize = dataMap?.dataMap?.size ?? 0
     
     useEffect(() => {
-        dataMapRef.current = dataMap
-    }, [dataMap])
-    
-    useEffect(() => {
-        if (dataMapRef.current) {
-            onDataMapReady(dataMapRef.current)
+        if (dataMap) {
+            onDataMapReady(dataMap)
         }
-    }, [onDataMapReady])
+    }, [dataMap, mapSize, onDataMapReady])
     
     return null
 }
@@ -42,35 +39,69 @@ export default function PointMonthsModePanel({
     const [selectedMonths, setSelectedMonths] = useState([])
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
+    const hasAutoAddedRef = useRef(null)
     
     const prevMonth = getPreviousCalendarMonth()
+    const currentMonth = getCurrentMonth()
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
             setSelectedYear(prevMonth.year)
             setSelectedMonth(prevMonth.month)
         }
-    }, [selectedYear, selectedMonth])
+    }, [selectedYear, selectedMonth, prevMonth])
+    
+    useEffect(() => {
+        if (selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null) {
+            const pointKey = `${selectedPoint.lat},${selectedPoint.lon}`
+            if (hasAutoAddedRef.current !== pointKey) {
+                hasAutoAddedRef.current = pointKey
+                setSelectedMonths([{ year: currentMonth.year, month: currentMonth.month }])
+                setSelectedYear(prevMonth.year)
+                setSelectedMonth(prevMonth.month)
+            }
+        } else {
+            hasAutoAddedRef.current = null
+            setSelectedMonths([])
+        }
+    }, [selectedPoint, currentMonth, prevMonth])
+    
+    useEffect(() => {
+        if (dataMap && selectedMonths.length > 0) {
+            const needsFetch = selectedMonths.some(m => {
+                const key = monthKey(m.year, m.month)
+                return !dataMap.dataMap.has(key)
+            })
+            if (needsFetch) {
+                const keysToFetch = selectedMonths.map(m => monthKey(m.year, m.month))
+                dataMap.fetchMissingMonths(keysToFetch)
+            }
+        }
+    }, [dataMap, selectedMonths])
     
     const handleDataMapReady = useCallback((dm) => {
+        console.log(`[PointMonthsModePanel] handleDataMapReady - received dataMap:`, dm, `dataMap.dataMap size:`, dm?.dataMap?.size)
         setDataMap(dm)
     }, [])
     
     const handleAddMonth = useCallback(() => {
         if (!selectedYear || !selectedMonth) return
         
-        const monthKey = `${selectedYear}-${selectedMonth}`
-        const exists = selectedMonths.some(m => `${m.year}-${m.month}` === monthKey)
+        const key = monthKey(selectedYear, selectedMonth)
+        const exists = selectedMonths.some(m => monthKey(m.year, m.month) === key)
         
         if (!exists) {
             setSelectedMonths(prev => [...prev, { year: selectedYear, month: selectedMonth }])
             
             if (dataMap) {
-                const { monthKey: mk } = require("@/app/lib/dateUtils")
-                dataMap.fetchMissingMonths([mk(selectedYear, selectedMonth)])
+                dataMap.fetchMissingMonths([key])
             }
         }
-    }, [selectedYear, selectedMonth, dataMap])
+    }, [selectedYear, selectedMonth, selectedMonths, dataMap])
+    
+    const handleRemoveMonth = useCallback((year, month) => {
+        setSelectedMonths(prev => prev.filter(m => !(m.year === year && m.month === month)))
+    }, [])
     
     const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)
@@ -83,10 +114,10 @@ export default function PointMonthsModePanel({
             return []
         }
         
-        const { monthKey: mk } = require("@/app/lib/dateUtils")
         return selectedMonths.map(({ year, month }) => {
-            const key = mk(year, month)
+            const key = monthKey(year, month)
             const ndvi = dataMap.dataMap.get(key)
+            console.log(`[PointMonthsModePanel] tableData - key: ${key}, ndvi:`, ndvi, `dataMap size:`, dataMap.dataMap.size, `all keys:`, Array.from(dataMap.dataMap.keys()))
             return {
                 year,
                 month,
@@ -163,21 +194,43 @@ export default function PointMonthsModePanel({
                         onMonthChange={handleMonthDropdownChange} 
                     />
                 </div>
-                <button
-                    onClick={handleAddMonth}
+                <a
+                    href="#"
+                    onClick={(e) => {
+                        e.preventDefault()
+                        handleAddMonth()
+                    }}
                     style={{
-                        padding: "8px 16px",
                         fontSize: "13px",
                         cursor: "pointer",
-                        backgroundColor: "#007bff",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
+                        color: "#007bff",
+                        textDecoration: "underline",
                         marginTop: "20px"
                     }}
                 >
                     Add
-                </button>
+                </a>
+            </div>
+            
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", fontSize: "13px", color: "#333" }}>
+                <div style={{
+                    width: "20px",
+                    height: "20px",
+                    border: `2px solid ${getColorForIndex(0)}`,
+                    borderRadius: "50%",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "10px",
+                    fontWeight: "bold",
+                    color: getColorForIndex(0),
+                    backgroundColor: "white"
+                }}>
+                    1
+                </div>
+                <span>
+                    {selectedPoint.lat.toFixed(6)}, {selectedPoint.lon.toFixed(6)}
+                </span>
             </div>
             
             {tableData.length > 0 && (
@@ -187,6 +240,7 @@ export default function PointMonthsModePanel({
                             <th style={{ padding: "8px", textAlign: "left" }}>Month</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -198,6 +252,20 @@ export default function PointMonthsModePanel({
                                 </td>
                                 <td style={{ padding: "8px" }}>
                                     <PointSnapshot ndvi={ndvi} size={30} />
+                                </td>
+                                <td style={{ padding: "8px" }}>
+                                    <button
+                                        onClick={() => handleRemoveMonth(year, month)}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            fontSize: "18px",
+                                            color: "#dc3545"
+                                        }}
+                                    >
+                                        ×
+                                    </button>
                                 </td>
                             </tr>
                         ))}
