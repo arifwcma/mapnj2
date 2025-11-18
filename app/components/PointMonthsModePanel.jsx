@@ -7,8 +7,10 @@ import { Line } from "react-chartjs-2"
 import MonthDropdown from "./MonthDropdown"
 import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
+import useToast from "@/app/hooks/useToast"
+import useNullDataDetection from "@/app/hooks/useNullDataDetection"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
-import { MONTH_NAMES_FULL } from "@/app/lib/config"
+import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
@@ -48,7 +50,7 @@ export default function PointMonthsModePanel({
     const [selectedMonths, setSelectedMonths] = useState([])
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
-    const [toastMessage, setToastMessage] = useState(null)
+    const { toastMessage, toastKey, showToast, hideToast } = useToast()
     
     const currentMonth = getCurrentMonth()
     
@@ -78,6 +80,8 @@ export default function PointMonthsModePanel({
         }
     }, [dataMap, selectedMonths])
     
+    useNullDataDetection(dataMap, selectedMonths, showToast)
+    
     const handleDataMapReady = useCallback((dm) => {
         console.log(`[PointMonthsModePanel] handleDataMapReady - received dataMap:`, dm, `dataMap.dataMap size:`, dm?.dataMap?.size)
         setDataMap(dm)
@@ -93,7 +97,7 @@ export default function PointMonthsModePanel({
         
         if (exists) {
             const monthName = MONTH_NAMES_FULL[month - 1]
-            setToastMessage(`${year} ${monthName} already present`)
+            showToast(`[${year} ${monthName} already present]`)
             return false
         } else {
             setSelectedMonths(prev => {
@@ -111,7 +115,7 @@ export default function PointMonthsModePanel({
             }
             return true
         }
-    }, [selectedMonths, dataMap])
+    }, [selectedMonths, dataMap, showToast])
     
     const handleAddMonth = useCallback(() => {
         if (!selectedYear || !selectedMonth) return
@@ -307,9 +311,10 @@ export default function PointMonthsModePanel({
             
             {toastMessage && (
                 <ToastMessage 
+                    key={toastKey}
                     message={toastMessage} 
-                    duration={5000} 
-                    onClose={() => setToastMessage(null)} 
+                    duration={TOAST_DURATION} 
+                    onClose={hideToast} 
                 />
             )}
         </div>

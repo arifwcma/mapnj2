@@ -24,5 +24,5 @@ export const DEBUG_CONFIG = {
 
 export const FIELD_SELECTION_MIN_ZOOM = 13
 
-export const TOAST_DURATION = 2000
+export const TOAST_DURATION = 5000
 

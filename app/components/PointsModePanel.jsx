@@ -7,12 +7,14 @@ import { Line } from "react-chartjs-2"
 import MonthDropdown from "./MonthDropdown"
 import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
+import useToast from "@/app/hooks/useToast"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getSixMonthsBackFrom, getCurrentMonth } from "@/app/lib/monthUtils"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
-import { MIN_YEAR, MIN_MONTH } from "@/app/lib/config"
+import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
+import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
@@ -100,8 +102,10 @@ export default function PointsModePanel({
     onRemovePoint 
 }) {
     const requestTracker = useRequestTracker()
+    const { toastMessage, toastKey, showToast, hideToast } = useToast()
     const [pointDataMaps, setPointDataMaps] = useState([])
     const pointDataMapsRef = useRef([])
+    const previousDataMapsRef = useRef([])
     const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
     const leftArrowDebounceRef = useRef(null)
     const rightArrowDebounceRef = useRef(null)
@@ -140,6 +144,34 @@ export default function PointsModePanel({
             }
         })
     }, [visibleRange, selectedPoints, pointDataMaps])
+    
+    useEffect(() => {
+        if (visibleRange && selectedPoints.length > 0 && previousDataMapsRef.current.length > 0) {
+            const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+            
+            selectedPoints.forEach((point, index) => {
+                const currentDataMap = pointDataMaps[index]?.dataMap
+                const previousDataMap = previousDataMapsRef.current[index]?.dataMap
+                
+                if (currentDataMap && previousDataMap) {
+                    months.forEach(({ year, month }) => {
+                        const key = monthKey(year, month)
+                        const currentValue = currentDataMap.get(key)
+                        const previousValue = previousDataMap.get(key)
+                        
+                        if (previousValue === undefined && currentValue === null) {
+                            const monthName = MONTH_NAMES_FULL[month - 1]
+                            showToast(`No data found for ${year} ${monthName} at this point.\nConsider increasing cloud tolerance.`)
+                        }
+                    })
+                }
+            })
+        }
+        
+        previousDataMapsRef.current = pointDataMaps.map(obj => ({
+            dataMap: obj?.dataMap ? new Map(obj.dataMap) : null
+        }))
+    }, [pointDataMaps, visibleRange, selectedPoints, showToast])
     
     const displayData = useMemo(() => {
         if (!visibleRange) {
@@ -422,6 +454,15 @@ export default function PointsModePanel({
             )}
             
             <ChartLoadingMessage loading={isLoading} />
+            
+            {toastMessage && (
+                <ToastMessage 
+                    key={toastKey}
+                    message={toastMessage} 
+                    duration={TOAST_DURATION} 
+                    onClose={hideToast} 
+                />
+            )}
         </div>
     )
 }
