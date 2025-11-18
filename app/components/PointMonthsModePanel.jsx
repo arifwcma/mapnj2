@@ -177,7 +177,7 @@ export default function PointMonthsModePanel({
         }
     }
     
-    const isLoading = dataMap?.isLoading || false
+    const isLoading = requestTracker.pendingCount > 0
     
     if (!selectedPoint || selectedPoint.lat === null || selectedPoint.lon === null) {
         return <div>Please select a point on the map</div>
