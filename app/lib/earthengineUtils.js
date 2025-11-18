@@ -1,9 +1,9 @@
 import { ee, initEarthEngine } from "@/app/lib/earthengine"
-import { MONTH_NAMES_FULL } from "@/app/lib/config"
+import { MONTH_NAMES_FULL, DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 import { getMonthDateRange, getPreviousMonth } from "@/app/lib/dateUtils"
 import { bboxToArray } from "@/app/lib/bboxUtils"
 
-export async function countAvailableImages(start, end, bbox, cloud = 30) {
+export async function countAvailableImages(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
     await initEarthEngine()
 
     const [minLng, minLat, maxLng, maxLat] = bbox.split(",").map(parseFloat)
@@ -34,7 +34,7 @@ export async function countAvailableImages(start, end, bbox, cloud = 30) {
     })
 }
 
-export async function findAvailableMonth(bbox, cloud = 30) {
+export async function findAvailableMonth(bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
     const now = new Date()
     const currentYear = now.getFullYear()
     const currentMonth = now.getMonth() + 1
@@ -109,7 +109,7 @@ function geoJsonToEeGeometry(geoJson) {
     return null
 }
 
-export async function getAverageNdviTile(start, end, bbox, cloud = 30, geometry = null) {
+export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -151,7 +151,7 @@ export async function getAverageNdviTile(start, end, bbox, cloud = 30, geometry 
     })
 }
 
-export async function getAverageRgbTile(start, end, bbox, cloud = 30, geometry = null) {
+export async function getAverageRgbTile(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -192,7 +192,7 @@ export async function getAverageRgbTile(start, end, bbox, cloud = 30, geometry =
     })
 }
 
-export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
+export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -261,7 +261,7 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = 30) {
     })
 }
 
-export async function getAverageNdviForArea(start, end, bbox, cloud = 30, geometry) {
+export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)

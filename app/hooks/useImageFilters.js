@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react"
+import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 
 export function useImageFilters() {
-    const [cloudTolerance, setCloudTolerance] = useState(30)
+    const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
     const [imageCount, setImageCount] = useState(null)
 
     const updateCloudTolerance = useCallback((cloud) => {

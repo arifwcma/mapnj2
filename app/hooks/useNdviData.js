@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from "react"
 import { useOverlayTiles } from "./useOverlayTiles"
 import { useTimeSelection } from "./useTimeSelection"
 import { useImageFilters } from "./useImageFilters"
-import { MONTH_NAMES_FULL } from "@/app/lib/config"
+import { MONTH_NAMES_FULL, DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
 
@@ -26,7 +26,7 @@ export default function useNdviData() {
     timeSelectionRef.current = timeSelection
     imageFiltersRef.current = imageFilters
 
-    const loadNdviData = useCallback(async (bbox, cloud = 30, year = null, month = null, overlay = "NDVI", geometry = null) => {
+    const loadNdviData = useCallback(async (bbox, cloud = DEFAULT_CLOUD_TOLERANCE, year = null, month = null, overlay = "NDVI", geometry = null) => {
         if (!bbox || loadingRef.current) {
             return
         }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
+import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/point/month - Request received")
@@ -25,7 +26,7 @@ export async function GET(request) {
         const lonNum = parseFloat(lon)
         const yearNum = parseInt(year, 10)
         const monthNum = parseInt(month, 10)
-        const cloudNum = cloud ? parseFloat(cloud) : 30
+        const cloudNum = cloud ? parseFloat(cloud) : DEFAULT_CLOUD_TOLERANCE
 
         if (isNaN(latNum) || isNaN(lonNum) || isNaN(yearNum) || isNaN(monthNum)) {
             return NextResponse.json(

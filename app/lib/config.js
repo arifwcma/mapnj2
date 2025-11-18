@@ -16,6 +16,8 @@ export const MONTH_NAMES_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul
 export const MIN_YEAR = 2019
 export const MIN_MONTH = 1
 
+export const DEFAULT_CLOUD_TOLERANCE = 50
+
 export const DEBUG_CONFIG = {
     ZOOM_LOGGING: true
 }

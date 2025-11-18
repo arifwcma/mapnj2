@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { countAvailableImages } from "@/app/lib/earthengineUtils"
+import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 
 export async function GET(request) {
     console.log("[API] GET /api/count_available - Request received")
@@ -9,7 +10,7 @@ export async function GET(request) {
     const end = searchParams.get("end")
     const bbox = searchParams.get("bbox")
     const cloudParam = searchParams.get("cloud")
-    const cloud = cloudParam ? parseFloat(cloudParam) : 30
+    const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
 
     if (!start || !end || !bbox) {
         return NextResponse.json(
