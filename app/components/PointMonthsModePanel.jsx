@@ -122,8 +122,7 @@ export default function PointMonthsModePanel({
         setSelectedYear(year)
         setSelectedMonth(month)
         onMonthChange(year, month)
-        addMonth(year, month)
-    }, [onMonthChange, addMonth])
+    }, [onMonthChange])
     
     const sortedMonths = useMemo(() => {
         return [...selectedMonths].sort((a, b) => {
