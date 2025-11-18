@@ -8,10 +8,12 @@ import MonthDropdown from "./MonthDropdown"
 import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
+import { MONTH_NAMES_FULL } from "@/app/lib/config"
 import { getPreviousCalendarMonth, getCurrentMonth } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
+import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
@@ -46,6 +48,7 @@ export default function PointMonthsModePanel({
     const [selectedMonths, setSelectedMonths] = useState([])
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
+    const [toastMessage, setToastMessage] = useState(null)
     const hasAutoAddedRef = useRef(null)
     
     const prevMonth = getPreviousCalendarMonth()
@@ -91,21 +94,6 @@ export default function PointMonthsModePanel({
         setDataMap(dm)
     }, [])
     
-    const handleAddMonth = useCallback(() => {
-        if (!selectedYear || !selectedMonth) return
-        
-        const key = monthKey(selectedYear, selectedMonth)
-        const exists = selectedMonths.some(m => monthKey(m.year, m.month) === key)
-        
-        if (!exists) {
-            setSelectedMonths(prev => [...prev, { year: selectedYear, month: selectedMonth }])
-            
-            if (dataMap) {
-                dataMap.fetchMissingMonths([key])
-            }
-        }
-    }, [selectedYear, selectedMonth, selectedMonths, dataMap])
-    
     const handleRemoveMonth = useCallback((year, month) => {
         setSelectedMonths(prev => prev.filter(m => !(m.year === year && m.month === month)))
     }, [])
@@ -114,7 +102,21 @@ export default function PointMonthsModePanel({
         setSelectedYear(year)
         setSelectedMonth(month)
         onMonthChange(year, month)
-    }, [onMonthChange])
+        
+        const key = monthKey(year, month)
+        const exists = selectedMonths.some(m => monthKey(m.year, m.month) === key)
+        
+        if (exists) {
+            const monthName = MONTH_NAMES_FULL[month - 1]
+            setToastMessage(`[${year} ${monthName} already present]`)
+        } else {
+            setSelectedMonths(prev => [...prev, { year, month }])
+            
+            if (dataMap) {
+                dataMap.fetchMissingMonths([key])
+            }
+        }
+    }, [onMonthChange, selectedMonths, dataMap])
     
     const tableData = useMemo(() => {
         if (!dataMap || selectedMonths.length === 0) {
@@ -193,30 +195,12 @@ export default function PointMonthsModePanel({
                 onDataMapReady={handleDataMapReady}
             />
             
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
-                <div style={{ flex: 1 }}>
-                    <MonthDropdown 
-                        selectedYear={selectedYear} 
-                        selectedMonth={selectedMonth} 
-                        onMonthChange={handleMonthDropdownChange} 
-                    />
-                </div>
-                <a
-                    href="#"
-                    onClick={(e) => {
-                        e.preventDefault()
-                        handleAddMonth()
-                    }}
-                    style={{
-                        fontSize: "13px",
-                        cursor: "pointer",
-                        color: "#007bff",
-                        textDecoration: "underline",
-                        marginTop: "20px"
-                    }}
-                >
-                    Add
-                </a>
+            <div style={{ marginBottom: "15px" }}>
+                <MonthDropdown 
+                    selectedYear={selectedYear} 
+                    selectedMonth={selectedMonth} 
+                    onMonthChange={handleMonthDropdownChange} 
+                />
             </div>
             
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", fontSize: "13px", color: "#333" }}>
@@ -287,6 +271,14 @@ export default function PointMonthsModePanel({
             )}
             
             <ChartLoadingMessage loading={isLoading} />
+            
+            {toastMessage && (
+                <ToastMessage 
+                    message={toastMessage} 
+                    duration={5000} 
+                    onClose={() => setToastMessage(null)} 
+                />
+            )}
         </div>
     )
 }
