@@ -18,12 +18,19 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 function PointMonthsDataWrapper({ point, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
     const dataMap = usePointDataMap(point, rectangleBounds, cloudTolerance, "POINT_MONTHS", requestTracker)
     const mapSize = dataMap?.dataMap?.size ?? 0
+    const previousSizeRef = useRef(-1)
+    const dataMapRef = useRef(null)
     
     useEffect(() => {
-        if (dataMap) {
-            onDataMapReady(dataMap)
+        dataMapRef.current = dataMap
+    }, [dataMap])
+    
+    useEffect(() => {
+        if (dataMapRef.current && mapSize !== previousSizeRef.current) {
+            previousSizeRef.current = mapSize
+            onDataMapReady(dataMapRef.current)
         }
-    }, [dataMap, mapSize, onDataMapReady])
+    }, [mapSize, onDataMapReady])
     
     return null
 }
