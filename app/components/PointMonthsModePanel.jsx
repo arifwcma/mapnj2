@@ -98,32 +98,59 @@ export default function PointMonthsModePanel({
         setSelectedMonths(prev => prev.filter(m => !(m.year === year && m.month === month)))
     }, [])
     
-    const handleMonthDropdownChange = useCallback((year, month) => {
-        setSelectedYear(year)
-        setSelectedMonth(month)
-        onMonthChange(year, month)
-        
+    const addMonth = useCallback((year, month) => {
         const key = monthKey(year, month)
         const exists = selectedMonths.some(m => monthKey(m.year, m.month) === key)
         
         if (exists) {
             const monthName = MONTH_NAMES_FULL[month - 1]
             setToastMessage(`[${year} ${monthName} already present]`)
+            return false
         } else {
-            setSelectedMonths(prev => [...prev, { year, month }])
+            setSelectedMonths(prev => {
+                const updated = [...prev, { year, month }]
+                return updated.sort((a, b) => {
+                    if (a.year !== b.year) {
+                        return a.year - b.year
+                    }
+                    return a.month - b.month
+                })
+            })
             
             if (dataMap) {
                 dataMap.fetchMissingMonths([key])
             }
+            return true
         }
-    }, [onMonthChange, selectedMonths, dataMap])
+    }, [selectedMonths, dataMap])
+    
+    const handleAddMonth = useCallback(() => {
+        if (!selectedYear || !selectedMonth) return
+        addMonth(selectedYear, selectedMonth)
+    }, [selectedYear, selectedMonth, addMonth])
+    
+    const handleMonthDropdownChange = useCallback((year, month) => {
+        setSelectedYear(year)
+        setSelectedMonth(month)
+        onMonthChange(year, month)
+        addMonth(year, month)
+    }, [onMonthChange, addMonth])
+    
+    const sortedMonths = useMemo(() => {
+        return [...selectedMonths].sort((a, b) => {
+            if (a.year !== b.year) {
+                return a.year - b.year
+            }
+            return a.month - b.month
+        })
+    }, [selectedMonths])
     
     const tableData = useMemo(() => {
-        if (!dataMap || selectedMonths.length === 0) {
+        if (!dataMap || sortedMonths.length === 0) {
             return []
         }
         
-        return selectedMonths.map(({ year, month }) => {
+        return sortedMonths.map(({ year, month }) => {
             const key = monthKey(year, month)
             const ndvi = dataMap.dataMap.get(key)
             console.log(`[PointMonthsModePanel] tableData - key: ${key}, ndvi:`, ndvi, `dataMap size:`, dataMap.dataMap.size, `all keys:`, Array.from(dataMap.dataMap.keys()))
@@ -133,7 +160,7 @@ export default function PointMonthsModePanel({
                 ndvi: ndvi !== null && ndvi !== undefined ? parseFloat(ndvi.toFixed(2)) : null
             }
         })
-    }, [dataMap, selectedMonths])
+    }, [dataMap, sortedMonths])
     
     const chartData = useMemo(() => {
         if (tableData.length === 0) {
@@ -195,12 +222,30 @@ export default function PointMonthsModePanel({
                 onDataMapReady={handleDataMapReady}
             />
             
-            <div style={{ marginBottom: "15px" }}>
-                <MonthDropdown 
-                    selectedYear={selectedYear} 
-                    selectedMonth={selectedMonth} 
-                    onMonthChange={handleMonthDropdownChange} 
-                />
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
+                <div style={{ flex: 1 }}>
+                    <MonthDropdown 
+                        selectedYear={selectedYear} 
+                        selectedMonth={selectedMonth} 
+                        onMonthChange={handleMonthDropdownChange} 
+                    />
+                </div>
+                <a
+                    href="#"
+                    onClick={(e) => {
+                        e.preventDefault()
+                        handleAddMonth()
+                    }}
+                    style={{
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        color: "#007bff",
+                        textDecoration: "underline",
+                        marginTop: "20px"
+                    }}
+                >
+                    Add
+                </a>
             </div>
             
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", fontSize: "13px", color: "#333" }}>
