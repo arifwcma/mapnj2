@@ -92,7 +92,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
     const fetchedMonthsRef = useRef(new Set())
     
     useEffect(() => {
-        if (!showPopup || !visibleRange || !rectangleBounds) {
+        if (!showPopup || !visibleRange || !area.bounds) {
             fetchedMonthsRef.current.clear()
             return
         }
@@ -114,7 +114,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
         
         if (!geometry) return
         
-        const bboxStr = bboxToString(rectangleBounds)
+        const bboxStr = bboxToString(area.bounds)
         
         months.forEach(({ year, month }) => {
             const key = `${year}-${month}`
@@ -210,7 +210,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                     fetchedMonthsRef.current.delete(key)
                 })
         })
-    }, [showPopup, visibleRange, rectangleBounds, cloudTolerance, area])
+    }, [showPopup, visibleRange, cloudTolerance, area])
     
     const handleClose = () => {
         setShowPopup(false)
@@ -255,7 +255,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
         }
     }, [isDragging, dragOffset])
     
-    if (!visibleRange || !rectangleBounds) {
+    if (!visibleRange || !area.bounds) {
         return null
     }
     

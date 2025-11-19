@@ -14,6 +14,7 @@ import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/ap
 import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import AreaSnapshot from "./AreaSnapshot"
+import CompareSnapshots from "./CompareSnapshots"
 import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
@@ -358,6 +359,14 @@ export default function AreasModePanel({
                 onMonthChange={onMonthChange} 
             />
             
+            {selectedAreas.length > 1 && (
+                <CompareSnapshots
+                    selectedAreas={selectedAreas}
+                    cloudTolerance={cloudTolerance}
+                    visibleRange={visibleRange}
+                />
+            )}
+            
             {tableData.length > 0 && (
                 <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px", fontSize: "13px" }}>
                     <thead>
@@ -402,7 +411,6 @@ export default function AreasModePanel({
                                 <td style={{ padding: "8px", verticalAlign: "middle", textAlign: "center" }}>
                                     <AreaSnapshot 
                                         area={area}
-                                        rectangleBounds={rectangleBounds}
                                         cloudTolerance={cloudTolerance}
                                         visibleRange={visibleRange}
                                     />
