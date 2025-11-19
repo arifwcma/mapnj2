@@ -262,7 +262,7 @@ export default function AreasModePanel({
         return { labels, datasets }
     }, [displayData, selectedAreas])
     
-    const [yAxisRange, setYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [yAxisRange, setYAxisRange] = useState("0-1")
     
     const chartOptions = useMemo(() => ({
         responsive: true,

@@ -251,7 +251,7 @@ export default function PointsModePanel({
         return { labels, datasets }
     }, [displayData, selectedPoints])
     
-    const [yAxisRange, setYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [yAxisRange, setYAxisRange] = useState("0-1")
     
     const chartOptions = useMemo(() => ({
         responsive: true,
