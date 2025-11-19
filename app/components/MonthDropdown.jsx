@@ -1,11 +1,19 @@
 "use client"
 import { getAllAvailableMonths, formatMonthDropdownLabel, getCurrentMonth } from "@/app/lib/monthUtils"
 
-export default function MonthDropdown({ selectedYear, selectedMonth, onMonthChange }) {
-    const months = getAllAvailableMonths()
+export default function MonthDropdown({ selectedYear, selectedMonth, onMonthChange, excludedMonths = [] }) {
+    const allMonths = getAllAvailableMonths()
     const current = getCurrentMonth()
     const defaultYear = selectedYear || current.year
     const defaultMonth = selectedMonth || current.month
+    
+    const excludedKeys = new Set(excludedMonths.map(m => `${m.year}-${m.month}`))
+    const availableMonths = allMonths.filter(({ year, month }) => !excludedKeys.has(`${year}-${month}`))
+    
+    const currentKey = `${defaultYear}-${defaultMonth}`
+    const isCurrentExcluded = excludedKeys.has(currentKey)
+    const displayYear = isCurrentExcluded && availableMonths.length > 0 ? availableMonths[0].year : defaultYear
+    const displayMonth = isCurrentExcluded && availableMonths.length > 0 ? availableMonths[0].month : defaultMonth
     
     return (
         <div style={{ marginBottom: "15px" }}>
@@ -13,7 +21,7 @@ export default function MonthDropdown({ selectedYear, selectedMonth, onMonthChan
                 Select month:
             </label>
             <select
-                value={`${defaultYear}-${defaultMonth}`}
+                value={`${displayYear}-${displayMonth}`}
                 onChange={(e) => {
                     const [year, month] = e.target.value.split("-").map(Number)
                     onMonthChange(year, month)
@@ -26,7 +34,7 @@ export default function MonthDropdown({ selectedYear, selectedMonth, onMonthChan
                     borderRadius: "4px"
                 }}
             >
-                {months.map(({ year, month }) => (
+                {availableMonths.map(({ year, month }) => (
                     <option key={`${year}-${month}`} value={`${year}-${month}`}>
                         {formatMonthDropdownLabel(year, month)}
                     </option>

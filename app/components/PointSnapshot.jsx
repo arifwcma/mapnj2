@@ -1,10 +1,10 @@
 "use client"
 import { useState } from "react"
-import { ndviToColor } from "@/app/lib/ndviColorUtils"
+import { getNdviColor } from "@/app/lib/ndviColorUtils"
 
 export default function PointSnapshot({ ndvi, size = 40 }) {
     const [showPopup, setShowPopup] = useState(false)
-    const color = ndviToColor(ndvi)
+    const color = getNdviColor(ndvi)
     
     if (ndvi === null || ndvi === undefined) {
         return null

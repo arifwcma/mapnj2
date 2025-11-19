@@ -253,7 +253,8 @@ export default function AreaMonthsModePanel({
                     <MonthDropdown 
                         selectedYear={selectedYear} 
                         selectedMonth={selectedMonth} 
-                        onMonthChange={handleMonthDropdownChange} 
+                        onMonthChange={handleMonthDropdownChange}
+                        excludedMonths={selectedMonths}
                     />
                 </div>
                 <a
@@ -350,7 +351,6 @@ export default function AreaMonthsModePanel({
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line data={chartData} options={chartOptions} />
                     </div>
-                    <NdviLegend yAxisRange={yAxisRange} />
                     <div style={{ position: "relative", marginTop: "10px" }}>
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "0 10px" }}>
                             <button
@@ -370,6 +370,7 @@ export default function AreaMonthsModePanel({
                             </button>
                         </div>
                     </div>
+                    <NdviLegend />
                 </>
             )}
             

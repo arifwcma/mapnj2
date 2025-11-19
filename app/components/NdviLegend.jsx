@@ -1,53 +1,38 @@
 "use client"
 import { useMemo } from "react"
-import { ndviToColor } from "@/app/lib/ndviColorUtils"
+import { getNdviColor } from "@/app/lib/ndviColorUtils"
 
-export default function NdviLegend({ yAxisRange = "0-1", width = "100%" }) {
-    const steps = useMemo(() => {
-        const numSteps = 100
-        const min = yAxisRange === "0-1" ? 0 : -1
+export default function NdviLegend({ width = "100%" }) {
+    const tickValues = useMemo(() => {
+        return [-1, -0.5, 0, 0.5, 1.0]
+    }, [])
+    
+    const gradientStops = useMemo(() => {
+        const numSteps = 500
+        const min = -1
         const max = 1
         const stepSize = (max - min) / numSteps
         
-        return Array.from({ length: numSteps + 1 }, (_, i) => {
+        const stops = []
+        for (let i = 0; i <= numSteps; i++) {
             const value = min + (i * stepSize)
-            return {
-                value,
-                color: ndviToColor(value)
-            }
-        })
-    }, [yAxisRange])
-    
-    const tickValues = useMemo(() => {
-        const min = yAxisRange === "0-1" ? 0 : -1
-        const max = 1
-        
-        if (yAxisRange === "0-1") {
-            return [0, 0.2, 0.4, 0.6, 0.8, 1.0]
-        } else {
-            return [-1, -0.5, 0, 0.5, 1.0]
+            const color = getNdviColor(value)
+            const percentage = (i / numSteps) * 100
+            stops.push(`${color} ${percentage}%`)
         }
-    }, [yAxisRange])
+        
+        return stops.join(", ")
+    }, [])
     
     return (
         <div style={{ width, marginTop: "15px", marginBottom: "10px" }}>
             <div style={{ 
-                display: "flex", 
-                alignItems: "center",
-                marginBottom: "8px"
-            }}>
-                {steps.map((step, index) => (
-                    <div
-                        key={index}
-                        style={{
-                            flex: 1,
-                            height: "20px",
-                            backgroundColor: step.color,
-                            borderRight: index < steps.length - 1 ? "none" : "none"
-                        }}
-                    />
-                ))}
-            </div>
+                height: "20px",
+                marginBottom: "8px",
+                background: `linear-gradient(to right, ${gradientStops})`,
+                borderRadius: "4px",
+                border: "1px solid #ddd"
+            }} />
             <div style={{ 
                 display: "flex", 
                 justifyContent: "space-between",

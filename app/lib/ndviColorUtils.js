@@ -1,23 +1,75 @@
-export function ndviToColor(ndvi) {
+const NDVI_VIS_CONFIG = {
+    min: -1,
+    max: 1,
+    palette: ["darkred", "orangered", "red", "yellow", "darkgreen"]
+}
+
+function colorNameToHex(colorName) {
+    const colorMap = {
+        darkred: "#8B0000",
+        orangered: "#FF4500",
+        red: "#FF0000",
+        yellow: "#FFFF00",
+        darkgreen: "#006400"
+    }
+    return colorMap[colorName.toLowerCase()] || colorName
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null
+}
+
+function rgbToHex(r, g, b) {
+    return "#" + [r, g, b].map(x => {
+        const hex = Math.round(x).toString(16)
+        return hex.length === 1 ? "0" + hex : hex
+    }).join("")
+}
+
+function interpolateColor(color1, color2, factor) {
+    const hex1 = colorNameToHex(color1)
+    const hex2 = colorNameToHex(color2)
+    const rgb1 = hexToRgb(hex1)
+    const rgb2 = hexToRgb(hex2)
+    
+    if (!rgb1 || !rgb2) return hex1
+    
+    const r = rgb1.r + (rgb2.r - rgb1.r) * factor
+    const g = rgb1.g + (rgb2.g - rgb1.g) * factor
+    const b = rgb1.b + (rgb2.b - rgb1.b) * factor
+    
+    return rgbToHex(r, g, b)
+}
+
+export function getNdviColor(ndvi, min = NDVI_VIS_CONFIG.min, max = NDVI_VIS_CONFIG.max, palette = NDVI_VIS_CONFIG.palette) {
     if (ndvi === null || ndvi === undefined) {
         return "#808080"
     }
     
-    if (ndvi < -1) return "#8B0000"
-    if (ndvi < -0.5) return "#A0522D"
-    if (ndvi < 0) return "#FF6347"
-    if (ndvi < 0.1) return "#FFA500"
-    if (ndvi < 0.2) return "#FFFF00"
-    if (ndvi < 0.3) return "#ADFF2F"
-    if (ndvi < 0.4) return "#32CD32"
-    if (ndvi < 0.5) return "#228B22"
-    if (ndvi < 0.6) return "#006400"
-    if (ndvi < 0.7) return "#004d00"
-    if (ndvi < 0.8) return "#003300"
-    return "#001a00"
+    const clampedValue = Math.max(min, Math.min(max, ndvi))
+    const normalizedValue = (clampedValue - min) / (max - min)
+    
+    const numColors = palette.length
+    const segmentSize = 1 / (numColors - 1)
+    const segmentIndex = Math.min(Math.floor(normalizedValue / segmentSize), numColors - 2)
+    
+    const color1 = palette[segmentIndex]
+    const color2 = palette[segmentIndex + 1]
+    const segmentStart = segmentIndex * segmentSize
+    const factor = (normalizedValue - segmentStart) / segmentSize
+    
+    return interpolateColor(color1, color2, factor)
+}
+
+export function getNdviVisConfig() {
+    return { ...NDVI_VIS_CONFIG }
 }
 
 export function getNdviColorPalette() {
-    return ["darkred", "orangered", "red", "yellow", "darkgreen"]
+    return [...NDVI_VIS_CONFIG.palette]
 }
-
