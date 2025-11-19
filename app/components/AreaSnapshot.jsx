@@ -23,14 +23,6 @@ function getAllMonthsInRange(startMonth, endMonth) {
     return months
 }
 
-function latLngToTile(lat, lng, zoom) {
-    const n = Math.pow(2, zoom)
-    const x = Math.floor((lng + 180) / 360 * n)
-    const latRad = lat * Math.PI / 180
-    const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n)
-    return { x, y, z: zoom }
-}
-
 function getAreaBounds(area) {
     if (area.bounds) {
         return {
@@ -141,14 +133,16 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                 end: dateRange.end,
                 bbox: bboxStr,
                 cloud: cloudTolerance.toString(),
-                geometry: JSON.stringify(geometry)
+                geometry: JSON.stringify(geometry),
+                thumbnail: "true",
+                dimensions: "1024"
             })
             
             fetch(`/api/ndvi/average?${params.toString()}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.tileUrl) {
-                        setTileUrls(prev => ({ ...prev, [key]: data.tileUrl }))
+                    if (data.imageUrl) {
+                        setTileUrls(prev => ({ ...prev, [key]: data.imageUrl }))
                     }
                     setLoading(prev => ({ ...prev, [key]: false }))
                 })
@@ -208,15 +202,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
     }
     
     const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
-    
-    const centerLat = (rectangleBounds[0][0] + rectangleBounds[1][0]) / 2
-    const centerLon = (rectangleBounds[0][1] + rectangleBounds[1][1]) / 2
-    const popupTile = latLngToTile(centerLat, centerLon, 13)
-    
-    const bboxBounds = [
-        [rectangleBounds[0][0], rectangleBounds[0][1]],
-        [rectangleBounds[1][0], rectangleBounds[1][1]]
-    ]
     
     return (
         <>
@@ -339,13 +324,10 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                             >
                                                 Loading...
                                             </div>
-                                        ) : tileUrl && popupTile ? (
+                                        ) : tileUrl ? (
                                             <div style={{ position: "relative", width: "100%" }}>
                                                 <img
-                                                    src={tileUrl
-                                                        .replace("{z}", popupTile.z.toString())
-                                                        .replace("{x}", popupTile.x.toString())
-                                                        .replace("{y}", popupTile.y.toString())}
+                                                    src={tileUrl}
                                                     alt={`NDVI ${year} ${MONTH_NAMES_FULL[month - 1]}`}
                                                     style={{
                                                         width: "100%",
