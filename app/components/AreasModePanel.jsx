@@ -67,6 +67,7 @@ function buildDisplayDataItem(month, dataMap) {
 
 function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
     const { dataMap, fetchMissingMonths } = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker)
+    const dataMapSizeRef = useRef(0)
     const dataMapRef = useRef({ dataMap, fetchMissingMonths })
     
     useEffect(() => {
@@ -74,7 +75,15 @@ function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, request
     }, [dataMap, fetchMissingMonths])
     
     useEffect(() => {
-        onDataMapReady(index, dataMapRef.current)
+        const currentSize = dataMap?.size || 0
+        if (currentSize !== dataMapSizeRef.current) {
+            dataMapSizeRef.current = currentSize
+            onDataMapReady(index, { dataMap, fetchMissingMonths })
+        }
+    }, [index, dataMap?.size, fetchMissingMonths, onDataMapReady, dataMap])
+    
+    useEffect(() => {
+        onDataMapReady(index, { dataMap, fetchMissingMonths })
     }, [index, onDataMapReady])
     
     return null
