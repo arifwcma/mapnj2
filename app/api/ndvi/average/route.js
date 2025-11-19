@@ -113,6 +113,13 @@ async function handleRequest(request) {
         }
     } catch (error) {
         const errorMessage = error.message || error.toString() || ""
+        const isNoDataError = errorMessage.includes("No images found") || errorMessage.includes("No NDVI value found")
+        
+        if (isNoDataError && thumbnailParam === "true") {
+            console.log(`[API] /api/ndvi/average - No data found for thumbnail, returning null`)
+            return NextResponse.json({ imageUrl: null, start, end, bbox, cloud })
+        }
+        
         console.error(`[API] /api/ndvi/average - Error:`, {
             error: errorMessage,
             errorType: error.constructor?.name || typeof error,
