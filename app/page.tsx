@@ -217,12 +217,26 @@ export default function Page() {
     
     useEffect(() => {
         if (rectangleBounds) {
-            const geometry = boundsSource === 'field' ? selectedFieldFeature : null
-            loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
+            if (analysisMode === "area" && compareMode === "areas" && selectedAreas.length > 0 && selectedYear && selectedMonth) {
+                const matchingArea = selectedAreas.find(area => {
+                    if (!area.bounds) return false
+                    const areaBounds = area.bounds
+                    const rectBounds = rectangleBounds
+                    return Math.abs(areaBounds[0][0] - rectBounds[0][0]) < 0.0001 &&
+                           Math.abs(areaBounds[0][1] - rectBounds[0][1]) < 0.0001 &&
+                           Math.abs(areaBounds[1][0] - rectBounds[1][0]) < 0.0001 &&
+                           Math.abs(areaBounds[1][1] - rectBounds[1][1]) < 0.0001
+                }) || selectedAreas[0]
+                const areaGeometry = matchingArea.geometry || null
+                loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, areaGeometry)
+            } else {
+                const geometry = boundsSource === 'field' ? selectedFieldFeature : null
+                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
+            }
         } else {
             clearNdvi()
         }
-    }, [rectangleBounds, cloudTolerance, overlayType, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi])
+    }, [rectangleBounds, cloudTolerance, overlayType, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, analysisMode, compareMode, selectedAreas, selectedYear, selectedMonth])
     
     const isPointClickMode = analysisMode === "point" && compareMode === "points"
     const isPointSelectMode = analysisMode === "point" && compareMode === "months"

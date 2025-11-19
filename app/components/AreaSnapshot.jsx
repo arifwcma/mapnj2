@@ -1,8 +1,27 @@
 "use client"
 import { useState, useEffect } from "react"
-import { ndviToColor } from "@/app/lib/ndviColorUtils"
-import { getMonthDateRange } from "@/app/lib/dateUtils"
+import { getMonthDateRange, formatMonthLabel } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
+import { MONTH_NAMES_FULL } from "@/app/lib/config"
+
+function getAllMonthsInRange(startMonth, endMonth) {
+    const months = []
+    let year = startMonth.year
+    let month = startMonth.month
+    
+    while (year < endMonth.year || (year === endMonth.year && month <= endMonth.month)) {
+        months.push({ year, month })
+        
+        if (month === 12) {
+            year++
+            month = 1
+        } else {
+            month++
+        }
+    }
+    
+    return months
+}
 
 function latLngToTile(lat, lng, zoom) {
     const n = Math.pow(2, zoom)
@@ -10,30 +29,6 @@ function latLngToTile(lat, lng, zoom) {
     const latRad = lat * Math.PI / 180
     const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n)
     return { x, y, z: zoom }
-}
-
-function getAreaBounds(area) {
-    if (area.bounds) {
-        return {
-            minLat: area.bounds[0][0],
-            maxLat: area.bounds[1][0],
-            minLon: area.bounds[0][1],
-            maxLon: area.bounds[1][1]
-        }
-    }
-    if (area.geometry?.geometry?.type === "Polygon" && area.geometry.geometry.coordinates?.[0]) {
-        const coords = area.geometry.geometry.coordinates[0]
-        let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity
-        for (let i = 0; i < coords.length; i++) {
-            const [lon, lat] = coords[i]
-            minLat = Math.min(minLat, lat)
-            maxLat = Math.max(maxLat, lat)
-            minLon = Math.min(minLon, lon)
-            maxLon = Math.max(maxLon, lon)
-        }
-        return { minLat, maxLat, minLon, maxLon }
-    }
-    return null
 }
 
 function getAreaCenter(area) {
@@ -57,18 +52,14 @@ function getAreaCenter(area) {
     return null
 }
 
-export default function AreaSnapshot({ area, year, month, rectangleBounds, cloudTolerance, ndvi, size = 40 }) {
+export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, visibleRange }) {
     const [showPopup, setShowPopup] = useState(false)
-    const [tileUrl, setTileUrl] = useState(null)
-    const [loading, setLoading] = useState(false)
-    const [thumbnailUrl, setThumbnailUrl] = useState(null)
-    const [thumbnailLoading, setThumbnailLoading] = useState(false)
+    const [tileUrls, setTileUrls] = useState({})
+    const [loading, setLoading] = useState({})
     
     useEffect(() => {
-        if (year && month && rectangleBounds) {
-            setThumbnailLoading(true)
-            const dateRange = getMonthDateRange(year, month)
-            const bboxStr = bboxToString(rectangleBounds)
+        if (showPopup && visibleRange && rectangleBounds) {
+            const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
             const geometry = area.geometry || (area.bounds ? {
                 type: "Feature",
                 geometry: {
@@ -83,7 +74,17 @@ export default function AreaSnapshot({ area, year, month, rectangleBounds, cloud
                 }
             } : null)
             
-            if (geometry) {
+            if (!geometry) return
+            
+            const bboxStr = bboxToString(rectangleBounds)
+            const newLoading = {}
+            const newTileUrls = {}
+            
+            months.forEach(({ year, month }) => {
+                const key = `${year}-${month}`
+                newLoading[key] = true
+                
+                const dateRange = getMonthDateRange(year, month)
                 const params = new URLSearchParams({
                     start: dateRange.start,
                     end: dateRange.end,
@@ -96,167 +97,93 @@ export default function AreaSnapshot({ area, year, month, rectangleBounds, cloud
                     .then(res => res.json())
                     .then(data => {
                         if (data.tileUrl) {
-                            setTileUrl(data.tileUrl)
-                            const center = getAreaCenter(area)
-                            if (center) {
-                                const thumbnailTile = latLngToTile(center.lat, center.lon, 11)
-                                const thumbUrl = data.tileUrl
-                                    .replace("{z}", thumbnailTile.z.toString())
-                                    .replace("{x}", thumbnailTile.x.toString())
-                                    .replace("{y}", thumbnailTile.y.toString())
-                                setThumbnailUrl(thumbUrl)
-                            }
+                            setTileUrls(prev => ({ ...prev, [key]: data.tileUrl }))
                         }
-                        setThumbnailLoading(false)
+                        setLoading(prev => ({ ...prev, [key]: false }))
                     })
                     .catch(err => {
-                        console.error("Error fetching area snapshot:", err)
-                        setThumbnailLoading(false)
+                        console.error(`Error fetching tile for ${year}-${month}:`, err)
+                        setLoading(prev => ({ ...prev, [key]: false }))
                     })
-            } else {
-                setThumbnailLoading(false)
-            }
+            })
+            
+            setLoading(newLoading)
         }
-    }, [year, month, rectangleBounds, cloudTolerance, area])
+    }, [showPopup, visibleRange, rectangleBounds, cloudTolerance, area])
     
-    useEffect(() => {
-        if (showPopup && tileUrl) {
-            setLoading(true)
-            setTimeout(() => setLoading(false), 100)
-        }
-    }, [showPopup, tileUrl])
+    const handleClose = () => {
+        setShowPopup(false)
+        setTileUrls({})
+        setLoading({})
+    }
     
-    const color = ndviToColor(ndvi)
+    if (!visibleRange) {
+        return null
+    }
     
-    if (ndvi === null || ndvi === undefined) {
-        return (
-            <div style={{ display: "inline-block", textAlign: "center" }}>
-                {thumbnailLoading ? (
+    const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+    const center = getAreaCenter(area)
+    const popupTile = center ? latLngToTile(center.lat, center.lon, 13) : null
+    
+    return (
+        <>
+            <div
+                style={{
+                    display: "inline-block",
+                    cursor: "pointer",
+                    verticalAlign: "middle",
+                    fontSize: "18px",
+                    color: "#007bff",
+                    padding: "4px 8px"
+                }}
+                onClick={() => setShowPopup(true)}
+                title="View snapshots"
+            >
+                👁️
+            </div>
+            
+            {showPopup && (
+                <>
                     <div
                         style={{
-                            width: `${size}px`,
-                            height: `${size}px`,
-                            borderRadius: "4px",
-                            backgroundColor: "#f0f0f0",
-                            border: "1px solid #ccc",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "10px",
-                            color: "#666"
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: "rgba(0,0,0,0.7)",
+                            zIndex: 9999
                         }}
+                        onClick={handleClose}
+                    />
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: "50%",
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            backgroundColor: "white",
+                            borderRadius: "8px",
+                            padding: "20px",
+                            zIndex: 10000,
+                            boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
+                            width: "95vw",
+                            maxWidth: "1400px",
+                            maxHeight: "95vh",
+                            overflow: "auto",
+                            display: "flex",
+                            flexDirection: "column"
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        ...
-                    </div>
-                ) : thumbnailUrl ? (
-                    <img
-                        src={thumbnailUrl}
-                        alt="Area snapshot"
-                        style={{
-                            width: `${size}px`,
-                            height: `${size}px`,
-                            objectFit: "cover",
-                            border: "1px solid #ccc",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            display: "inline-block"
-                        }}
-                        onClick={() => setShowPopup(true)}
-                        title="Click to view full size"
-                    />
-                ) : (
-                    <div
-                        style={{
-                            width: `${size}px`,
-                            height: `${size}px`,
-                            borderRadius: "4px",
-                            backgroundColor: "#808080",
-                            border: "1px solid #ccc",
-                            cursor: "pointer",
-                            display: "inline-block"
-                        }}
-                        onClick={() => setShowPopup(true)}
-                        title="No data"
-                    />
-                )}
-                {showPopup && (
-                    <>
-                        <div
-                            style={{
-                                position: "fixed",
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                backgroundColor: "rgba(0,0,0,0.5)",
-                                zIndex: 9999
-                            }}
-                            onClick={() => {
-                                setShowPopup(false)
-                            }}
-                        />
-                        <div
-                            style={{
-                                position: "fixed",
-                                top: "50%",
-                                left: "50%",
-                                transform: "translate(-50%, -50%)",
-                                backgroundColor: "white",
-                                border: "2px solid #333",
-                                borderRadius: "8px",
-                                padding: "20px",
-                                zIndex: 10000,
-                                boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-                                maxWidth: "90vw",
-                                maxHeight: "90vh",
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center"
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div style={{ marginBottom: "10px", fontSize: "16px", fontWeight: "bold" }}>
-                                Area NDVI Snapshot
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                            <div style={{ fontSize: "18px", fontWeight: "bold" }}>
+                                Area Snapshots
                             </div>
-                            {loading ? (
-                                <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
-                            ) : tileUrl ? (
-                            <div style={{ position: "relative", width: "100%", maxWidth: "800px" }}>
-                                {(() => {
-                                    const center = getAreaCenter(area)
-                                    if (center) {
-                                        const popupTile = latLngToTile(center.lat, center.lon, 13)
-                                        return (
-                                            <img
-                                                src={tileUrl
-                                                    .replace("{z}", popupTile.z.toString())
-                                                    .replace("{x}", popupTile.x.toString())
-                                                    .replace("{y}", popupTile.y.toString())}
-                                                alt="NDVI Overlay"
-                                                style={{
-                                                    width: "100%",
-                                                    height: "auto",
-                                                    maxHeight: "70vh",
-                                                    border: "1px solid #ccc",
-                                                    borderRadius: "4px",
-                                                    objectFit: "contain"
-                                                }}
-                                            />
-                                        )
-                                    }
-                                    return <div>Unable to calculate tile coordinates</div>
-                                })()}
-                            </div>
-                            ) : (
-                                <div style={{ textAlign: "center", padding: "40px" }}>No image available</div>
-                            )}
                             <button
-                                onClick={() => {
-                                    setShowPopup(false)
-                                }}
+                                onClick={handleClose}
                                 style={{
-                                    marginTop: "15px",
-                                    padding: "8px 16px",
+                                    padding: "6px 12px",
                                     fontSize: "14px",
                                     cursor: "pointer",
                                     backgroundColor: "#dc3545",
@@ -268,166 +195,109 @@ export default function AreaSnapshot({ area, year, month, rectangleBounds, cloud
                                 Close
                             </button>
                         </div>
-                    </>
-                )}
-            </div>
-        )
-    }
-    
-    return (
-        <div style={{ display: "inline-block", textAlign: "center" }}>
-            {thumbnailLoading ? (
-                <div
-                    style={{
-                        width: `${size}px`,
-                        height: `${size}px`,
-                        borderRadius: "4px",
-                        backgroundColor: "#f0f0f0",
-                        border: "1px solid #ccc",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "10px",
-                        color: "#666"
-                    }}
-                >
-                    ...
-                </div>
-            ) : thumbnailUrl ? (
-                <img
-                    src={thumbnailUrl}
-                    alt="Area snapshot"
-                    style={{
-                        width: `${size}px`,
-                        height: `${size}px`,
-                        objectFit: "cover",
-                        border: "1px solid #ccc",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        display: "inline-block"
-                    }}
-                    onClick={() => setShowPopup(true)}
-                    title={`NDVI: ${ndvi !== null ? ndvi.toFixed(2) : 'N/A'} - Click to view full size`}
-                />
-            ) : (
-                <div
-                    style={{
-                        width: `${size}px`,
-                        height: `${size}px`,
-                        borderRadius: "4px",
-                        backgroundColor: color,
-                        border: "1px solid #ccc",
-                        cursor: "pointer",
-                        display: "inline-block"
-                    }}
-                    onClick={() => setShowPopup(true)}
-                    title={`NDVI: ${ndvi !== null ? ndvi.toFixed(2) : 'N/A'}`}
-                />
-            )}
-            {showPopup && (
-                <>
-                    <div
-                        style={{
-                            position: "fixed",
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: "rgba(0,0,0,0.5)",
-                            zIndex: 9999
-                        }}
-                        onClick={() => {
-                            setShowPopup(false)
-                        }}
-                    />
-                    <div
-                        style={{
-                            position: "fixed",
-                            top: "50%",
-                            left: "50%",
-                            transform: "translate(-50%, -50%)",
-                            backgroundColor: "white",
-                            border: "2px solid #333",
-                            borderRadius: "8px",
-                            padding: "20px",
-                            zIndex: 10000,
-                            boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-                            maxWidth: "90vw",
-                            maxHeight: "90vh",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center"
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div style={{ marginBottom: "10px", fontSize: "16px", fontWeight: "bold" }}>
-                            Area NDVI Snapshot
-                        </div>
-                        {loading ? (
-                            <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
-                        ) : tileUrl ? (
-                            <div style={{ position: "relative", width: "100%", maxWidth: "800px" }}>
-                                {(() => {
-                                    const center = getAreaCenter(area)
-                                    if (center) {
-                                        const popupTile = latLngToTile(center.lat, center.lon, 13)
-                                        return (
-                                            <img
-                                                src={tileUrl
-                                                    .replace("{z}", popupTile.z.toString())
-                                                    .replace("{x}", popupTile.x.toString())
-                                                    .replace("{y}", popupTile.y.toString())}
-                                                alt="NDVI Overlay"
-                                                style={{
-                                                    width: "100%",
-                                                    height: "auto",
-                                                    maxHeight: "70vh",
-                                                    border: "1px solid #ccc",
-                                                    borderRadius: "4px",
-                                                    objectFit: "contain"
-                                                }}
-                                            />
-                                        )
-                                    }
-                                    return <div>Unable to calculate tile coordinates</div>
-                                })()}
-                            </div>
-                        ) : (
-                            <div style={{ textAlign: "center", padding: "40px" }}>
-                                <div
-                                    style={{
-                                        width: "200px",
-                                        height: "200px",
-                                        borderRadius: "50%",
-                                        backgroundColor: color,
-                                        border: "2px solid #333",
-                                        margin: "0 auto 10px"
-                                    }}
-                                />
-                                <div>NDVI: {ndvi !== null ? ndvi.toFixed(2) : 'N/A'}</div>
-                            </div>
-                        )}
-                        <button
-                            onClick={() => {
-                                setShowPopup(false)
-                            }}
+                        
+                        <div
                             style={{
-                                marginTop: "15px",
-                                padding: "8px 16px",
-                                fontSize: "14px",
-                                cursor: "pointer",
-                                backgroundColor: "#dc3545",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px"
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                                gap: "20px",
+                                width: "100%"
                             }}
                         >
-                            Close
-                        </button>
+                            {months.map(({ year, month }) => {
+                                const key = `${year}-${month}`
+                                const isLoading = loading[key]
+                                const tileUrl = tileUrls[key]
+                                
+                                return (
+                                    <div
+                                        key={key}
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            position: "relative"
+                                        }}
+                                    >
+                                        {isLoading ? (
+                                            <div
+                                                style={{
+                                                    width: "100%",
+                                                    aspectRatio: "4/3",
+                                                    backgroundColor: "#f0f0f0",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    fontSize: "14px",
+                                                    color: "#666"
+                                                }}
+                                            >
+                                                Loading...
+                                            </div>
+                                        ) : tileUrl && popupTile ? (
+                                            <div style={{ position: "relative", width: "100%" }}>
+                                                <img
+                                                    src={tileUrl
+                                                        .replace("{z}", popupTile.z.toString())
+                                                        .replace("{x}", popupTile.x.toString())
+                                                        .replace("{y}", popupTile.y.toString())}
+                                                    alt={`NDVI ${year} ${MONTH_NAMES_FULL[month - 1]}`}
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "auto",
+                                                        display: "block",
+                                                        aspectRatio: "4/3",
+                                                        objectFit: "cover"
+                                                    }}
+                                                />
+                                                <div
+                                                    style={{
+                                                        position: "absolute",
+                                                        bottom: 0,
+                                                        left: 0,
+                                                        right: 0,
+                                                        backgroundColor: "rgba(0,0,0,0.7)",
+                                                        color: "white",
+                                                        padding: "6px 8px",
+                                                        fontSize: "13px",
+                                                        textAlign: "center"
+                                                    }}
+                                                >
+                                                    {formatMonthLabel(year, month)}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                style={{
+                                                    width: "100%",
+                                                    aspectRatio: "4/3",
+                                                    backgroundColor: "#e0e0e0",
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    fontSize: "14px",
+                                                    color: "#666"
+                                                }}
+                                            >
+                                                <div>No data</div>
+                                                <div
+                                                    style={{
+                                                        marginTop: "8px",
+                                                        fontSize: "13px",
+                                                        color: "#999"
+                                                    }}
+                                                >
+                                                    {formatMonthLabel(year, month)}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
                     </div>
                 </>
             )}
-        </div>
+        </>
     )
 }
-
