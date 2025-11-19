@@ -37,21 +37,62 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
         }
 
         const bboxStr = bboxToString(rectangleBounds)
-        const params = new URLSearchParams({
-            geometry: JSON.stringify(geometryToUse),
-            year: year.toString(),
-            month: month.toString(),
-            bbox: bboxStr,
-            cloud: cloudTolerance.toString()
+        const geometryStr = JSON.stringify(geometryToUse)
+        const geometrySize = new Blob([geometryStr]).size
+        console.log(`[HOOK] useAreaDataMap - Request details:`, {
+            year,
+            month,
+            geometrySize: `${geometrySize} bytes`,
+            geometryType: geometryToUse?.geometry?.type || geometryToUse?.type || "unknown",
+            bbox: bboxStr
         })
 
         try {
-            const url = `/api/ndvi/area/month?${params.toString()}`
-            console.log(`[HOOK] useAreaDataMap - Calling: ${url}`)
-            const response = await fetch(url)
+            const url = `/api/ndvi/area/month`
+            const urlLength = url.length + geometryStr.length + bboxStr.length + 100
+            console.log(`[HOOK] useAreaDataMap - Estimated URL length: ${urlLength} bytes`)
+            
+            const requestBody = {
+                geometry: geometryToUse,
+                year: year.toString(),
+                month: month.toString(),
+                bbox: bboxStr,
+                cloud: cloudTolerance.toString()
+            }
+            
+            let bodyString
+            try {
+                bodyString = JSON.stringify(requestBody)
+                console.log(`[HOOK] useAreaDataMap - Request body size: ${bodyString.length} bytes`)
+            } catch (stringifyError) {
+                console.error(`[HOOK] useAreaDataMap - JSON.stringify error:`, stringifyError)
+                return { year, month, ndvi: null }
+            }
+            
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: bodyString
+            })
 
             if (!response.ok) {
-                throw new Error("Failed to fetch month data")
+                let errorMessage = `HTTP ${response.status}`
+                const responseClone = response.clone()
+                try {
+                    const errorData = await responseClone.json()
+                    errorMessage = errorData.error || errorMessage
+                } catch (e) {
+                    try {
+                        const errorText = await response.text()
+                        errorMessage = errorText || errorMessage
+                    } catch (e2) {
+                        errorMessage = `HTTP ${response.status} - Unable to read error message`
+                    }
+                }
+                console.error(`[HOOK] useAreaDataMap - API error for ${year}-${month}:`, errorMessage)
+                return { year, month, ndvi: null }
             }
 
             const data = await response.json()

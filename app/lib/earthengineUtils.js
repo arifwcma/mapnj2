@@ -135,20 +135,53 @@ export async function getAverageNdviThumbnail(start, end, bbox, cloud = DEFAULT_
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
+    const collectionSize = await new Promise((resolve, reject) => {
+        collection.size().getInfo((size, err) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            resolve(size)
+        })
+    })
+
+    if (collectionSize === 0) {
+        throw new Error("No images found")
+    }
+
     const mean = collection.mean().clip(clipGeometry)
     const vis = { min: -1, max: 1, palette: ["darkred", "orangered", "red", "yellow", "darkgreen"] }
 
     return await new Promise((resolve, reject) => {
         mean.getThumbURL({
-            dimensions: dimensions,
+            dimensions: [dimensions, dimensions],
             region: rectangle,
             format: "png",
-            visualization: vis
+            min: vis.min,
+            max: vis.max,
+            palette: vis.palette
         }, (thumbUrl, err) => {
             if (err) {
-                reject(err)
+                console.error("getThumbURL error details:", {
+                    error: err,
+                    errorType: typeof err,
+                    errorMessage: err?.message || err?.toString(),
+                    errorString: String(err),
+                    collectionSize: collectionSize,
+                    bbox: bboxArray,
+                    start: start,
+                    end: end,
+                    cloud: cloud
+                })
+                reject(new Error(err?.message || err?.toString() || "Failed to generate thumbnail"))
                 return
             }
+            if (!thumbUrl) {
+                console.error("getThumbURL returned null/undefined")
+                reject(new Error("Thumbnail URL is null"))
+                return
+            }
+            console.log("getThumbURL success:", thumbUrl.substring(0, 100) + "...")
             resolve(thumbUrl)
         })
     })

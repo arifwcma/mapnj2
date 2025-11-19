@@ -128,26 +128,81 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
             setLoading(prev => ({ ...prev, [key]: true }))
             
             const dateRange = getMonthDateRange(year, month)
-            const params = new URLSearchParams({
+            const geometryStr = JSON.stringify(geometry)
+            const geometrySize = new Blob([geometryStr]).size
+            console.log(`[AreaSnapshot] Request details for ${year}-${month}:`, {
+                geometrySize: `${geometrySize} bytes`,
+                geometryType: geometry?.geometry?.type || geometry?.type || "unknown"
+            })
+            
+            const requestBody = {
                 start: dateRange.start,
                 end: dateRange.end,
                 bbox: bboxStr,
                 cloud: cloudTolerance.toString(),
-                geometry: JSON.stringify(geometry),
+                geometry: geometry,
                 thumbnail: "true",
                 dimensions: "1024"
-            })
+            }
             
-            fetch(`/api/ndvi/average?${params.toString()}`)
-                .then(res => res.json())
+            let bodyString
+            try {
+                bodyString = JSON.stringify(requestBody)
+                console.log(`[AreaSnapshot] Request body size for ${year}-${month}: ${bodyString.length} bytes`)
+            } catch (stringifyError) {
+                console.error(`[AreaSnapshot] JSON.stringify error for ${year}-${month}:`, stringifyError)
+                setLoading(prev => ({ ...prev, [key]: false }))
+                fetchedMonthsRef.current.delete(key)
+                return
+            }
+            
+            fetch(`/api/ndvi/average`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: bodyString
+            })
+                .then(async res => {
+                    if (!res.ok) {
+                        let errorMessage = `HTTP ${res.status}`
+                        const responseClone = res.clone()
+                        try {
+                            const errData = await responseClone.json()
+                            errorMessage = errData.error || errorMessage
+                        } catch (e) {
+                            try {
+                                const errorText = await res.text()
+                                errorMessage = errorText || errorMessage
+                            } catch (e2) {
+                                errorMessage = `HTTP ${res.status} - Unable to read error message`
+                            }
+                        }
+                        throw new Error(errorMessage)
+                    }
+                    const responseClone = res.clone()
+                    try {
+                        return await res.json()
+                    } catch (jsonError) {
+                        try {
+                            const text = await responseClone.text()
+                            console.error(`[AreaSnapshot] Invalid JSON response for ${year}-${month}:`, text.substring(0, 200))
+                        } catch (e) {
+                            console.error(`[AreaSnapshot] Could not read response text for ${year}-${month}`)
+                        }
+                        throw new Error("Invalid JSON response from server")
+                    }
+                })
                 .then(data => {
                     if (data.imageUrl) {
                         setTileUrls(prev => ({ ...prev, [key]: data.imageUrl }))
+                    } else if (data.error) {
+                        console.error(`Error fetching snapshot for ${year}-${month}:`, data.error)
                     }
                     setLoading(prev => ({ ...prev, [key]: false }))
                 })
                 .catch(err => {
-                    console.error(`Error fetching tile for ${year}-${month}:`, err)
+                    console.error(`Error fetching snapshot for ${year}-${month}:`, err)
                     setLoading(prev => ({ ...prev, [key]: false }))
                     fetchedMonthsRef.current.delete(key)
                 })

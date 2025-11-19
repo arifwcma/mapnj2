@@ -3,16 +3,49 @@ import { getAverageNdviForArea } from "@/app/lib/earthengineUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 
-export async function GET(request) {
-    console.log("[API] GET /api/ndvi/area/month - Request received")
+async function handleRequest(request) {
+    console.log(`[API] ${request.method} /api/ndvi/area/month - Request received`)
     try {
-        const { searchParams } = new URL(request.url)
-        console.log("[API] /api/ndvi/area/month - Params:", { year: searchParams.get("year"), month: searchParams.get("month"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
-        const geometryParam = searchParams.get("geometry")
-        const year = searchParams.get("year")
-        const month = searchParams.get("month")
-        const bbox = searchParams.get("bbox")
-        const cloud = searchParams.get("cloud")
+        let geometryParam, year, month, bbox, cloud
+        
+        if (request.method === "POST") {
+            let body
+            try {
+                const bodyText = await request.text()
+                console.log("[API] /api/ndvi/area/month - POST body text length:", bodyText.length)
+                if (!bodyText || bodyText.trim() === "") {
+                    throw new Error("Empty request body")
+                }
+                body = JSON.parse(bodyText)
+            } catch (parseError) {
+                console.error("[API] /api/ndvi/area/month - JSON parse error:", parseError)
+                return NextResponse.json(
+                    { error: "Invalid JSON in request body: " + (parseError.message || parseError.toString()) },
+                    { status: 400 }
+                )
+            }
+            console.log("[API] /api/ndvi/area/month - POST body received:", {
+                year: body.year,
+                month: body.month,
+                bbox: body.bbox,
+                cloud: body.cloud,
+                hasGeometry: !!body.geometry,
+                geometryType: body.geometry?.geometry?.type || body.geometry?.type || "none"
+            })
+            geometryParam = body.geometry ? JSON.stringify(body.geometry) : null
+            year = body.year
+            month = body.month
+            bbox = body.bbox
+            cloud = body.cloud
+        } else {
+            const { searchParams } = new URL(request.url)
+            console.log("[API] /api/ndvi/area/month - GET Params:", { year: searchParams.get("year"), month: searchParams.get("month"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
+            geometryParam = searchParams.get("geometry")
+            year = searchParams.get("year")
+            month = searchParams.get("month")
+            bbox = searchParams.get("bbox")
+            cloud = searchParams.get("cloud")
+        }
 
         if (!geometryParam || !year || !month || !bbox) {
             return NextResponse.json(
@@ -50,9 +83,18 @@ export async function GET(request) {
         }
 
         const dateRange = getMonthDateRange(yearNum, monthNum)
+        console.log(`[API] /api/ndvi/area/month - Calling getAverageNdviForArea:`, {
+            start: dateRange.start,
+            end: dateRange.end,
+            bbox: bbox,
+            cloud: cloudNum,
+            hasGeometry: !!geometry,
+            geometryType: geometry?.geometry?.type || geometry?.type || "none"
+        })
         
         try {
             const ndvi = await getAverageNdviForArea(dateRange.start, dateRange.end, bbox, cloudNum, geometry)
+            console.log(`[API] /api/ndvi/area/month - Success for ${yearNum}-${monthNum}:`, { ndvi })
             return NextResponse.json({
                 year: yearNum,
                 month: monthNum,
@@ -60,14 +102,21 @@ export async function GET(request) {
             })
         } catch (error) {
             const errorMessage = error.message || error.toString() || ""
+            console.error(`[API] /api/ndvi/area/month - Error for ${yearNum}-${monthNum}:`, {
+                error: errorMessage,
+                errorType: error.constructor?.name || typeof error,
+                stack: error.stack,
+                fullError: error
+            })
             if (errorMessage.includes("No images found") || errorMessage.includes("No NDVI value found")) {
+                console.log(`[API] /api/ndvi/area/month - No images found, returning null for ${yearNum}-${monthNum}`)
                 return NextResponse.json({
                     year: yearNum,
                     month: monthNum,
                     ndvi: null
                 })
             } else {
-                console.error(`Error fetching area NDVI for ${yearNum}-${monthNum}:`, error)
+                console.error(`[API] /api/ndvi/area/month - Unexpected error, returning null for ${yearNum}-${monthNum}`)
                 return NextResponse.json({
                     year: yearNum,
                     month: monthNum,
@@ -82,5 +131,13 @@ export async function GET(request) {
             { status: 500 }
         )
     }
+}
+
+export async function GET(request) {
+    return handleRequest(request)
+}
+
+export async function POST(request) {
+    return handleRequest(request)
 }
 
