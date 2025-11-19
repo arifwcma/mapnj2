@@ -15,6 +15,7 @@ import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
+import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
@@ -308,6 +309,7 @@ export default function PointMonthsModePanel({
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line data={chartData} options={chartOptions} />
                     </div>
+                    <NdviLegend yAxisRange={yAxisRange} />
                     <div style={{ position: "relative", marginTop: "10px" }}>
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "0 10px" }}>
                             <button

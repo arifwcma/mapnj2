@@ -15,6 +15,7 @@ import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
 import ComparePointSnapshots from "./ComparePointSnapshots"
+import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
@@ -426,6 +427,7 @@ export default function PointsModePanel({
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line ref={chartRef} data={chartData} options={chartOptions} />
                     </div>
+                    <NdviLegend yAxisRange={yAxisRange} />
                     <div style={{ position: "relative", marginTop: "10px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 10px" }}>
                             <button 

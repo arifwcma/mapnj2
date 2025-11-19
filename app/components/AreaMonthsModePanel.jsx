@@ -16,6 +16,7 @@ import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getAreaCenter } from "@/app/lib/bboxUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import AreaSnapshot from "./AreaSnapshot"
+import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
@@ -349,6 +350,7 @@ export default function AreaMonthsModePanel({
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line data={chartData} options={chartOptions} />
                     </div>
+                    <NdviLegend yAxisRange={yAxisRange} />
                     <div style={{ position: "relative", marginTop: "10px" }}>
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "0 10px" }}>
                             <button
