@@ -489,7 +489,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     <ZoomToRectangle bounds={rectangleBounds} />
                 </>
             )}
-            {analysisMode === "area" && compareMode === "areas" && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area) => {
+            {analysisMode === "area" && (compareMode === "areas" || compareMode === "months") && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area) => {
                 if (overlayType === "NDVI" && area.ndviTileUrl && area.bounds) {
                     return (
                         <NdviOverlay 
@@ -525,7 +525,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 />
             ))}
             {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && !selectedPoints?.length && (
-                isPointSelectMode ? (
+                compareMode === "months" && analysisMode === "point" ? (
                     <PointMonthsMarker 
                         position={[selectedPoint.lat, selectedPoint.lon]}
                         draggable={isMoveMode}
@@ -549,7 +549,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     rectangleBounds={rectangleBounds}
                 />
             )}
-            {analysisMode === "area" && compareMode === "areas" && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area, index) => {
+            {analysisMode === "area" && (compareMode === "areas" || compareMode === "months") && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area, index) => {
                 const center = getAreaCenter(area)
                 if (!center) return null
                 return (

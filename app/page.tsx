@@ -241,6 +241,22 @@ export default function Page() {
             if (selectedYear && selectedMonth) {
                 loadAreaNdvi(newArea)
             }
+        } else if (analysisMode === "area" && compareMode === "months") {
+            const newArea = {
+                id: `area_${Date.now()}_${Math.random()}`,
+                geometry: feature,
+                bounds: bounds,
+                color: getColorForIndex(0),
+                label: `Area 1`,
+                boundsSource: 'field' as const,
+                ndviTileUrl: null,
+                rgbTileUrl: null
+            }
+            setSelectedAreas([newArea])
+            setBounds(bounds)
+            setBoundsSource('field')
+            setSelectedFieldFeature(feature)
+            setFieldSelectionMode(false)
         }
     }, [analysisMode, compareMode, selectedAreas.length, setBounds, selectedYear, selectedMonth, loadAreaNdvi])
     
@@ -267,6 +283,18 @@ export default function Page() {
             if (selectedYear && selectedMonth) {
                 loadAreaNdvi(newArea)
             }
+        } else if (analysisMode === "area" && compareMode === "months" && currentBounds) {
+            const newArea = {
+                id: `area_${Date.now()}_${Math.random()}`,
+                geometry: null,
+                bounds: currentBounds,
+                color: getColorForIndex(0),
+                label: `Area 1`,
+                boundsSource: 'rectangle' as const,
+                ndviTileUrl: null,
+                rgbTileUrl: null
+            }
+            setSelectedAreas([newArea])
         }
         finalizeRectangle()
         setBoundsSource('rectangle')
@@ -284,6 +312,20 @@ export default function Page() {
         setSelectedFieldFeature(null)
     }, [resetRectangle, clearNdvi])
     
+    const handleResetAreaSelection = useCallback(() => {
+        setSelectedAreas([])
+        resetRectangle()
+        clearNdvi()
+        setFieldSelectionMode(false)
+        setBoundsSource(null)
+        setSelectedFieldFeature(null)
+    }, [resetRectangle, clearNdvi])
+    
+    const handleResetPointSelection = useCallback(() => {
+        setSelectedPoint({ lat: null, lon: null })
+        clearNdvi()
+    }, [clearNdvi])
+    
     useEffect(() => {
         if (analysisMode === "area" && compareMode === "areas") {
             if (isDrawing || fieldSelectionMode) {
@@ -294,6 +336,13 @@ export default function Page() {
                     loadAreaNdvi(area)
                 })
             }
+        } else if (analysisMode === "area" && compareMode === "months") {
+            if (isDrawing || fieldSelectionMode) {
+                return
+            }
+            if (selectedAreas.length > 0 && selectedAreas[0] && selectedYear && selectedMonth) {
+                loadAreaNdvi(selectedAreas[0])
+            }
         } else if (rectangleBounds) {
             const geometry = boundsSource === 'field' ? selectedFieldFeature : null
             loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
@@ -303,7 +352,7 @@ export default function Page() {
     }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi])
     
     const isPointClickMode = analysisMode === "point" && compareMode === "points"
-    const isPointSelectMode = analysisMode === "point" && compareMode === "months"
+    const isPointSelectMode = analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null
     
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
@@ -316,7 +365,7 @@ export default function Page() {
                     analysisMode={analysisMode}
                 />
                 
-                {analysisMode === "area" && compareMode === "areas" && (
+                {(analysisMode === "area" && compareMode === "areas") || (analysisMode === "area" && compareMode === "months" && selectedAreas.length === 0) ? (
                     <AreaSelectionPrompt
                         onSelectParcel={handleStartFieldSelection}
                         onDrawRectangle={handleStartDrawing}
@@ -327,7 +376,7 @@ export default function Page() {
                         currentZoom={currentZoom}
                         fieldsData={fieldsData}
                     />
-                )}
+                ) : null}
                 
                 <CloudToleranceSlider 
                     cloudTolerance={cloudTolerance}
@@ -336,22 +385,28 @@ export default function Page() {
                     onCloudButtonRelease={() => {}}
                 />
                 
-                {rectangleBounds && (
-                    <button
-                        onClick={handleReset}
+                {(rectangleBounds || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && (
+                    <a
+                        href="#"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            if (analysisMode === "point" && compareMode === "months") {
+                                handleResetPointSelection()
+                            } else {
+                                handleReset()
+                            }
+                        }}
                         style={{
                             marginTop: "15px",
-                            padding: "8px 16px",
                             fontSize: "13px",
                             cursor: "pointer",
-                            backgroundColor: "#dc3545",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px"
+                            color: "#0066cc",
+                            textDecoration: "underline",
+                            display: "block"
                         }}
                     >
                         Reset
-                    </button>
+                    </a>
                 )}
                 
                 {analysisMode === "point" && compareMode === "points" && (
@@ -369,7 +424,7 @@ export default function Page() {
                     </div>
                 )}
                 
-                {analysisMode === "point" && compareMode === "months" && (
+                {analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null && (
                     <div style={{
                         marginTop: "10px",
                         fontSize: "13px",
@@ -453,9 +508,9 @@ export default function Page() {
                 {analysisMode === "area" && compareMode === "months" && selectedAreas.length > 0 && (
                     <AreaMonthsModePanel
                         selectedArea={selectedAreas[0]}
-                        rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
+                        onResetSelection={handleResetAreaSelection}
                     />
                 )}
             </div>

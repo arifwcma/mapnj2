@@ -177,7 +177,9 @@ export default function PointMonthsModePanel({
         }
     }, [tableData])
     
-    const chartOptions = {
+    const [yAxisRange, setYAxisRange] = useState("0-1")
+    
+    const chartOptions = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -192,11 +194,11 @@ export default function PointMonthsModePanel({
         scales: {
             y: {
                 beginAtZero: false,
-                min: -1,
+                min: yAxisRange === "0-1" ? 0 : -1,
                 max: 1
             }
         }
-    }
+    }), [yAxisRange])
     
     const isLoading = requestTracker.pendingCount > 0
     
@@ -302,9 +304,30 @@ export default function PointMonthsModePanel({
             )}
             
             {chartData.labels.length > 0 && (
-                <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
-                    <Line data={chartData} options={chartOptions} />
-                </div>
+                <>
+                    <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
+                        <Line data={chartData} options={chartOptions} />
+                    </div>
+                    <div style={{ position: "relative", marginTop: "10px" }}>
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "0 10px" }}>
+                            <button
+                                onClick={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
+                                style={{
+                                    padding: "8px 16px",
+                                    fontSize: "16px",
+                                    cursor: "pointer",
+                                    backgroundColor: "white",
+                                    color: "#333",
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    fontWeight: "500"
+                                }}
+                            >
+                                {yAxisRange === "0-1" ? "↓" : "↑"}
+                            </button>
+                        </div>
+                    </div>
+                </>
             )}
             
             <ChartLoadingMessage loading={isLoading} />

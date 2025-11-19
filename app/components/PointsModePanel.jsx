@@ -14,6 +14,7 @@ import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/ap
 import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
+import ComparePointSnapshots from "./ComparePointSnapshots"
 import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
@@ -350,6 +351,15 @@ export default function PointsModePanel({
                 selectedMonth={selectedMonth} 
                 onMonthChange={onMonthChange} 
             />
+            
+            {selectedPoints.length > 1 && (
+                <ComparePointSnapshots
+                    selectedPoints={selectedPoints}
+                    cloudTolerance={cloudTolerance}
+                    visibleRange={visibleRange}
+                    rectangleBounds={rectangleBounds}
+                />
+            )}
             
             {tableData.length > 0 && (
                 <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px", fontSize: "13px" }}>
