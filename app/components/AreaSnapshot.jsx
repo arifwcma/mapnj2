@@ -358,18 +358,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                                 <div
                                                     style={{
                                                         position: "absolute",
-                                                        top: 0,
-                                                        left: 0,
-                                                        right: 0,
-                                                        bottom: 0,
-                                                        border: "3px solid orange",
-                                                        boxSizing: "border-box",
-                                                        pointerEvents: "none"
-                                                    }}
-                                                />
-                                                <div
-                                                    style={{
-                                                        position: "absolute",
                                                         bottom: 0,
                                                         left: 0,
                                                         right: 0,
