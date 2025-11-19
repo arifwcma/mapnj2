@@ -251,7 +251,9 @@ export default function PointsModePanel({
         return { labels, datasets }
     }, [displayData, selectedPoints])
     
-    const chartOptions = {
+    const [yAxisRange, setYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    
+    const chartOptions = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -267,11 +269,11 @@ export default function PointsModePanel({
         scales: {
             y: {
                 beginAtZero: false,
-                min: -1,
+                min: yAxisRange === "0-1" ? 0 : -1,
                 max: 1
             }
         }
-    }
+    }), [yAxisRange])
     
     const canGoLeft = useCallback(() => {
         if (!visibleRange) return false
@@ -414,41 +416,58 @@ export default function PointsModePanel({
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line ref={chartRef} data={chartData} options={chartOptions} />
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", padding: "0 10px" }}>
-                        <button 
-                            onClick={handleLeftArrow} 
-                            disabled={!canGoLeft()}
-                            style={{
-                                padding: "8px 16px",
-                                fontSize: "16px",
-                                cursor: canGoLeft() ? "pointer" : "not-allowed",
-                                opacity: canGoLeft() ? 1 : 0.5,
-                                backgroundColor: "white",
-                                color: "#333",
-                                border: "1px solid #ddd",
-                                borderRadius: "8px",
-                                fontWeight: "500"
-                            }}
-                        >
-                            ←
-                        </button>
-                        <button 
-                            onClick={handleRightArrow} 
-                            disabled={!canGoRight()}
-                            style={{
-                                padding: "8px 16px",
-                                fontSize: "16px",
-                                cursor: canGoRight() ? "pointer" : "not-allowed",
-                                opacity: canGoRight() ? 1 : 0.5,
-                                backgroundColor: "white",
-                                color: "#333",
-                                border: "1px solid #ddd",
-                                borderRadius: "8px",
-                                fontWeight: "500"
-                            }}
-                        >
-                            →
-                        </button>
+                    <div style={{ position: "relative", marginTop: "10px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 10px" }}>
+                            <button 
+                                onClick={handleLeftArrow} 
+                                disabled={!canGoLeft()}
+                                style={{
+                                    padding: "8px 16px",
+                                    fontSize: "16px",
+                                    cursor: canGoLeft() ? "pointer" : "not-allowed",
+                                    opacity: canGoLeft() ? 1 : 0.5,
+                                    backgroundColor: "white",
+                                    color: "#333",
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    fontWeight: "500"
+                                }}
+                            >
+                                ←
+                            </button>
+                            <button
+                                onClick={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
+                                style={{
+                                    padding: "8px 16px",
+                                    fontSize: "16px",
+                                    cursor: "pointer",
+                                    backgroundColor: "white",
+                                    color: "#333",
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    fontWeight: "500"
+                                }}
+                            >
+                                {yAxisRange === "0-1" ? "↓" : "↑"}
+                            </button>
+                            <button 
+                                onClick={handleRightArrow} 
+                                disabled={!canGoRight()}
+                                style={{
+                                    padding: "8px 16px",
+                                    fontSize: "16px",
+                                    cursor: canGoRight() ? "pointer" : "not-allowed",
+                                    opacity: canGoRight() ? 1 : 0.5,
+                                    backgroundColor: "white",
+                                    color: "#333",
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    fontWeight: "500"
+                                }}
+                            >
+                                →
+                            </button>
+                        </div>
                     </div>
                 </>
             )}

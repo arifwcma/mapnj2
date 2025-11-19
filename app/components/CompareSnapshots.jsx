@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react"
 import { getMonthDateRange, formatMonthLabel } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { MONTH_NAMES_FULL } from "@/app/lib/config"
+import { getColorForIndex } from "@/app/lib/colorUtils"
 
 function getAllMonthsInRange(startMonth, endMonth) {
     const months = []
@@ -268,7 +269,6 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                             style={{
                                 overflow: "auto",
                                 flex: 1,
-                                border: "1px solid #e0e0e0",
                                 borderRadius: "4px"
                             }}
                         >
@@ -285,8 +285,6 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                             style={{
                                                 padding: "12px",
                                                 textAlign: "left",
-                                                borderBottom: "2px solid #ccc",
-                                                borderRight: "1px solid #e0e0e0",
                                                 backgroundColor: "white",
                                                 position: "sticky",
                                                 left: 0,
@@ -301,13 +299,25 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                                 style={{
                                                     padding: "12px",
                                                     textAlign: "center",
-                                                    borderBottom: "2px solid #ccc",
-                                                    borderRight: "1px solid #e0e0e0",
                                                     minWidth: "200px",
                                                     backgroundColor: "white"
                                                 }}
                                             >
-                                                {area.label || `Area ${index + 1}`}
+                                                <div style={{
+                                                    width: "20px",
+                                                    height: "20px",
+                                                    border: `2px solid ${getColorForIndex(index)}`,
+                                                    borderRadius: "50%",
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    fontSize: "10px",
+                                                    fontWeight: "bold",
+                                                    color: getColorForIndex(index),
+                                                    backgroundColor: "white"
+                                                }}>
+                                                    {index + 1}
+                                                </div>
                                             </th>
                                         ))}
                                     </tr>
@@ -318,8 +328,6 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                             <td
                                                 style={{
                                                     padding: "12px",
-                                                    borderBottom: "1px solid #e0e0e0",
-                                                    borderRight: "1px solid #e0e0e0",
                                                     backgroundColor: "white",
                                                     position: "sticky",
                                                     left: 0,
@@ -340,8 +348,6 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                                         key={`${area.id}-${year}-${month}`}
                                                         style={{
                                                             padding: "8px",
-                                                            borderBottom: "1px solid #e0e0e0",
-                                                            borderRight: "1px solid #e0e0e0",
                                                             textAlign: "center",
                                                             verticalAlign: "middle"
                                                         }}
