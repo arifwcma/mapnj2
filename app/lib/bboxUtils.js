@@ -21,3 +21,24 @@ export function validatePointInBounds(lat, lon, bounds) {
     return lat >= minLat && lat <= maxLat && lon >= minLng && lon <= maxLng
 }
 
+export function getAreaCenter(area) {
+    if (area.bounds) {
+        const centerLat = (area.bounds[0][0] + area.bounds[1][0]) / 2
+        const centerLon = (area.bounds[0][1] + area.bounds[1][1]) / 2
+        return { lat: centerLat, lon: centerLon }
+    }
+    if (area.geometry?.geometry?.type === "Polygon" && area.geometry.geometry.coordinates?.[0]) {
+        const coords = area.geometry.geometry.coordinates[0]
+        let sumLat = 0, sumLon = 0
+        for (let i = 0; i < coords.length - 1; i++) {
+            sumLon += coords[i][0]
+            sumLat += coords[i][1]
+        }
+        return {
+            lat: sumLat / (coords.length - 1),
+            lon: sumLon / (coords.length - 1)
+        }
+    }
+    return null
+}
+

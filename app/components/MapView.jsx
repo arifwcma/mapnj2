@@ -9,7 +9,7 @@ import NdviOverlay from "./NdviOverlay"
 import FieldsLayer from "./FieldsLayer"
 import useBoundary from "@/app/hooks/useBoundary"
 import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, TILE_LAYER_TOPOGRAPHIC, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG, FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
-import { validatePointInBounds } from "@/app/lib/bboxUtils"
+import { validatePointInBounds, getAreaCenter } from "@/app/lib/bboxUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
@@ -408,9 +408,10 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {any} [props.onZoomChange]
  * @param {Array} [props.selectedAreas]
  * @param {string} [props.analysisMode]
+ * @param {string} [props.compareMode]
  * @param {Function} [props.onMapBoundsChange]
  */
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", onMapBoundsChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
     const { boundary, loading, error } = useBoundary()
     const tileUrl = basemap === "satellite" 
         ? TILE_LAYER_SATELLITE 
@@ -488,10 +489,31 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     <ZoomToRectangle bounds={rectangleBounds} />
                 </>
             )}
-            {ndviTileUrl && rectangleBounds && overlayType === "NDVI" && (
+            {analysisMode === "area" && compareMode === "areas" && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area) => {
+                if (overlayType === "NDVI" && area.ndviTileUrl && area.bounds) {
+                    return (
+                        <NdviOverlay 
+                            key={`ndvi-${area.id}-${area.ndviTileUrl}`} 
+                            tileUrl={area.ndviTileUrl} 
+                            bounds={area.bounds} 
+                        />
+                    )
+                }
+                if (overlayType === "RGB" && area.rgbTileUrl && area.bounds) {
+                    return (
+                        <NdviOverlay 
+                            key={`rgb-${area.id}-${area.rgbTileUrl}`} 
+                            tileUrl={area.rgbTileUrl} 
+                            bounds={area.bounds} 
+                        />
+                    )
+                }
+                return null
+            })}
+            {analysisMode !== "area" && ndviTileUrl && rectangleBounds && overlayType === "NDVI" && (
                 <NdviOverlay key={`ndvi-${basemap}-${ndviTileUrl}`} tileUrl={ndviTileUrl} bounds={rectangleBounds} />
             )}
-            {rgbTileUrl && rectangleBounds && overlayType === "RGB" && (
+            {analysisMode !== "area" && rgbTileUrl && rectangleBounds && overlayType === "RGB" && (
                 <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
             )}
             {selectedPoints && selectedPoints.length > 0 && selectedPoints.map((point, index) => (
@@ -527,6 +549,18 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     rectangleBounds={rectangleBounds}
                 />
             )}
+            {analysisMode === "area" && compareMode === "areas" && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area, index) => {
+                const center = getAreaCenter(area)
+                if (!center) return null
+                return (
+                    <TriangleMarker
+                        key={area.id}
+                        position={[center.lat, center.lon]}
+                        color={getColorForIndex(index)}
+                        index={index}
+                    />
+                )
+            })}
             <FieldsLayer 
                 fieldSelectionMode={fieldSelectionMode}
                 fieldsData={fieldsData}

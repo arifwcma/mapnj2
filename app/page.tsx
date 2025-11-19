@@ -13,6 +13,8 @@ import AreaMonthsModePanel from "@/app/components/AreaMonthsModePanel"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { getMonthDateRange } from "@/app/lib/dateUtils"
+import { bboxToString } from "@/app/lib/bboxUtils"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
 
@@ -23,7 +25,7 @@ export default function Page() {
     const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
     const [selectedPoints, setSelectedPoints] = useState<Array<{ id: string, lat: number, lon: number }>>([])
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
-    const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field' }>>([])
+    const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
     const [fieldSelectionMode, setFieldSelectionMode] = useState(false)
     const [fieldsData, setFieldsData] = useState<any>(null)
     const [boundsSource, setBoundsSource] = useState<'rectangle' | 'field' | null>(null)
@@ -62,8 +64,38 @@ export default function Page() {
         updateCloudTolerance,
         clearNdvi,
         setOverlayType,
-        isImageAvailable
+        isImageAvailable,
+        loadOverlayTileOnly
     } = useNdviData()
+    
+    const loadAreaNdvi = useCallback(async (area: { id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }) => {
+        if (!selectedYear || !selectedMonth || !area.bounds) {
+            return
+        }
+        
+        try {
+            const bboxStr = bboxToString(area.bounds)
+            const dateRange = getMonthDateRange(selectedYear, selectedMonth)
+            const geometryParam = area.geometry ? `&geometry=${encodeURIComponent(JSON.stringify(area.geometry))}` : ""
+            
+            const tileResponse = await fetch(`/api/ndvi/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}${geometryParam}`)
+            if (!tileResponse.ok) {
+                console.error("Failed to load NDVI for area:", area.id)
+                return
+            }
+            
+            const tileData = await tileResponse.json()
+            const tileUrl = tileData.tileUrl || null
+            
+            setSelectedAreas(prev => prev.map(a => 
+                a.id === area.id 
+                    ? { ...a, ndviTileUrl: tileUrl }
+                    : a
+            ))
+        } catch (err) {
+            console.error("Error loading NDVI for area:", area.id, err)
+        }
+    }, [selectedYear, selectedMonth, cloudTolerance])
     
     const cloudToleranceRef = useRef(cloudTolerance)
     const sliderDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -162,6 +194,14 @@ export default function Page() {
         setFieldSelectionMode(false)
     }, [])
     
+    const handleCancelSelection = useCallback(() => {
+        setFieldSelectionMode(false)
+        stopDrawing()
+        resetRectangle()
+        setSelectedFieldFeature(null)
+        setBoundsSource(null)
+    }, [stopDrawing, resetRectangle])
+    
     const handleFieldClick = useCallback((bounds: [[number, number], [number, number]], feature: any) => {
         if (analysisMode === "area" && compareMode === "areas") {
             const newArea = {
@@ -170,15 +210,20 @@ export default function Page() {
                 bounds: bounds,
                 color: getColorForIndex(selectedAreas.length),
                 label: `Area ${selectedAreas.length + 1}`,
-                boundsSource: 'field' as const
+                boundsSource: 'field' as const,
+                ndviTileUrl: null,
+                rgbTileUrl: null
             }
             setSelectedAreas(prev => [...prev, newArea])
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
             setFieldSelectionMode(false)
+            if (selectedYear && selectedMonth) {
+                loadAreaNdvi(newArea)
+            }
         }
-    }, [analysisMode, compareMode, selectedAreas.length, setBounds])
+    }, [analysisMode, compareMode, selectedAreas.length, setBounds, selectedYear, selectedMonth, loadAreaNdvi])
     
     const handleStartDrawing = useCallback(() => {
         setFieldSelectionMode(false)
@@ -195,14 +240,19 @@ export default function Page() {
                 bounds: currentBounds,
                 color: getColorForIndex(selectedAreas.length),
                 label: `Area ${selectedAreas.length + 1}`,
-                boundsSource: 'rectangle' as const
+                boundsSource: 'rectangle' as const,
+                ndviTileUrl: null,
+                rgbTileUrl: null
             }
             setSelectedAreas(prev => [...prev, newArea])
+            if (selectedYear && selectedMonth) {
+                loadAreaNdvi(newArea)
+            }
         }
         finalizeRectangle()
         setBoundsSource('rectangle')
         setSelectedFieldFeature(null)
-    }, [finalizeRectangle, analysisMode, compareMode, currentBounds, selectedAreas.length])
+    }, [finalizeRectangle, analysisMode, compareMode, currentBounds, selectedAreas.length, selectedYear, selectedMonth, loadAreaNdvi])
     
     const handleReset = useCallback(() => {
         resetRectangle()
@@ -216,27 +266,22 @@ export default function Page() {
     }, [resetRectangle, clearNdvi])
     
     useEffect(() => {
-        if (rectangleBounds) {
-            if (analysisMode === "area" && compareMode === "areas" && selectedAreas.length > 0 && selectedYear && selectedMonth) {
-                const matchingArea = selectedAreas.find(area => {
-                    if (!area.bounds) return false
-                    const areaBounds = area.bounds
-                    const rectBounds = rectangleBounds
-                    return Math.abs(areaBounds[0][0] - rectBounds[0][0]) < 0.0001 &&
-                           Math.abs(areaBounds[0][1] - rectBounds[0][1]) < 0.0001 &&
-                           Math.abs(areaBounds[1][0] - rectBounds[1][0]) < 0.0001 &&
-                           Math.abs(areaBounds[1][1] - rectBounds[1][1]) < 0.0001
-                }) || selectedAreas[0]
-                const areaGeometry = matchingArea.geometry || null
-                loadNdviData(rectangleBounds, cloudTolerance, selectedYear, selectedMonth, overlayType, areaGeometry)
-            } else {
-                const geometry = boundsSource === 'field' ? selectedFieldFeature : null
-                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
+        if (analysisMode === "area" && compareMode === "areas") {
+            if (isDrawing || fieldSelectionMode) {
+                return
             }
+            if (selectedAreas.length > 0 && selectedYear && selectedMonth) {
+                selectedAreas.forEach(area => {
+                    loadAreaNdvi(area)
+                })
+            }
+        } else if (rectangleBounds) {
+            const geometry = boundsSource === 'field' ? selectedFieldFeature : null
+            loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
         } else {
             clearNdvi()
         }
-    }, [rectangleBounds, cloudTolerance, overlayType, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, analysisMode, compareMode, selectedAreas, selectedYear, selectedMonth])
+    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi])
     
     const isPointClickMode = analysisMode === "point" && compareMode === "points"
     const isPointSelectMode = analysisMode === "point" && compareMode === "months"
@@ -256,6 +301,12 @@ export default function Page() {
                     <AreaSelectionPrompt
                         onSelectParcel={handleStartFieldSelection}
                         onDrawRectangle={handleStartDrawing}
+                        isSelectionMode={isDrawing || fieldSelectionMode}
+                        onCancel={handleCancelSelection}
+                        isDrawing={isDrawing}
+                        fieldSelectionMode={fieldSelectionMode}
+                        currentZoom={currentZoom}
+                        fieldsData={fieldsData}
                     />
                 )}
                 
@@ -333,6 +384,7 @@ export default function Page() {
                     selectedPoint={selectedPoint}
                     selectedAreas={selectedAreas}
                     analysisMode={analysisMode}
+                    compareMode={compareMode}
                     onPointClick={handlePointClick}
                     fieldSelectionMode={fieldSelectionMode}
                     fieldsData={fieldsData}
