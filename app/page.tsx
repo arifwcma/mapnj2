@@ -76,11 +76,30 @@ export default function Page() {
         try {
             const bboxStr = bboxToString(area.bounds)
             const dateRange = getMonthDateRange(selectedYear, selectedMonth)
-            const geometryParam = area.geometry ? `&geometry=${encodeURIComponent(JSON.stringify(area.geometry))}` : ""
             
-            const tileResponse = await fetch(`/api/ndvi/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}${geometryParam}`)
+            let tileResponse
+            if (area.geometry) {
+                const requestBody = {
+                    start: dateRange.start,
+                    end: dateRange.end,
+                    bbox: bboxStr,
+                    cloud: cloudTolerance.toString(),
+                    geometry: area.geometry
+                }
+                tileResponse = await fetch(`/api/ndvi/average`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestBody)
+                })
+            } else {
+                tileResponse = await fetch(`/api/ndvi/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`)
+            }
+            
             if (!tileResponse.ok) {
-                console.error("Failed to load NDVI for area:", area.id)
+                const errorData = await tileResponse.json().catch(() => ({ error: `HTTP ${tileResponse.status}` }))
+                console.error("Failed to load NDVI for area:", area.id, errorData.error || `HTTP ${tileResponse.status}`)
                 return
             }
             
