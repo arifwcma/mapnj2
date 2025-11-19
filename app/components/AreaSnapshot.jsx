@@ -100,22 +100,10 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
     const fetchedMonthsRef = useRef(new Set())
     
     useEffect(() => {
-        if (!showPopup || !visibleRange) {
+        if (!showPopup || !visibleRange || !rectangleBounds) {
             fetchedMonthsRef.current.clear()
             return
         }
-        
-        const areaBounds = getAreaBounds(area)
-        if (!areaBounds) return
-        
-        const latDiff = Math.abs(areaBounds.maxLat - areaBounds.minLat)
-        const lonDiff = Math.abs(areaBounds.maxLon - areaBounds.minLon)
-        const buffer = Math.max(latDiff, lonDiff) * 0.1
-        
-        const bboxForApi = [
-            [areaBounds.minLat - buffer, areaBounds.minLon - buffer],
-            [areaBounds.maxLat + buffer, areaBounds.maxLon + buffer]
-        ]
         
         const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         const geometry = area.geometry || (area.bounds ? {
@@ -134,7 +122,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
         
         if (!geometry) return
         
-        const bboxStr = bboxToString(bboxForApi)
+        const bboxStr = bboxToString(rectangleBounds)
         
         months.forEach(({ year, month }) => {
             const key = `${year}-${month}`
@@ -170,7 +158,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                     fetchedMonthsRef.current.delete(key)
                 })
         })
-    }, [showPopup, visibleRange, cloudTolerance, area])
+    }, [showPopup, visibleRange, rectangleBounds, cloudTolerance, area])
     
     const handleClose = () => {
         setShowPopup(false)
@@ -215,30 +203,15 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
         }
     }, [isDragging, dragOffset])
     
-    if (!visibleRange) {
+    if (!visibleRange || !rectangleBounds) {
         return null
     }
     
     const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
-    const areaBounds = getAreaBounds(area)
     
-    let popupTile = null
-    if (areaBounds) {
-        const minTile = latLngToTile(areaBounds.minLat, areaBounds.minLon, 13)
-        const maxTile = latLngToTile(areaBounds.maxLat, areaBounds.maxLon, 13)
-        const centerLat = (areaBounds.minLat + areaBounds.maxLat) / 2
-        const centerLon = (areaBounds.minLon + areaBounds.maxLon) / 2
-        popupTile = latLngToTile(centerLat, centerLon, 13)
-        
-        const tileXRange = Math.abs(maxTile.x - minTile.x)
-        const tileYRange = Math.abs(maxTile.y - minTile.y)
-        
-        if (tileXRange > 0 || tileYRange > 0) {
-            const avgTileX = Math.floor((minTile.x + maxTile.x) / 2)
-            const avgTileY = Math.floor((minTile.y + maxTile.y) / 2)
-            popupTile = { x: avgTileX, y: avgTileY, z: 13 }
-        }
-    }
+    const centerLat = (rectangleBounds[0][0] + rectangleBounds[1][0]) / 2
+    const centerLon = (rectangleBounds[0][1] + rectangleBounds[1][1]) / 2
+    const popupTile = latLngToTile(centerLat, centerLon, 13)
     
     return (
         <>
