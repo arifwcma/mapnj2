@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { getMonthDateRange, formatMonthLabel } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { MONTH_NAMES_FULL } from "@/app/lib/config"
@@ -31,6 +31,30 @@ function latLngToTile(lat, lng, zoom) {
     return { x, y, z: zoom }
 }
 
+function getAreaBounds(area) {
+    if (area.bounds) {
+        return {
+            minLat: area.bounds[0][0],
+            maxLat: area.bounds[1][0],
+            minLon: area.bounds[0][1],
+            maxLon: area.bounds[1][1]
+        }
+    }
+    if (area.geometry?.geometry?.type === "Polygon" && area.geometry.geometry.coordinates?.[0]) {
+        const coords = area.geometry.geometry.coordinates[0]
+        let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity
+        for (let i = 0; i < coords.length; i++) {
+            const [lon, lat] = coords[i]
+            minLat = Math.min(minLat, lat)
+            maxLat = Math.max(maxLat, lat)
+            minLon = Math.min(minLon, lon)
+            maxLon = Math.max(maxLon, lon)
+        }
+        return { minLat, maxLat, minLon, maxLon }
+    }
+    return null
+}
+
 function getAreaCenter(area) {
     if (area.bounds) {
         const centerLat = (area.bounds[0][0] + area.bounds[1][0]) / 2
@@ -52,70 +76,132 @@ function getAreaCenter(area) {
     return null
 }
 
+function calculateAspectRatio(area) {
+    const bounds = getAreaBounds(area)
+    if (!bounds) return 4/3
+    
+    const latDiff = Math.abs(bounds.maxLat - bounds.minLat)
+    const lonDiff = Math.abs(bounds.maxLon - bounds.minLon)
+    
+    if (latDiff === 0) return 2.0
+    if (lonDiff === 0) return 0.5
+    
+    const aspectRatio = lonDiff / latDiff
+    return Math.max(0.5, Math.min(2.0, aspectRatio))
+}
+
 export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, visibleRange }) {
     const [showPopup, setShowPopup] = useState(false)
     const [tileUrls, setTileUrls] = useState({})
     const [loading, setLoading] = useState({})
+    const [isDragging, setIsDragging] = useState(false)
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+    const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
+    const fetchedMonthsRef = useRef(new Set())
     
     useEffect(() => {
-        if (showPopup && visibleRange && rectangleBounds) {
-            const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
-            const geometry = area.geometry || (area.bounds ? {
-                type: "Feature",
-                geometry: {
-                    type: "Polygon",
-                    coordinates: [[
-                        [area.bounds[0][1], area.bounds[0][0]],
-                        [area.bounds[1][1], area.bounds[0][0]],
-                        [area.bounds[1][1], area.bounds[1][0]],
-                        [area.bounds[0][1], area.bounds[1][0]],
-                        [area.bounds[0][1], area.bounds[0][0]]
-                    ]]
-                }
-            } : null)
+        if (!showPopup || !visibleRange || !rectangleBounds) {
+            fetchedMonthsRef.current.clear()
+            return
+        }
+        
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const geometry = area.geometry || (area.bounds ? {
+            type: "Feature",
+            geometry: {
+                type: "Polygon",
+                coordinates: [[
+                    [area.bounds[0][1], area.bounds[0][0]],
+                    [area.bounds[1][1], area.bounds[0][0]],
+                    [area.bounds[1][1], area.bounds[1][0]],
+                    [area.bounds[0][1], area.bounds[1][0]],
+                    [area.bounds[0][1], area.bounds[0][0]]
+                ]]
+            }
+        } : null)
+        
+        if (!geometry) return
+        
+        const bboxStr = bboxToString(rectangleBounds)
+        
+        months.forEach(({ year, month }) => {
+            const key = `${year}-${month}`
             
-            if (!geometry) return
+            if (fetchedMonthsRef.current.has(key)) {
+                return
+            }
             
-            const bboxStr = bboxToString(rectangleBounds)
-            const newLoading = {}
-            const newTileUrls = {}
+            fetchedMonthsRef.current.add(key)
             
-            months.forEach(({ year, month }) => {
-                const key = `${year}-${month}`
-                newLoading[key] = true
-                
-                const dateRange = getMonthDateRange(year, month)
-                const params = new URLSearchParams({
-                    start: dateRange.start,
-                    end: dateRange.end,
-                    bbox: bboxStr,
-                    cloud: cloudTolerance.toString(),
-                    geometry: JSON.stringify(geometry)
-                })
-                
-                fetch(`/api/ndvi/average?${params.toString()}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.tileUrl) {
-                            setTileUrls(prev => ({ ...prev, [key]: data.tileUrl }))
-                        }
-                        setLoading(prev => ({ ...prev, [key]: false }))
-                    })
-                    .catch(err => {
-                        console.error(`Error fetching tile for ${year}-${month}:`, err)
-                        setLoading(prev => ({ ...prev, [key]: false }))
-                    })
+            setLoading(prev => ({ ...prev, [key]: true }))
+            
+            const dateRange = getMonthDateRange(year, month)
+            const params = new URLSearchParams({
+                start: dateRange.start,
+                end: dateRange.end,
+                bbox: bboxStr,
+                cloud: cloudTolerance.toString(),
+                geometry: JSON.stringify(geometry)
             })
             
-            setLoading(newLoading)
-        }
+            fetch(`/api/ndvi/average?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.tileUrl) {
+                        setTileUrls(prev => ({ ...prev, [key]: data.tileUrl }))
+                    }
+                    setLoading(prev => ({ ...prev, [key]: false }))
+                })
+                .catch(err => {
+                    console.error(`Error fetching tile for ${year}-${month}:`, err)
+                    setLoading(prev => ({ ...prev, [key]: false }))
+                    fetchedMonthsRef.current.delete(key)
+                })
+        })
     }, [showPopup, visibleRange, rectangleBounds, cloudTolerance, area])
     
     const handleClose = () => {
         setShowPopup(false)
         setTileUrls({})
         setLoading({})
+        setPopupPosition({ x: 0, y: 0 })
+        fetchedMonthsRef.current.clear()
     }
+    
+    const handleMouseDown = (e) => {
+        if (e.target.closest('button') || e.target.closest('img')) {
+            return
+        }
+        setIsDragging(true)
+        const rect = e.currentTarget.getBoundingClientRect()
+        setDragOffset({
+            x: e.clientX - rect.left - rect.width / 2,
+            y: e.clientY - rect.top - rect.height / 2
+        })
+    }
+    
+    useEffect(() => {
+        if (!isDragging) return
+        
+        const handleMouseMove = (e) => {
+            setPopupPosition({
+                x: e.clientX - window.innerWidth / 2 - dragOffset.x,
+                y: e.clientY - window.innerHeight / 2 - dragOffset.y
+            })
+        }
+        
+        const handleMouseUp = () => {
+            setIsDragging(false)
+        }
+        
+        document.addEventListener('mousemove', handleMouseMove)
+        document.addEventListener('mouseup', handleMouseUp)
+        
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove)
+            document.removeEventListener('mouseup', handleMouseUp)
+        }
+    }, [isDragging, dragOffset])
     
     if (!visibleRange) {
         return null
@@ -161,7 +247,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                             position: "fixed",
                             top: "50%",
                             left: "50%",
-                            transform: "translate(-50%, -50%)",
+                            transform: `translate(calc(-50% + ${popupPosition.x}px), calc(-50% + ${popupPosition.y}px))`,
                             backgroundColor: "white",
                             borderRadius: "8px",
                             padding: "20px",
@@ -172,11 +258,22 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                             maxHeight: "95vh",
                             overflow: "auto",
                             display: "flex",
-                            flexDirection: "column"
+                            flexDirection: "column",
+                            cursor: isDragging ? "grabbing" : "default"
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                        <div 
+                            style={{ 
+                                display: "flex", 
+                                justifyContent: "space-between", 
+                                alignItems: "center", 
+                                marginBottom: "20px",
+                                cursor: "grab",
+                                userSelect: "none"
+                            }}
+                            onMouseDown={handleMouseDown}
+                        >
                             <div style={{ fontSize: "18px", fontWeight: "bold" }}>
                                 Area Snapshots
                             </div>
@@ -200,6 +297,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                             style={{
                                 display: "grid",
                                 gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                                gridAutoFlow: "dense",
                                 gap: "20px",
                                 width: "100%"
                             }}
@@ -208,6 +306,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                 const key = `${year}-${month}`
                                 const isLoading = loading[key]
                                 const tileUrl = tileUrls[key]
+                                const aspectRatio = calculateAspectRatio(area)
                                 
                                 return (
                                     <div
@@ -222,7 +321,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                             <div
                                                 style={{
                                                     width: "100%",
-                                                    aspectRatio: "4/3",
+                                                    aspectRatio: aspectRatio,
                                                     backgroundColor: "#f0f0f0",
                                                     display: "flex",
                                                     alignItems: "center",
@@ -245,7 +344,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                                         width: "100%",
                                                         height: "auto",
                                                         display: "block",
-                                                        aspectRatio: "4/3",
+                                                        aspectRatio: aspectRatio,
                                                         objectFit: "cover"
                                                     }}
                                                 />
@@ -269,7 +368,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                             <div
                                                 style={{
                                                     width: "100%",
-                                                    aspectRatio: "4/3",
+                                                    aspectRatio: aspectRatio,
                                                     backgroundColor: "#e0e0e0",
                                                     display: "flex",
                                                     flexDirection: "column",
