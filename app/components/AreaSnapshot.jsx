@@ -362,7 +362,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                                         left: 0,
                                                         right: 0,
                                                         bottom: 0,
-                                                        border: "3px solid yellow",
+                                                        border: "3px solid orange",
                                                         boxSizing: "border-box",
                                                         pointerEvents: "none"
                                                     }}
