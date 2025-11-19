@@ -66,12 +66,12 @@ function buildDisplayDataItem(month, dataMap) {
 }
 
 function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
-    const dataMap = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker)
-    const dataMapRef = useRef(dataMap)
+    const { dataMap, fetchMissingMonths } = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker)
+    const dataMapRef = useRef({ dataMap, fetchMissingMonths })
     
     useEffect(() => {
-        dataMapRef.current = dataMap
-    }, [dataMap])
+        dataMapRef.current = { dataMap, fetchMissingMonths }
+    }, [dataMap, fetchMissingMonths])
     
     useEffect(() => {
         onDataMapReady(index, dataMapRef.current)
@@ -118,11 +118,31 @@ export default function AreasModePanel({
         const monthKeys = months.map(m => monthKey(m.year, m.month))
         
         selectedAreas.forEach((area, index) => {
-            if (areaDataMaps[index]) {
+            if (areaDataMaps[index]?.fetchMissingMonths) {
                 areaDataMaps[index].fetchMissingMonths(monthKeys)
             }
         })
     }, [visibleRange, selectedAreas, areaDataMaps])
+    
+    useEffect(() => {
+        if (!selectedYear || !selectedMonth || selectedAreas.length === 0 || !visibleRange) {
+            return
+        }
+        
+        const currentMonthKey = monthKey(selectedYear, selectedMonth)
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const monthKeys = months.map(m => monthKey(m.year, m.month))
+        
+        if (!monthKeys.includes(currentMonthKey)) {
+            monthKeys.push(currentMonthKey)
+        }
+        
+        selectedAreas.forEach((area, index) => {
+            if (areaDataMaps[index]?.fetchMissingMonths) {
+                areaDataMaps[index].fetchMissingMonths(monthKeys)
+            }
+        })
+    }, [selectedYear, selectedMonth, selectedAreas, visibleRange, areaDataMaps])
     
     const displayData = useMemo(() => {
         if (!visibleRange) {
@@ -137,30 +157,36 @@ export default function AreasModePanel({
     }, [visibleRange, selectedAreas, areaDataMaps])
     
     const tableData = useMemo(() => {
-        if (!visibleRange) {
-            return []
+        if (!selectedYear || !selectedMonth) {
+            return selectedAreas.map((area, index) => {
+                const centerLat = area.bounds ? (area.bounds[0][0] + area.bounds[1][0]) / 2 : null
+                const centerLon = area.bounds ? (area.bounds[0][1] + area.bounds[1][1]) / 2 : null
+                return {
+                    area,
+                    index,
+                    averageNdvi: null,
+                    currentNdvi: null,
+                    centerLat,
+                    centerLon
+                }
+            })
         }
         
-        const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
         return selectedAreas.map((area, index) => {
             const dataMap = areaDataMaps[index]?.dataMap || new Map()
-            const monthValues = months.map(m => {
-                const key = monthKey(m.year, m.month)
-                return dataMap.get(key)
-            }).filter(v => v !== null && v !== undefined)
-            
-            const avg = monthValues.length > 0 
-                ? monthValues.reduce((sum, val) => sum + val, 0) / monthValues.length 
-                : null
-            
             const currentMonthKey = monthKey(selectedYear, selectedMonth)
             const currentNdvi = dataMap.get(currentMonthKey)
+            
+            const centerLat = area.bounds ? (area.bounds[0][0] + area.bounds[1][0]) / 2 : null
+            const centerLon = area.bounds ? (area.bounds[0][1] + area.bounds[1][1]) / 2 : null
             
             return {
                 area,
                 index,
-                averageNdvi: avg !== null ? parseFloat(avg.toFixed(2)) : null,
-                currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null
+                averageNdvi: currentNdvi !== null && currentNdvi !== undefined ? parseFloat(currentNdvi.toFixed(2)) : null,
+                currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null,
+                centerLat,
+                centerLon
             }
         })
     }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps])
@@ -295,14 +321,15 @@ export default function AreasModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Area</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>Latitude</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>Longitude</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {tableData.map(({ area, index, averageNdvi, currentNdvi }) => (
+                        {tableData.map(({ area, index, averageNdvi, currentNdvi, centerLat, centerLon }) => (
                             <tr key={area.id} style={{ borderBottom: "1px solid #eee" }}>
                                 <td style={{ padding: "8px" }}>
                                     <div style={{
@@ -321,7 +348,12 @@ export default function AreasModePanel({
                                         {index + 1}
                                     </div>
                                 </td>
-                                <td style={{ padding: "8px" }}>{area.label || `Area ${index + 1}`}</td>
+                                <td style={{ padding: "8px" }}>
+                                    {centerLat !== null ? centerLat.toFixed(6) : "N/A"}
+                                </td>
+                                <td style={{ padding: "8px" }}>
+                                    {centerLon !== null ? centerLon.toFixed(6) : "N/A"}
+                                </td>
                                 <td style={{ padding: "8px" }}>
                                     {averageNdvi !== null ? averageNdvi.toFixed(2) : "N/A"}
                                 </td>

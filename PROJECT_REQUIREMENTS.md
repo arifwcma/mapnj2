@@ -127,14 +127,17 @@ Similar to Point Analysis: "Compare: (/) Areas ( ) Months"
 
 **Table**
 - Columns: "Marker", "Latitude", "Longitude", "NDVI (avg)", "Snapshot", "Remove"
-- NDVI (avg): Average NDVI for all pixels in the area (parcel or rectangle) for the corresponding month
+- NDVI (avg): Average NDVI for all pixels in the area (parcel or rectangle) for the selected calendar month (current month from dropdown)
+- **Critical**: "avg" refers to averaging all pixels within the area for that month, NOT averaging across multiple months
 - **Critical for parcels**: Only include pixels within the clipped area, NOT all pixels in the bounding box
 - Snapshot column: Thumbnail of NDVI overlay for the corresponding month
 - Clicking thumbnail opens larger image in closable pop-up
 - Remove column: Cross button (same behavior as Points mode)
 
 **Chart**
-- Same behavior as Points mode
+- Shows average NDVI for each month in x-axis (average of all pixels in the area for that month)
+- Updates when month dropdown changes
+- Same navigation arrow behavior as Points mode
 
 **Navigation Arrows**
 - Same behavior as Points mode

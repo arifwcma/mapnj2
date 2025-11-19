@@ -358,7 +358,7 @@ export default function Page() {
                         selectedAreas={selectedAreas}
                         selectedYear={selectedYear}
                         selectedMonth={selectedMonth}
-                        rectangleBounds={rectangleBounds}
+                        rectangleBounds={rectangleBounds || mapBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onRemoveArea={(index: number) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
