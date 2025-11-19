@@ -109,6 +109,51 @@ function geoJsonToEeGeometry(geoJson) {
     return null
 }
 
+export async function getAverageNdviThumbnail(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null, dimensions = 1024) {
+    await initEarthEngine()
+
+    const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
+    const [minLng, minLat, maxLng, maxLat] = bboxArray || []
+
+    if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
+        throw new Error("Invalid bbox format")
+    }
+
+    const startDate = ee.Date(start)
+    const endDate = ee.Date(end).advance(1, "day")
+
+    const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+    const clipGeometry = geometry ? geoJsonToEeGeometry(geometry) : rectangle
+
+    if (!clipGeometry) {
+        throw new Error("Invalid geometry format")
+    }
+
+    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+        .filterBounds(rectangle)
+        .filterDate(startDate, endDate)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
+        .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
+
+    const mean = collection.mean().clip(clipGeometry)
+    const vis = { min: -1, max: 1, palette: ["darkred", "orangered", "red", "yellow", "darkgreen"] }
+
+    return await new Promise((resolve, reject) => {
+        mean.getThumbURL({
+            dimensions: dimensions,
+            region: rectangle,
+            format: "png",
+            visualization: vis
+        }, (thumbUrl, err) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            resolve(thumbUrl)
+        })
+    })
+}
+
 export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null) {
     await initEarthEngine()
 

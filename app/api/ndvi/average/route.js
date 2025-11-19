@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server"
-import { getAverageNdviTile } from "@/app/lib/earthengineUtils"
+import { getAverageNdviTile, getAverageNdviThumbnail } from "@/app/lib/earthengineUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/average - Request received")
     const { searchParams } = new URL(request.url)
-    console.log("[API] /api/ndvi/average - Params:", { start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud"), hasGeometry: !!searchParams.get("geometry") })
+    console.log("[API] /api/ndvi/average - Params:", { start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud"), hasGeometry: !!searchParams.get("geometry"), thumbnail: searchParams.get("thumbnail") })
     const start = searchParams.get("start")
     const end = searchParams.get("end")
     const bbox = searchParams.get("bbox")
     const cloudParam = searchParams.get("cloud")
     const geometryParam = searchParams.get("geometry")
+    const thumbnailParam = searchParams.get("thumbnail")
     const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
 
     if (!start || !end || !bbox) {
@@ -40,8 +41,14 @@ export async function GET(request) {
     }
 
     try {
-        const tileUrl = await getAverageNdviTile(start, end, bbox, cloud, geometry)
-        return NextResponse.json({ tileUrl, start, end, bbox, cloud })
+        if (thumbnailParam === "true") {
+            const dimensions = parseInt(searchParams.get("dimensions") || "1024")
+            const imageUrl = await getAverageNdviThumbnail(start, end, bbox, cloud, geometry, dimensions)
+            return NextResponse.json({ imageUrl, start, end, bbox, cloud })
+        } else {
+            const tileUrl = await getAverageNdviTile(start, end, bbox, cloud, geometry)
+            return NextResponse.json({ tileUrl, start, end, bbox, cloud })
+        }
     } catch (error) {
         console.error("Error getting NDVI tile:", error)
         return NextResponse.json({ error: "Failed to get NDVI tile" }, { status: 500 })
