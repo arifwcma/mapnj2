@@ -470,6 +470,12 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 }
                 return null
             })}
+            {analysisMode === "area" && rectangleBounds && (
+                <Rectangle
+                    bounds={rectangleBounds}
+                    pathOptions={{ color: "yellow", fillOpacity: 0.2, weight: 3, fillColor: "yellow" }}
+                />
+            )}
             {analysisMode === "point" && rectangleBounds && boundsSource !== 'field' && (
                 <>
                     <Rectangle bounds={rectangleBounds} pathOptions={RECTANGLE_BORDER_STYLE} />

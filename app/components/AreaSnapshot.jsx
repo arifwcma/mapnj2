@@ -213,6 +213,11 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
     const centerLon = (rectangleBounds[0][1] + rectangleBounds[1][1]) / 2
     const popupTile = latLngToTile(centerLat, centerLon, 13)
     
+    const bboxBounds = [
+        [rectangleBounds[0][0], rectangleBounds[0][1]],
+        [rectangleBounds[1][0], rectangleBounds[1][1]]
+    ]
+    
     return (
         <>
             <div
@@ -348,6 +353,18 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                                         display: "block",
                                                         aspectRatio: aspectRatio,
                                                         objectFit: "cover"
+                                                    }}
+                                                />
+                                                <div
+                                                    style={{
+                                                        position: "absolute",
+                                                        top: 0,
+                                                        left: 0,
+                                                        right: 0,
+                                                        bottom: 0,
+                                                        border: "3px solid yellow",
+                                                        boxSizing: "border-box",
+                                                        pointerEvents: "none"
                                                     }}
                                                 />
                                                 <div
