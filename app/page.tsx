@@ -238,6 +238,11 @@ export default function Page() {
     }, [])
     
     const handleStartFieldSelection = useCallback(() => {
+        if (isDrawing) {
+            stopDrawing()
+            resetRectangle()
+            setBoundsSource(null)
+        }
         setFieldSelectionMode(true)
         if (fieldsData) {
             return
@@ -257,7 +262,7 @@ export default function Page() {
                 console.error("Error loading fields:", err.message || err)
                 setFieldSelectionMode(false)
             })
-    }, [fieldsData])
+    }, [fieldsData, isDrawing, stopDrawing, resetRectangle])
     
     const handleCancelFieldSelection = useCallback(() => {
         setFieldSelectionMode(false)
@@ -311,11 +316,14 @@ export default function Page() {
     }, [analysisMode, compareMode, selectedAreas.length, setBounds, selectedYear, selectedMonth, loadAreaNdvi])
     
     const handleStartDrawing = useCallback(() => {
-        setFieldSelectionMode(false)
-        setSelectedFieldFeature(null)
+        if (fieldSelectionMode) {
+            setFieldSelectionMode(false)
+            setSelectedFieldFeature(null)
+            setBoundsSource(null)
+        }
         startDrawing()
         setBoundsSource('rectangle')
-    }, [startDrawing])
+    }, [startDrawing, fieldSelectionMode])
     
     const handleFinalize = useCallback(() => {
         if (analysisMode === "area" && compareMode === "areas" && currentBounds) {
