@@ -11,7 +11,7 @@ import useToast from "@/app/hooks/useToast"
 import useNullDataDetection from "@/app/hooks/useNullDataDetection"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
 import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
-import { getCurrentMonth } from "@/app/lib/monthUtils"
+import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
@@ -120,8 +120,30 @@ export default function PointMonthsModePanel({
     
     const handleAddMonth = useCallback(() => {
         if (!selectedYear || !selectedMonth) return
-        addMonth(selectedYear, selectedMonth)
-    }, [selectedYear, selectedMonth, addMonth])
+        
+        const addedKey = monthKey(selectedYear, selectedMonth)
+        const exists = selectedMonths.some(m => monthKey(m.year, m.month) === addedKey)
+        
+        if (exists) {
+            return
+        }
+        
+        const success = addMonth(selectedYear, selectedMonth)
+        
+        if (success) {
+            const allMonths = getAllAvailableMonths()
+            const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
+            excludedKeys.add(addedKey)
+            
+            const nextAvailable = allMonths.find(({ year, month }) => !excludedKeys.has(monthKey(year, month)))
+            
+            if (nextAvailable) {
+                setSelectedYear(nextAvailable.year)
+                setSelectedMonth(nextAvailable.month)
+                onMonthChange(nextAvailable.year, nextAvailable.month)
+            }
+        }
+    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange])
     
     const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)

@@ -11,11 +11,12 @@ import useToast from "@/app/hooks/useToast"
 import useNullDataDetection from "@/app/hooks/useNullDataDetection"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
 import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
-import { getCurrentMonth } from "@/app/lib/monthUtils"
+import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getAreaCenter } from "@/app/lib/bboxUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import AreaSnapshot from "./AreaSnapshot"
+import CompareSnapshots from "./CompareSnapshots"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
 
@@ -122,8 +123,30 @@ export default function AreaMonthsModePanel({
     
     const handleAddMonth = useCallback(() => {
         if (!selectedYear || !selectedMonth) return
-        addMonth(selectedYear, selectedMonth)
-    }, [selectedYear, selectedMonth, addMonth])
+        
+        const addedKey = monthKey(selectedYear, selectedMonth)
+        const exists = selectedMonths.some(m => monthKey(m.year, m.month) === addedKey)
+        
+        if (exists) {
+            return
+        }
+        
+        const success = addMonth(selectedYear, selectedMonth)
+        
+        if (success) {
+            const allMonths = getAllAvailableMonths()
+            const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
+            excludedKeys.add(addedKey)
+            
+            const nextAvailable = allMonths.find(({ year, month }) => !excludedKeys.has(monthKey(year, month)))
+            
+            if (nextAvailable) {
+                setSelectedYear(nextAvailable.year)
+                setSelectedMonth(nextAvailable.month)
+                onMonthChange(nextAvailable.year, nextAvailable.month)
+            }
+        }
+    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange])
     
     const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)
@@ -139,6 +162,16 @@ export default function AreaMonthsModePanel({
             return a.month - b.month
         })
     }, [selectedMonths])
+    
+    const visibleRange = useMemo(() => {
+        if (sortedMonths.length === 0) {
+            return null
+        }
+        return {
+            startMonth: sortedMonths[0],
+            endMonth: sortedMonths[sortedMonths.length - 1]
+        }
+    }, [sortedMonths])
     
     const tableData = useMemo(() => {
         if (!dataMap || sortedMonths.length === 0) {
@@ -263,6 +296,16 @@ export default function AreaMonthsModePanel({
                     Add
                 </a>
             </div>
+            
+            {selectedMonths.length > 0 && visibleRange && (
+                <div style={{ textAlign: "left", marginBottom: "15px" }}>
+                    <CompareSnapshots
+                        selectedAreas={[selectedArea]}
+                        cloudTolerance={cloudTolerance}
+                        visibleRange={visibleRange}
+                    />
+                </div>
+            )}
             
             {areaCenter && (
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", fontSize: "13px", color: "#333" }}>
