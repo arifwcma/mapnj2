@@ -99,7 +99,7 @@ export async function findRecentSnapshot(bbox) {
         const dateRange = getMonthDateRange(currentYear, currentMonth)
         
         try {
-            const count = await countAvailableImages(dateRange.start, dateRange.end, bboxStr, 100)
+            const count = await countAvailableImages(dateRange.start, dateRange.end, bboxStr, 10)
             
             if (count > 0) {
                 return {

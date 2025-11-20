@@ -23,7 +23,7 @@ export async function GET(request) {
             )
         }
 
-        const tileUrl = await getAverageNdviTile(snapshot.start, snapshot.end, bbox, 100, null)
+        const tileUrl = await getAverageNdviTile(snapshot.start, snapshot.end, bbox, 10, null)
         
         return NextResponse.json({
             year: snapshot.year,
