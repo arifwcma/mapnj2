@@ -34,10 +34,14 @@ export default function PointStatusMessage({ isReloading, isLoading, ndvi }) {
                         0% { transform: rotate(0deg); }
                         100% { transform: rotate(360deg); }
                     }
+                    @keyframes blink {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.3; }
+                    }
                 `}</style>
                 <div style={statusMessageStyle}>
                     <div style={spinnerStyle}></div>
-                    <span>Reloading ...</span>
+                    <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Reloading ...</span>
                 </div>
             </>
         )

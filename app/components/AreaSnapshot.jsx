@@ -368,20 +368,28 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                         }}
                                     >
                                         {isLoading ? (
-                                            <div
-                                                style={{
-                                                    width: "100%",
-                                                    aspectRatio: aspectRatio,
-                                                    backgroundColor: "#f0f0f0",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    fontSize: "14px",
-                                                    color: "#666"
-                                                }}
-                                            >
-                                                Loading...
-                                            </div>
+                                            <>
+                                                <style>{`
+                                                    @keyframes blink {
+                                                        0%, 100% { opacity: 1; }
+                                                        50% { opacity: 0.3; }
+                                                    }
+                                                `}</style>
+                                                <div
+                                                    style={{
+                                                        width: "100%",
+                                                        aspectRatio: aspectRatio,
+                                                        backgroundColor: "#f0f0f0",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        fontSize: "14px",
+                                                        color: "#666"
+                                                    }}
+                                                >
+                                                    <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading...</span>
+                                                </div>
+                                            </>
                                         ) : tileUrl ? (
                                             <div style={{ position: "relative", width: "100%" }}>
                                                 <img

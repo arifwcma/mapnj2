@@ -463,18 +463,26 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 />
             )}
             {basemap === "ndvi-recent" && recentNdviLoading && (
-                <div style={{
-                    position: "absolute",
-                    top: "10px",
-                    left: "10px",
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    padding: "8px 12px",
-                    borderRadius: "4px",
-                    fontSize: "13px",
-                    zIndex: 1000
-                }}>
-                    Loading recent NDVI...
-                </div>
+                <>
+                    <style>{`
+                        @keyframes blink {
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.3; }
+                        }
+                    `}</style>
+                    <div style={{
+                        position: "absolute",
+                        top: "10px",
+                        left: "10px",
+                        backgroundColor: "rgba(255, 255, 255, 0.9)",
+                        padding: "8px 12px",
+                        borderRadius: "4px",
+                        fontSize: "13px",
+                        zIndex: 1000
+                    }}>
+                        <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading recent NDVI...</span>
+                    </div>
+                </>
             )}
             {basemap === "ndvi-recent" && recentNdviError && (
                 <div style={{

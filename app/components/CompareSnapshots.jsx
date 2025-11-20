@@ -353,21 +353,29 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                                         }}
                                                     >
                                                         {isLoading ? (
-                                                            <div
-                                                                style={{
-                                                                    width: "180px",
-                                                                    aspectRatio: aspectRatio,
-                                                                    backgroundColor: "#f0f0f0",
-                                                                    display: "flex",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    fontSize: "12px",
-                                                                    color: "#666",
-                                                                    margin: "0 auto"
-                                                                }}
-                                                            >
-                                                                Loading...
-                                                            </div>
+                                                            <>
+                                                                <style>{`
+                                                                    @keyframes blink {
+                                                                        0%, 100% { opacity: 1; }
+                                                                        50% { opacity: 0.3; }
+                                                                    }
+                                                                `}</style>
+                                                                <div
+                                                                    style={{
+                                                                        width: "180px",
+                                                                        aspectRatio: aspectRatio,
+                                                                        backgroundColor: "#f0f0f0",
+                                                                        display: "flex",
+                                                                        alignItems: "center",
+                                                                        justifyContent: "center",
+                                                                        fontSize: "12px",
+                                                                        color: "#666",
+                                                                        margin: "0 auto"
+                                                                    }}
+                                                                >
+                                                                    <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading...</span>
+                                                                </div>
+                                                            </>
                                                         ) : tileUrl ? (
                                                             <div style={{ position: "relative", width: "180px", margin: "0 auto" }}>
                                                                 <img

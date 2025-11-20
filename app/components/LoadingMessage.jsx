@@ -18,6 +18,10 @@ export default function LoadingMessage({ loading, overlayLoading, overlayType, s
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
                 }
+                @keyframes blink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.3; }
+                }
             `}</style>
             <div style={{
                 fontSize: "13px",
@@ -42,7 +46,7 @@ export default function LoadingMessage({ loading, overlayLoading, overlayType, s
                     borderRadius: "50%",
                     animation: "spin 1s linear infinite"
                 }}></div>
-                <span>
+                <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>
                     {displayMonth ? (
                         <>Loading {overlayTypeText} data for <strong>{displayMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
                     ) : (

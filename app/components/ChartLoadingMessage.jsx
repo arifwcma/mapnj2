@@ -38,11 +38,15 @@ export default function ChartLoadingMessage({ loading }) {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
                 }
+                @keyframes blink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.3; }
+                }
             `}</style>
             {loading && (
                 <div style={loadingMessageStyle}>
                     <div style={spinnerStyle}></div>
-                    <span>Loading data...</span>
+                    <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading data...</span>
                 </div>
             )}
         </>

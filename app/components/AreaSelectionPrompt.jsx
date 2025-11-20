@@ -50,33 +50,44 @@ export default function AreaSelectionPrompt({
     }
 
     const message = getMessage()
+    const isLoadingMessage = message === "Loading parcel data..."
 
     return (
-        <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px" }}>
-            Select area by choosing a{" "}
-            <button onClick={onSelectParcel} style={linkStyle}>
-                parcel
-            </button>
-            {" "}or drawing a{" "}
-            <button onClick={onDrawRectangle} style={linkStyle}>
-                rectangle
-            </button>
-            .
-            {isSelectionMode && (
-                <>
-                    {message && (
-                        <div style={messageStyle}>
-                            {message}
+        <>
+            <style>{`
+                @keyframes blink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.3; }
+                }
+            `}</style>
+            <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px" }}>
+                Select area by choosing a{" "}
+                <button onClick={onSelectParcel} style={linkStyle}>
+                    parcel
+                </button>
+                {" "}or drawing a{" "}
+                <button onClick={onDrawRectangle} style={linkStyle}>
+                    rectangle
+                </button>
+                .
+                {isSelectionMode && (
+                    <>
+                        {message && (
+                            <div style={messageStyle}>
+                                <span style={isLoadingMessage ? { animation: "blink 1.5s ease-in-out infinite" } : {}}>
+                                    {message}
+                                </span>
+                            </div>
+                        )}
+                        <div style={{ marginTop: "10px" }}>
+                            <button onClick={onCancel} style={linkStyle}>
+                                Cancel
+                            </button>
                         </div>
-                    )}
-                    <div style={{ marginTop: "10px" }}>
-                        <button onClick={onCancel} style={linkStyle}>
-                            Cancel
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
+                    </>
+                )}
+            </div>
+        </>
     )
 }
 

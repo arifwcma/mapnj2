@@ -85,10 +85,19 @@ export default function AreaOfInterestControls({
         const fieldsLoaded = fieldsData !== null
         
         return (
-            <div>
-                <div style={messageStyle}>
-                    {!fieldsLoaded ? "Loading parcels ..." : (zoomSufficient ? "Click parcel to select" : "Zoom in further to see parcels")}
-                </div>
+            <>
+                <style>{`
+                    @keyframes blink {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.3; }
+                    }
+                `}</style>
+                <div>
+                    <div style={messageStyle}>
+                        {!fieldsLoaded ? (
+                            <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading parcels ...</span>
+                        ) : (zoomSufficient ? "Click parcel to select" : "Zoom in further to see parcels")}
+                    </div>
                 {fieldsLoaded && zoomSufficient && (
                     <div style={buttonContainerStyle}>
                         <button
@@ -105,7 +114,8 @@ export default function AreaOfInterestControls({
                         </button>
                     </div>
                 )}
-            </div>
+                </div>
+            </>
         )
     }
 
