@@ -23,6 +23,7 @@ export default function Page() {
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
     const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
+    const [displayCloudTolerance, setDisplayCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
     const [selectedPoints, setSelectedPoints] = useState<Array<{ id: string, lat: number, lon: number }>>([])
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
@@ -129,9 +130,11 @@ export default function Page() {
     
     const cloudToleranceRef = useRef(cloudTolerance)
     const sliderDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const buttonDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     
     useEffect(() => {
         cloudToleranceRef.current = cloudTolerance
+        setDisplayCloudTolerance(cloudTolerance)
     }, [cloudTolerance])
     
     const handleAnalysisModeChange = useCallback((mode: "point" | "area") => {
@@ -166,6 +169,7 @@ export default function Page() {
     const handleCloudChange = (newValue: number) => {
         cloudToleranceRef.current = newValue
         setCloudTolerance(newValue)
+        setDisplayCloudTolerance(newValue)
         
         if (sliderDebounceTimeoutRef.current) {
             clearTimeout(sliderDebounceTimeoutRef.current)
@@ -175,6 +179,29 @@ export default function Page() {
             updateCloudTolerance(newValue)
         }, 1000)
     }
+    
+    const handleCloudButtonClick = useCallback((delta: number) => {
+        const newValue = Math.max(0, Math.min(100, cloudToleranceRef.current + delta))
+        cloudToleranceRef.current = newValue
+        setDisplayCloudTolerance(newValue)
+        
+        if (buttonDebounceTimeoutRef.current) {
+            clearTimeout(buttonDebounceTimeoutRef.current)
+        }
+        
+        buttonDebounceTimeoutRef.current = setTimeout(() => {
+            setCloudTolerance(cloudToleranceRef.current)
+            updateCloudTolerance(cloudToleranceRef.current)
+        }, 1000)
+    }, [updateCloudTolerance])
+    
+    const handleCloudButtonRelease = useCallback(() => {
+        if (buttonDebounceTimeoutRef.current) {
+            clearTimeout(buttonDebounceTimeoutRef.current)
+            buttonDebounceTimeoutRef.current = null
+        }
+    }, [])
+    
     const handleBasemapChange = useCallback((newBasemap: string) => {
         setBasemap(newBasemap)
     }, [])
@@ -259,7 +286,7 @@ export default function Page() {
             setFieldSelectionMode(false)
             if (selectedYear && selectedMonth) {
                 loadAreaNdvi(newArea)
-            }
+        }
         } else if (analysisMode === "area" && compareMode === "months") {
             const newArea = {
                 id: `area_${Date.now()}_${Math.random()}`,
@@ -281,8 +308,8 @@ export default function Page() {
     
     const handleStartDrawing = useCallback(() => {
         if (fieldSelectionMode) {
-            setFieldSelectionMode(false)
-            setSelectedFieldFeature(null)
+        setFieldSelectionMode(false)
+        setSelectedFieldFeature(null)
             setBoundsSource(null)
         }
         startDrawing()
@@ -366,8 +393,8 @@ export default function Page() {
                 loadAreaNdvi(selectedAreas[0])
             }
         } else if (rectangleBounds) {
-            const geometry = boundsSource === 'field' ? selectedFieldFeature : null
-            loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
+                const geometry = boundsSource === 'field' ? selectedFieldFeature : null
+                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
         } else {
             clearNdvi()
         }
@@ -401,10 +428,10 @@ export default function Page() {
                 ) : null}
                 
                 <CloudToleranceSlider 
-                    cloudTolerance={cloudTolerance}
+                    cloudTolerance={displayCloudTolerance}
                     onCloudChange={handleCloudChange}
-                    onCloudButtonClick={() => {}}
-                    onCloudButtonRelease={() => {}}
+                    onCloudButtonClick={handleCloudButtonClick}
+                    onCloudButtonRelease={handleCloudButtonRelease}
                 />
                 
                 {(rectangleBounds || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && (
