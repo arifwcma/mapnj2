@@ -5,7 +5,7 @@ import BasemapSelector from "@/app/components/BasemapSelector"
 import AnalysisModeSelector from "@/app/components/AnalysisModeSelector"
 import CompareModeSelector from "@/app/components/CompareModeSelector"
 import AreaSelectionPrompt from "@/app/components/AreaSelectionPrompt"
-import CloudToleranceSlider from "@/app/components/CloudToleranceSlider"
+import CloudToleranceDropdown from "@/app/components/CloudToleranceDropdown"
 import PointsModePanel from "@/app/components/PointsModePanel"
 import PointMonthsModePanel from "@/app/components/PointMonthsModePanel"
 import AreasModePanel from "@/app/components/AreasModePanel"
@@ -23,7 +23,6 @@ export default function Page() {
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
     const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
-    const [displayCloudTolerance, setDisplayCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
     const [selectedPoints, setSelectedPoints] = useState<Array<{ id: string, lat: number, lon: number }>>([])
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
@@ -129,12 +128,10 @@ export default function Page() {
     }, [selectedYear, selectedMonth, cloudTolerance])
     
     const cloudToleranceRef = useRef(cloudTolerance)
-    const sliderDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const buttonDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const cloudDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     
     useEffect(() => {
         cloudToleranceRef.current = cloudTolerance
-        setDisplayCloudTolerance(cloudTolerance)
     }, [cloudTolerance])
     
     const handleAnalysisModeChange = useCallback((mode: "point" | "area") => {
@@ -169,38 +166,16 @@ export default function Page() {
     const handleCloudChange = (newValue: number) => {
         cloudToleranceRef.current = newValue
         setCloudTolerance(newValue)
-        setDisplayCloudTolerance(newValue)
         
-        if (sliderDebounceTimeoutRef.current) {
-            clearTimeout(sliderDebounceTimeoutRef.current)
+        if (cloudDebounceTimeoutRef.current) {
+            clearTimeout(cloudDebounceTimeoutRef.current)
         }
         
-        sliderDebounceTimeoutRef.current = setTimeout(() => {
+        cloudDebounceTimeoutRef.current = setTimeout(() => {
             updateCloudTolerance(newValue)
         }, 1000)
     }
     
-    const handleCloudButtonClick = useCallback((delta: number) => {
-        const newValue = Math.max(0, Math.min(100, cloudToleranceRef.current + delta))
-        cloudToleranceRef.current = newValue
-        setDisplayCloudTolerance(newValue)
-        
-        if (buttonDebounceTimeoutRef.current) {
-            clearTimeout(buttonDebounceTimeoutRef.current)
-        }
-        
-        buttonDebounceTimeoutRef.current = setTimeout(() => {
-            setCloudTolerance(cloudToleranceRef.current)
-            updateCloudTolerance(cloudToleranceRef.current)
-        }, 1000)
-    }, [updateCloudTolerance])
-    
-    const handleCloudButtonRelease = useCallback(() => {
-        if (buttonDebounceTimeoutRef.current) {
-            clearTimeout(buttonDebounceTimeoutRef.current)
-            buttonDebounceTimeoutRef.current = null
-        }
-    }, [])
     
     const handleBasemapChange = useCallback((newBasemap: string) => {
         setBasemap(newBasemap)
@@ -427,11 +402,9 @@ export default function Page() {
                     />
                 ) : null}
                 
-                <CloudToleranceSlider 
-                    cloudTolerance={displayCloudTolerance}
+                <CloudToleranceDropdown 
+                    cloudTolerance={cloudTolerance}
                     onCloudChange={handleCloudChange}
-                    onCloudButtonClick={handleCloudButtonClick}
-                    onCloudButtonRelease={handleCloudButtonRelease}
                 />
                 
                 {(rectangleBounds || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && (
