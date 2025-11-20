@@ -86,16 +86,10 @@ export default function AreaOfInterestControls({
         
         return (
             <>
-                <style>{`
-                    @keyframes blink {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.3; }
-                    }
-                `}</style>
                 <div>
-                    <div style={messageStyle}>
+                    <div className="mt-2.5 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded p-2 text-center">
                         {!fieldsLoaded ? (
-                            <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>Loading parcels ...</span>
+                            <span className="animate-blink text-red-600">Loading parcels ...</span>
                         ) : (zoomSufficient ? "Click parcel to select" : "Zoom in further to see parcels")}
                     </div>
                 {fieldsLoaded && zoomSufficient && (

@@ -368,28 +368,12 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                         }}
                                     >
                                         {isLoading ? (
-                                            <>
-                                                <style>{`
-                                                    @keyframes blink {
-                                                        0%, 100% { opacity: 1; }
-                                                        50% { opacity: 0.3; }
-                                                    }
-                                                `}</style>
-                                                <div
-                                                    style={{
-                                                        width: "100%",
-                                                        aspectRatio: aspectRatio,
-                                                        backgroundColor: "#f0f0f0",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        fontSize: "14px",
-                                                        color: "#666"
-                                                    }}
-                                                >
-                                                    <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>Loading...</span>
-                                                </div>
-                                            </>
+                                            <div
+                                                className="w-full bg-gray-100 flex items-center justify-center text-sm text-gray-600"
+                                                style={{ aspectRatio: aspectRatio }}
+                                            >
+                                                <span className="animate-blink text-red-600">Loading...</span>
+                                            </div>
                                         ) : tileUrl ? (
                                             <div style={{ position: "relative", width: "100%" }}>
                                                 <img

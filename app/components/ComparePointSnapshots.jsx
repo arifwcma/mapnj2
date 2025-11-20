@@ -312,17 +312,9 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                                                         }}
                                                     >
                                                         {isLoading ? (
-                                                            <>
-                                                                <style>{`
-                                                                    @keyframes blink {
-                                                                        0%, 100% { opacity: 1; }
-                                                                        50% { opacity: 0.3; }
-                                                                    }
-                                                                `}</style>
-                                                                <div style={{ fontSize: "12px", color: "#666" }}>
-                                                                    <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>Loading...</span>
-                                                                </div>
-                                                            </>
+                                                            <div className="text-xs text-gray-600">
+                                                                <span className="animate-blink text-red-600">Loading...</span>
+                                                            </div>
                                                         ) : ndvi !== null && ndvi !== undefined ? (
                                                             <PointSnapshot ndvi={ndvi} size={40} />
                                                         ) : (

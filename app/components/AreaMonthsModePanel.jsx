@@ -11,7 +11,7 @@ import useToast from "@/app/hooks/useToast"
 import useNullDataDetection from "@/app/hooks/useNullDataDetection"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
 import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
-import { getCurrentMonth, getPreviousCalendarMonth } from "@/app/lib/monthUtils"
+import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getAreaCenter } from "@/app/lib/bboxUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
@@ -68,19 +68,8 @@ export default function AreaMonthsModePanel({
     useEffect(() => {
         if (!selectedArea) {
             setSelectedMonths([])
-            return
         }
-        
-        const currentKey = monthKey(currentMonth.year, currentMonth.month)
-        const exists = selectedMonths.some(m => monthKey(m.year, m.month) === currentKey)
-        
-        if (!exists && selectedMonths.length === 0) {
-            setSelectedMonths([{ year: currentMonth.year, month: currentMonth.month }])
-            const prevMonth = getPreviousCalendarMonth()
-            setSelectedYear(prevMonth.year)
-            setSelectedMonth(prevMonth.month)
-        }
-    }, [selectedArea, currentMonth.year, currentMonth.month])
+    }, [selectedArea])
     
     useEffect(() => {
         if (dataMap && selectedMonths.length > 0) {

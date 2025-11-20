@@ -1,30 +1,6 @@
 "use client"
 import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 
-const linkStyle = {
-    background: "none",
-    border: "none",
-    padding: 0,
-    margin: 0,
-    cursor: "pointer",
-    fontSize: "13px",
-    color: "#0066cc",
-    textDecoration: "none",
-    fontFamily: "inherit",
-    display: "inline"
-}
-
-const messageStyle = {
-    marginTop: "10px",
-    fontSize: "13px",
-    color: "#555",
-    backgroundColor: "#f8f9fa",
-    border: "1px solid #e0e0e0",
-    borderRadius: "4px",
-    padding: "8px 12px",
-    textAlign: "center"
-}
-
 export default function AreaSelectionPrompt({ 
     onSelectParcel, 
     onDrawRectangle, 
@@ -53,41 +29,33 @@ export default function AreaSelectionPrompt({
     const isLoadingMessage = message === "Loading parcel data..."
 
     return (
-        <>
-            <style>{`
-                @keyframes blink {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.3; }
-                }
-            `}</style>
-            <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px" }}>
-                Select area by choosing a{" "}
-                <button onClick={onSelectParcel} style={linkStyle}>
-                    parcel
-                </button>
-                {" "}or drawing a{" "}
-                <button onClick={onDrawRectangle} style={linkStyle}>
-                    rectangle
-                </button>
-                .
-                {isSelectionMode && (
-                    <>
-                        {message && (
-                            <div style={messageStyle}>
-                                <span style={isLoadingMessage ? { animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" } : {}}>
-                                    {message}
-                                </span>
-                            </div>
-                        )}
-                        <div style={{ marginTop: "10px" }}>
-                            <button onClick={onCancel} style={linkStyle}>
-                                Cancel
-                            </button>
+        <div className="text-sm text-gray-800 mb-4">
+            Select area by choosing a{" "}
+            <button onClick={onSelectParcel} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline inline font-inherit hover:underline">
+                parcel
+            </button>
+            {" "}or drawing a{" "}
+            <button onClick={onDrawRectangle} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline inline font-inherit hover:underline">
+                rectangle
+            </button>
+            .
+            {isSelectionMode && (
+                <>
+                    {message && (
+                        <div className="mt-2.5 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded p-2 text-center">
+                            <span className={isLoadingMessage ? "animate-blink text-red-600" : ""}>
+                                {message}
+                            </span>
                         </div>
-                    </>
-                )}
-            </div>
-        </>
+                    )}
+                    <div className="mt-2.5">
+                        <button onClick={onCancel} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline font-inherit hover:underline">
+                            Cancel
+                        </button>
+                    </div>
+                </>
+            )}
+        </div>
     )
 }
 
