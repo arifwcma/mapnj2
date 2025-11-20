@@ -26,7 +26,7 @@ export default function useNdviData() {
     timeSelectionRef.current = timeSelection
     imageFiltersRef.current = imageFilters
 
-    const loadNdviData = useCallback(async (bbox, cloud = DEFAULT_CLOUD_TOLERANCE, year = null, month = null, overlay = "NDVI", geometry = null) => {
+    const loadNdviData = useCallback(async (bbox, cloud = DEFAULT_CLOUD_TOLERANCE, year = null, month = null, overlay = "NDVI", geometry = null, satellite = "sentinel2", reliability = 0) => {
         if (!bbox || loadingRef.current) {
             return
         }
@@ -41,7 +41,7 @@ export default function useNdviData() {
             let monthData
             if (year && month) {
                 const dateRange = getMonthDateRange(year, month)
-                const countResponse = await fetch(`/api/count_available?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloud}`)
+                const countResponse = await fetch(`/api/count_available?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloud}&reliability=${reliability}&satellite=${satellite}`)
                 if (!countResponse.ok) throw new Error("Failed to count images")
                 const countData = await countResponse.json()
                 
@@ -54,13 +54,13 @@ export default function useNdviData() {
                     end: dateRange.end
                 }
             } else {
-                const monthResponse = await fetch(`/api/find_month?bbox=${bboxStr}&cloud=${cloud}`)
+                const monthResponse = await fetch(`/api/find_month?bbox=${bboxStr}&cloud=${cloud}&reliability=${reliability}&satellite=${satellite}`)
                 if (!monthResponse.ok) throw new Error("Failed to find available month")
                 monthData = await monthResponse.json()
             }
 
             if (monthData.count > 0) {
-                await overlayTilesRef.current.loadOverlayTile(bbox, cloud, monthData.year, monthData.month, overlay, geometry)
+                await overlayTilesRef.current.loadOverlayTile(bbox, cloud, monthData.year, monthData.month, overlay, geometry, satellite, reliability)
             } else {
                 overlayTilesRef.current.clearTiles()
             }

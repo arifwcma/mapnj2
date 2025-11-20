@@ -10,7 +10,7 @@ import useRequestTracker from "@/app/hooks/useRequestTracker"
 import useToast from "@/app/hooks/useToast"
 import useNullDataDetection from "@/app/hooks/useNullDataDetection"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
-import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
+import { MONTH_NAMES_FULL, TOAST_DURATION, DEFAULT_SATELLITE } from "@/app/lib/config"
 import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getAreaCenter } from "@/app/lib/bboxUtils"
@@ -22,9 +22,9 @@ import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
-function AreaMonthsDataWrapper({ area, cloudTolerance, requestTracker, onDataMapReady }) {
+function AreaMonthsDataWrapper({ area, cloudTolerance, reliability, requestTracker, onDataMapReady, satellite }) {
     const rectangleBounds = area?.bounds || null
-    const dataMap = useAreaDataMap(area, rectangleBounds, cloudTolerance, "AREA_MONTHS", requestTracker)
+    const dataMap = useAreaDataMap(area, rectangleBounds, cloudTolerance, "AREA_MONTHS", requestTracker, satellite, reliability)
     const mapSize = dataMap?.dataMap?.size ?? 0
     const previousSizeRef = useRef(-1)
     const dataMapRef = useRef(null)
@@ -47,6 +47,8 @@ export default function AreaMonthsModePanel({
     selectedArea,
     rectangleBounds,
     cloudTolerance,
+    reliability = 0,
+    satellite = DEFAULT_SATELLITE,
     onMonthChange
 }) {
     const requestTracker = useRequestTracker()
@@ -133,7 +135,7 @@ export default function AreaMonthsModePanel({
         const success = addMonth(selectedYear, selectedMonth)
         
         if (success) {
-            const allMonths = getAllAvailableMonths()
+            const allMonths = getAllAvailableMonths(satellite)
             const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
             excludedKeys.add(addedKey)
             
@@ -247,8 +249,10 @@ export default function AreaMonthsModePanel({
             <AreaMonthsDataWrapper
                 area={selectedArea}
                 cloudTolerance={cloudTolerance}
+                reliability={reliability}
                 requestTracker={requestTracker}
                 onDataMapReady={handleDataMapReady}
+                satellite={satellite}
             />
             
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
@@ -258,6 +262,7 @@ export default function AreaMonthsModePanel({
                         selectedMonth={selectedMonth} 
                         onMonthChange={handleMonthDropdownChange}
                         excludedMonths={selectedMonths}
+                        satellite={satellite}
                     />
                 </div>
                 <a

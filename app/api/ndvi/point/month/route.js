@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
-import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_CLOUD_TOLERANCE, DEFAULT_RELIABILITY, DEFAULT_SATELLITE } from "@/app/lib/config"
 
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/point/month - Request received")
@@ -13,6 +13,9 @@ export async function GET(request) {
         const year = searchParams.get("year")
         const month = searchParams.get("month")
         const cloud = searchParams.get("cloud")
+        const reliabilityParam = searchParams.get("reliability")
+        const satelliteParam = searchParams.get("satellite")
+        const satellite = satelliteParam || DEFAULT_SATELLITE
 
         if (!lat || !lon || !year || !month) {
             return NextResponse.json(
@@ -26,6 +29,7 @@ export async function GET(request) {
         const yearNum = parseInt(year, 10)
         const monthNum = parseInt(month, 10)
         const cloudNum = cloud ? parseFloat(cloud) : DEFAULT_CLOUD_TOLERANCE
+        const reliability = reliabilityParam ? parseInt(reliabilityParam) : DEFAULT_RELIABILITY
 
         if (isNaN(latNum) || isNaN(lonNum) || isNaN(yearNum) || isNaN(monthNum)) {
             return NextResponse.json(
@@ -44,7 +48,7 @@ export async function GET(request) {
         const dateRange = getMonthDateRange(yearNum, monthNum)
         
         try {
-            const ndvi = await getNdviAtPoint(latNum, lonNum, dateRange.start, dateRange.end, null, cloudNum)
+            const ndvi = await getNdviAtPoint(latNum, lonNum, dateRange.start, dateRange.end, null, cloudNum, satellite, reliability)
             return NextResponse.json({
                 year: yearNum,
                 month: monthNum,

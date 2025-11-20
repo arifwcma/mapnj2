@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { monthKey, parseMonthKey } from "@/app/lib/dateUtils"
 
-export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, areaId = "", requestTracker = null) {
+export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, areaId = "", requestTracker = null, satellite = "sentinel2", reliability = 0) {
     const [dataMap, setDataMap] = useState(new Map())
     const dataMapRef = useRef(new Map())
     const fetchingMonthsRef = useRef(new Set())
@@ -57,7 +57,9 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
                 year: year.toString(),
                 month: month.toString(),
                 bbox: bboxStr,
-                cloud: cloudTolerance.toString()
+                cloud: cloudTolerance.toString(),
+                reliability: reliability.toString(),
+                satellite: satellite
             }
             
             let bodyString
@@ -101,7 +103,7 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
             console.error(`Error fetching area NDVI for ${year}-${month}:`, error)
             return { year, month, ndvi: null }
         }
-    }, [rectangleBounds, cloudTolerance])
+    }, [rectangleBounds, cloudTolerance, satellite, area])
 
     const reset = useCallback(() => {
         const emptyMap = new Map()

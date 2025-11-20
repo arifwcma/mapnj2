@@ -1,17 +1,21 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { formatMonthLabel } from "@/app/lib/dateUtils"
-import { MIN_YEAR, MIN_MONTH } from "@/app/lib/config"
+import { DEFAULT_SATELLITE, getSatelliteConfig } from "@/app/lib/config"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import PointSnapshot from "./PointSnapshot"
 
-function getAllMonthsInRange(startMonth, endMonth) {
+function getAllMonthsInRange(startMonth, endMonth, satellite = DEFAULT_SATELLITE) {
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const minYear = satelliteConfig.minYear
+    const minMonth = satelliteConfig.minMonth
+    
     const months = []
     let year = startMonth.year
     let month = startMonth.month
     
     while (year < endMonth.year || (year === endMonth.year && month <= endMonth.month)) {
-        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
+        if (year < minYear || (year === minYear && month < minMonth)) {
             break
         }
         months.push({ year, month })
@@ -27,7 +31,7 @@ function getAllMonthsInRange(startMonth, endMonth) {
     return months
 }
 
-export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange }) {
+export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange, satellite = DEFAULT_SATELLITE }) {
     const [showPopup, setShowPopup] = useState(false)
     const [ndviData, setNdviData] = useState({})
     const [loading, setLoading] = useState({})
@@ -42,7 +46,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
             return
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth, satellite)
         
         selectedPoints.forEach((point, pointIndex) => {
             months.forEach(({ year, month }) => {
@@ -60,7 +64,9 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                     lon: point.lon.toString(),
                     year: year.toString(),
                     month: month.toString(),
-                    cloud: cloudTolerance.toString()
+                    cloud: cloudTolerance.toString(),
+                    reliability: reliability.toString(),
+                    satellite: satellite
                 })
                 
                 fetch(`/api/ndvi/point/month?${params.toString()}`)
@@ -82,7 +88,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                     })
             })
         })
-    }, [showPopup, visibleRange, cloudTolerance, selectedPoints])
+    }, [showPopup, visibleRange, cloudTolerance, reliability, selectedPoints, satellite])
     
     const handleClose = () => {
         setShowPopup(false)
@@ -127,7 +133,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
         }
     }, [isDragging, dragOffset])
     
-    const months = visibleRange ? getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth) : []
+    const months = visibleRange ? getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth, satellite) : []
     
     if (selectedPoints.length === 0) {
         return null

@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server"
 import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
-import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_CLOUD_TOLERANCE, DEFAULT_RELIABILITY, DEFAULT_SATELLITE } from "@/app/lib/config"
 
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/point - Request received")
     const { searchParams } = new URL(request.url)
-    console.log("[API] /api/ndvi/point - Params:", { lat: searchParams.get("lat"), lon: searchParams.get("lon"), start: searchParams.get("start"), end: searchParams.get("end"), cloud: searchParams.get("cloud") })
+    console.log("[API] /api/ndvi/point - Params:", { lat: searchParams.get("lat"), lon: searchParams.get("lon"), start: searchParams.get("start"), end: searchParams.get("end"), cloud: searchParams.get("cloud"), satellite: searchParams.get("satellite") })
     const lat = searchParams.get("lat")
     const lon = searchParams.get("lon")
     const start = searchParams.get("start")
     const end = searchParams.get("end")
     const cloudParam = searchParams.get("cloud")
+    const reliabilityParam = searchParams.get("reliability")
+    const satelliteParam = searchParams.get("satellite")
     const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
+    const reliability = reliabilityParam ? parseInt(reliabilityParam) : DEFAULT_RELIABILITY
+    const satellite = satelliteParam || DEFAULT_SATELLITE
 
     if (!lat || !lon || !start || !end) {
         return NextResponse.json(
@@ -38,8 +42,8 @@ export async function GET(request) {
     }
 
     try {
-        console.log("API: Getting NDVI at point", { lat: latNum, lon: lonNum, start, end, cloud })
-        const ndvi = await getNdviAtPoint(latNum, lonNum, start, end, null, cloud)
+        console.log("API: Getting NDVI at point", { lat: latNum, lon: lonNum, start, end, cloud, satellite })
+        const ndvi = await getNdviAtPoint(latNum, lonNum, start, end, null, cloud, satellite, reliability)
         console.log("API: NDVI retrieved:", ndvi)
         return NextResponse.json({ ndvi, lat: latNum, lon: lonNum })
     } catch (error) {

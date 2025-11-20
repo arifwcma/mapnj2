@@ -2,17 +2,19 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import MapView from "@/app/components/MapView"
 import BasemapSelector from "@/app/components/BasemapSelector"
+import SatelliteSelector from "@/app/components/SatelliteSelector"
 import AnalysisModeSelector from "@/app/components/AnalysisModeSelector"
 import CompareModeSelector from "@/app/components/CompareModeSelector"
 import AreaSelectionPrompt from "@/app/components/AreaSelectionPrompt"
 import CloudToleranceDropdown from "@/app/components/CloudToleranceDropdown"
+import ReliabilityDropdown from "@/app/components/ReliabilityDropdown"
 import PointsModePanel from "@/app/components/PointsModePanel"
 import PointMonthsModePanel from "@/app/components/PointMonthsModePanel"
 import AreasModePanel from "@/app/components/AreasModePanel"
 import AreaMonthsModePanel from "@/app/components/AreaMonthsModePanel"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
-import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_CLOUD_TOLERANCE, DEFAULT_RELIABILITY, DEFAULT_SATELLITE } from "@/app/lib/config"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { bboxToString, createPointBbox } from "@/app/lib/bboxUtils"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
@@ -21,9 +23,11 @@ import { useStatusMessage } from "@/app/components/StatusMessage"
 
 export default function Page() {
     const [basemap, setBasemap] = useState("street")
+    const [satellite, setSatellite] = useState(DEFAULT_SATELLITE)
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
     const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
+    const [reliability, setReliability] = useState(DEFAULT_RELIABILITY)
     const [selectedPoints, setSelectedPoints] = useState<Array<{ id: string, lat: number, lon: number }>>([])
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
@@ -218,7 +222,9 @@ export default function Page() {
                     end: dateRange.end,
                     bbox: bboxStr,
                     cloud: cloudTolerance.toString(),
-                    geometry: area.geometry
+                    reliability: reliability.toString(),
+                    geometry: area.geometry,
+                    satellite: satellite
                 }
                 tileResponse = await fetch(`/api/ndvi/average`, {
                     method: "POST",
@@ -228,7 +234,7 @@ export default function Page() {
                     body: JSON.stringify(requestBody)
                 })
             } else {
-                tileResponse = await fetch(`/api/ndvi/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`)
+                tileResponse = await fetch(`/api/ndvi/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}&reliability=${reliability}&satellite=${satellite}`)
             }
             
             if (!tileResponse.ok) {
@@ -261,7 +267,7 @@ export default function Page() {
         } catch (err) {
             console.error("Error loading NDVI for area:", area.id, err)
         }
-    }, [selectedYear, selectedMonth, cloudTolerance])
+    }, [selectedYear, selectedMonth, cloudTolerance, satellite])
     
     const cloudToleranceRef = useRef(cloudTolerance)
     const cloudDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -315,6 +321,10 @@ export default function Page() {
     
     const handleBasemapChange = useCallback((newBasemap: string) => {
         setBasemap(newBasemap)
+    }, [])
+
+    const handleSatelliteChange = useCallback((newSatellite: string) => {
+        setSatellite(newSatellite)
     }, [])
     
     const handlePointClick = useCallback((lat: number, lon: number) => {
@@ -502,11 +512,11 @@ export default function Page() {
             }
         } else if (rectangleBounds) {
                 const geometry = boundsSource === 'field' ? selectedFieldFeature : null
-                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
+                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry, satellite, reliability)
         } else {
             clearNdvi()
         }
-    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, mapBounds, selectedPoints.length])
+    }, [selectedYear, selectedMonth, cloudTolerance, reliability, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, mapBounds, selectedPoints.length, satellite])
     
     const isPointClickMode = analysisMode === "point" && compareMode === "points"
     const isPointSelectMode = analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null
@@ -527,6 +537,7 @@ export default function Page() {
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
             <div style={{ width: "10%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
+                <SatelliteSelector satellite={satellite} onSatelliteChange={handleSatelliteChange} />
                 <BasemapSelector basemap={basemap} onBasemapChange={handleBasemapChange} />
                 <AnalysisModeSelector analysisMode={analysisMode} onAnalysisModeChange={handleAnalysisModeChange} />
                 <CompareModeSelector 
@@ -548,10 +559,17 @@ export default function Page() {
                     />
                 ) : null}
                 
-                <CloudToleranceDropdown 
-                    cloudTolerance={cloudTolerance}
-                    onCloudChange={handleCloudChange}
-                />
+                {satellite === "sentinel2" ? (
+                    <CloudToleranceDropdown 
+                        cloudTolerance={cloudTolerance}
+                        onCloudChange={handleCloudChange}
+                    />
+                ) : (
+                    <ReliabilityDropdown 
+                        reliability={reliability}
+                        onReliabilityChange={setReliability}
+                    />
+                )}
                 
                 {((rectangleBounds && !(analysisMode === "area" && compareMode === "areas")) || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && (
                     <a
@@ -616,6 +634,8 @@ export default function Page() {
                         selectedMonth={selectedMonth}
                         rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
+                        reliability={reliability}
+                        satellite={satellite}
                         onMonthChange={handleMonthChange}
                         onRemovePoint={handleRemovePoint}
                     />
@@ -626,6 +646,8 @@ export default function Page() {
                         selectedPoint={selectedPoint}
                         rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
+                        reliability={reliability}
+                        satellite={satellite}
                         onMonthChange={handleMonthChange}
                     />
                 )}
@@ -637,6 +659,8 @@ export default function Page() {
                         selectedMonth={selectedMonth}
                         rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
+                        reliability={reliability}
+                        satellite={satellite}
                         onMonthChange={handleMonthChange}
                         onRemoveArea={(index: number) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
                     />
@@ -647,6 +671,8 @@ export default function Page() {
                         selectedArea={selectedAreas[0]}
                         rectangleBounds={selectedAreas[0].bounds || mapBounds}
                         cloudTolerance={cloudTolerance}
+                        reliability={reliability}
+                        satellite={satellite}
                         onMonthChange={handleMonthChange}
                     />
                 )}

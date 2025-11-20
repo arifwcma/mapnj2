@@ -1,4 +1,4 @@
-import { MONTH_NAMES_FULL, MIN_YEAR, MIN_MONTH } from "./config"
+import { MONTH_NAMES_FULL, MIN_YEAR, MIN_MONTH, DEFAULT_SATELLITE, getSatelliteConfig } from "./config"
 
 export function getCurrentMonth() {
     const now = new Date()
@@ -19,16 +19,20 @@ export function getPreviousCalendarMonth() {
     return { year: currentYear, month: currentMonth - 1 }
 }
 
-export function getAllAvailableMonths() {
+export function getAllAvailableMonths(satellite = DEFAULT_SATELLITE) {
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const minYear = satelliteConfig.minYear
+    const minMonth = satelliteConfig.minMonth
+    
     const months = []
     const current = getCurrentMonth()
     let year = current.year
     let month = current.month
     
-    while (year > MIN_YEAR || (year === MIN_YEAR && month >= MIN_MONTH)) {
+    while (year > minYear || (year === minYear && month >= minMonth)) {
         months.push({ year, month })
         
-        if (month === MIN_MONTH && year === MIN_YEAR) {
+        if (month === minMonth && year === minYear) {
             break
         }
         
@@ -47,13 +51,17 @@ export function formatMonthDropdownLabel(year, month) {
     return `${year} ${MONTH_NAMES_FULL[month - 1]}`
 }
 
-export function getSixMonthsBackFrom(selectedYear, selectedMonth) {
+export function getSixMonthsBackFrom(selectedYear, selectedMonth, satellite = DEFAULT_SATELLITE) {
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const minYear = satelliteConfig.minYear
+    const minMonth = satelliteConfig.minMonth
+    
     const months = []
     let year = selectedYear
     let month = selectedMonth
     
     for (let i = 0; i < 6; i++) {
-        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
+        if (year < minYear || (year === minYear && month < minMonth)) {
             break
         }
         

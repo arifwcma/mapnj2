@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { monthKey, parseMonthKey } from "@/app/lib/dateUtils"
 
-export default function usePointDataMap(point, rectangleBounds, cloudTolerance, pointType = "", requestTracker = null) {
+export default function usePointDataMap(point, rectangleBounds, cloudTolerance, pointType = "", requestTracker = null, satellite = "sentinel2", reliability = 0) {
     const [dataMap, setDataMap] = useState(new Map())
     const dataMapRef = useRef(new Map())
     const fetchingMonthsRef = useRef(new Set())
@@ -20,7 +20,9 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             lon: pointLon.toString(),
             year: year.toString(),
             month: month.toString(),
-            cloud: cloudTolerance.toString()
+            cloud: cloudTolerance.toString(),
+            reliability: reliability.toString(),
+            satellite: satellite
         })
 
         try {
@@ -39,7 +41,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             console.error(`[HOOK] usePointDataMap - Error fetching NDVI for ${year}-${month}:`, error)
             return { year, month, ndvi: null }
         }
-    }, [cloudTolerance])
+    }, [cloudTolerance, reliability, satellite])
 
     const reset = useCallback(() => {
         const emptyMap = new Map()
@@ -48,7 +50,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
         fetchingMonthsRef.current.clear()
         previousPointRef.current = null
         previousCloudToleranceRef.current = cloudTolerance
-    }, [cloudTolerance])
+    }, [cloudTolerance, reliability, satellite])
 
     useEffect(() => {
         dataMapRef.current = dataMap

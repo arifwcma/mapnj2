@@ -11,7 +11,7 @@ import useToast from "@/app/hooks/useToast"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getSixMonthsBackFrom, getCurrentMonth } from "@/app/lib/monthUtils"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
-import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
+import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL, DEFAULT_SATELLITE, getSatelliteConfig } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import AreaSnapshot from "./AreaSnapshot"
 import CompareSnapshots from "./CompareSnapshots"
@@ -20,12 +20,12 @@ import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
-function getInitialVisibleRange(selectedYear, selectedMonth) {
+function getInitialVisibleRange(selectedYear, selectedMonth, satellite = DEFAULT_SATELLITE) {
     if (!selectedYear || !selectedMonth) {
         return null
     }
     
-    const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+    const months = getSixMonthsBackFrom(selectedYear, selectedMonth, satellite)
     if (months.length === 0) {
         return null
     }
@@ -36,13 +36,17 @@ function getInitialVisibleRange(selectedYear, selectedMonth) {
     }
 }
 
-function getAllMonthsInRange(startMonth, endMonth) {
+function getAllMonthsInRange(startMonth, endMonth, satellite = DEFAULT_SATELLITE) {
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const minYear = satelliteConfig.minYear
+    const minMonth = satelliteConfig.minMonth
+    
     const months = []
     let year = startMonth.year
     let month = startMonth.month
     
     while (year < endMonth.year || (year === endMonth.year && month <= endMonth.month)) {
-        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
+        if (year < minYear || (year === minYear && month < minMonth)) {
             break
         }
         months.push({ year, month })
@@ -69,8 +73,8 @@ function buildDisplayDataItem(month, dataMap) {
     }
 }
 
-function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
-    const { dataMap, fetchMissingMonths } = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker)
+function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, reliability, requestTracker, onDataMapReady, satellite }) {
+    const { dataMap, fetchMissingMonths } = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker, satellite, reliability)
     const dataMapSizeRef = useRef(0)
     const dataMapRef = useRef({ dataMap, fetchMissingMonths })
     
@@ -93,21 +97,23 @@ function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, request
     return null
 }
 
-export default function AreasModePanel({ 
-    selectedAreas, 
-    selectedYear, 
-    selectedMonth, 
-    rectangleBounds, 
+export default function AreasModePanel({
+    selectedAreas,
+    selectedYear,
+    selectedMonth,
+    rectangleBounds,
     cloudTolerance,
+    reliability = 0,
+    satellite = DEFAULT_SATELLITE,
     onMonthChange,
-    onRemoveArea 
+    onRemoveArea
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
     const [areaDataMaps, setAreaDataMaps] = useState([])
     const areaDataMapsRef = useRef([])
     const previousDataMapsRef = useRef([])
-    const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
+    const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth, satellite))
     const leftArrowDebounceRef = useRef(null)
     const rightArrowDebounceRef = useRef(null)
     const chartRef = useRef(null)
@@ -121,16 +127,16 @@ export default function AreasModePanel({
     }, [])
     
     useEffect(() => {
-        const newRange = getInitialVisibleRange(selectedYear, selectedMonth)
+        const newRange = getInitialVisibleRange(selectedYear, selectedMonth, satellite)
         setVisibleRange(newRange)
-    }, [selectedYear, selectedMonth])
+    }, [selectedYear, selectedMonth, satellite])
     
     useEffect(() => {
         if (!visibleRange || selectedAreas.length === 0) {
             return
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth, satellite)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
         
         selectedAreas.forEach((area, index) => {
@@ -186,14 +192,14 @@ export default function AreasModePanel({
         previousDataMapsRef.current = areaDataMaps.map(obj => ({
             dataMap: obj?.dataMap ? new Map(obj.dataMap) : null
         }))
-    }, [areaDataMaps, visibleRange, selectedAreas, showToast])
+    }, [areaDataMaps, visibleRange, selectedAreas, showToast, satellite])
     
     const displayData = useMemo(() => {
         if (!visibleRange) {
             return selectedAreas.map(() => [])
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth, satellite)
         return selectedAreas.map((area, index) => {
             const dataMap = areaDataMaps[index]?.dataMap || new Map()
             return months.map(m => buildDisplayDataItem(m, dataMap))
@@ -233,7 +239,7 @@ export default function AreasModePanel({
                 centerLon
             }
         })
-    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps])
+    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps, satellite])
     
     const chartData = useMemo(() => {
         if (displayData.length === 0 || displayData[0].length === 0) {
@@ -289,9 +295,12 @@ export default function AreasModePanel({
     
     const canGoLeft = useCallback(() => {
         if (!visibleRange) return false
+        const satelliteConfig = getSatelliteConfig(satellite)
+        const minYear = satelliteConfig.minYear
+        const minMonth = satelliteConfig.minMonth
         const { year, month } = visibleRange.startMonth
-        return year > MIN_YEAR || (year === MIN_YEAR && month > MIN_MONTH)
-    }, [visibleRange])
+        return year > minYear || (year === minYear && month > minMonth)
+    }, [visibleRange, satellite])
     
     const canGoRight = useCallback(() => {
         if (!visibleRange) return false
@@ -349,15 +358,18 @@ export default function AreasModePanel({
                     index={index}
                     rectangleBounds={rectangleBounds}
                     cloudTolerance={cloudTolerance}
+                    reliability={reliability}
                     requestTracker={requestTracker}
                     onDataMapReady={handleDataMapReady}
+                    satellite={satellite}
                 />
             ))}
             
             <MonthDropdown 
                 selectedYear={selectedYear} 
                 selectedMonth={selectedMonth} 
-                onMonthChange={onMonthChange} 
+                onMonthChange={onMonthChange}
+                satellite={satellite}
             />
             
             {selectedAreas.length > 0 && (

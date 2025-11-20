@@ -1,9 +1,9 @@
 import { ee, initEarthEngine } from "@/app/lib/earthengine"
-import { MONTH_NAMES_FULL, DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { MONTH_NAMES_FULL, DEFAULT_CLOUD_TOLERANCE, DEFAULT_SATELLITE, getSatelliteConfig } from "@/app/lib/config"
 import { getMonthDateRange, getPreviousMonth } from "@/app/lib/dateUtils"
 import { bboxToArray, createPointBbox } from "@/app/lib/bboxUtils"
 
-export async function countAvailableImages(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
+export async function countAvailableImages(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, satellite = DEFAULT_SATELLITE, reliability = 0) {
     await initEarthEngine()
 
     const [minLng, minLat, maxLng, maxLat] = bbox.split(",").map(parseFloat)
@@ -17,10 +17,12 @@ export async function countAvailableImages(start, end, bbox, cloud = DEFAULT_CLO
 
     const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
 
-    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const filterValue = satellite === "modis" ? reliability : cloud
+    const collection = satelliteConfig.getCollection(ee)
         .filterBounds(rectangle)
         .filterDate(startDate, endDate)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
+        .filter(satelliteConfig.getCloudFilter(ee, filterValue))
 
     return await new Promise((resolve, reject) => {
         collection.size().getInfo((size, err) => {
@@ -34,7 +36,7 @@ export async function countAvailableImages(start, end, bbox, cloud = DEFAULT_CLO
     })
 }
 
-export async function findAvailableMonth(bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
+export async function findAvailableMonth(bbox, cloud = DEFAULT_CLOUD_TOLERANCE, satellite = DEFAULT_SATELLITE, reliability = 0) {
     const now = new Date()
     const currentYear = now.getFullYear()
     const currentMonth = now.getMonth() + 1
@@ -47,7 +49,7 @@ export async function findAvailableMonth(bbox, cloud = DEFAULT_CLOUD_TOLERANCE) 
     
     let count
     try {
-        count = await countAvailableImages(currentDateRange.start, currentDateRange.end, bboxStr, cloud)
+        count = await countAvailableImages(currentDateRange.start, currentDateRange.end, bboxStr, cloud, satellite, reliability)
     } catch (error) {
         const errorMsg = error?.message || error?.toString() || "Unknown error"
         throw new Error(`Failed to count images for current month: ${errorMsg}`)
@@ -68,7 +70,7 @@ export async function findAvailableMonth(bbox, cloud = DEFAULT_CLOUD_TOLERANCE) 
     const prevDateRange = getMonthDateRange(prevYear, prevMonth)
 
     try {
-        count = await countAvailableImages(prevDateRange.start, prevDateRange.end, bboxStr, cloud)
+        count = await countAvailableImages(prevDateRange.start, prevDateRange.end, bboxStr, cloud, satellite, reliability)
     } catch (error) {
         const errorMsg = error?.message || error?.toString() || "Unknown error"
         throw new Error(`Failed to count images for previous month: ${errorMsg}`)
@@ -84,7 +86,7 @@ export async function findAvailableMonth(bbox, cloud = DEFAULT_CLOUD_TOLERANCE) 
     }
 }
 
-export async function findRecentSnapshot(bbox) {
+export async function findRecentSnapshot(bbox, satellite = DEFAULT_SATELLITE, reliability = 0) {
     const now = new Date()
     let currentYear = now.getFullYear()
     let currentMonth = now.getMonth() + 1
@@ -99,7 +101,7 @@ export async function findRecentSnapshot(bbox) {
         const dateRange = getMonthDateRange(currentYear, currentMonth)
         
         try {
-            const count = await countAvailableImages(dateRange.start, dateRange.end, bboxStr, 10)
+            const count = await countAvailableImages(dateRange.start, dateRange.end, bboxStr, 10, satellite, reliability)
             
             if (count > 0) {
                 return {
@@ -148,7 +150,7 @@ function geoJsonToEeGeometry(geoJson) {
     return null
 }
 
-export async function getAverageNdviThumbnail(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null, dimensions = 1024) {
+export async function getAverageNdviThumbnail(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null, dimensions = 1024, satellite = DEFAULT_SATELLITE, reliability = 0) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -168,11 +170,13 @@ export async function getAverageNdviThumbnail(start, end, bbox, cloud = DEFAULT_
         throw new Error("Invalid geometry format")
     }
 
-    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const filterValue = satellite === "modis" ? reliability : cloud
+    const collection = satelliteConfig.getCollection(ee)
         .filterBounds(rectangle)
         .filterDate(startDate, endDate)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
-        .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
+        .filter(satelliteConfig.getCloudFilter(ee, filterValue))
+        .map(img => satelliteConfig.calculateNDVI(img, reliability))
 
     const collectionSize = await new Promise((resolve, reject) => {
         collection.size().getInfo((size, err) => {
@@ -227,7 +231,7 @@ export async function getAverageNdviThumbnail(start, end, bbox, cloud = DEFAULT_
     })
 }
 
-export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null) {
+export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null, satellite = DEFAULT_SATELLITE, reliability = 0) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -266,11 +270,13 @@ export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD
         throw new Error("Invalid geometry format")
     }
 
-    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const filterValue = satellite === "modis" ? reliability : cloud
+    const collection = satelliteConfig.getCollection(ee)
         .filterBounds(rectangle)
         .filterDate(startDate, endDate)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
-        .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
+        .filter(satelliteConfig.getCloudFilter(ee, filterValue))
+        .map(img => satelliteConfig.calculateNDVI(img, reliability))
 
     const collectionSize = await new Promise((resolve, reject) => {
         collection.size().getInfo((size, err) => {
@@ -304,7 +310,7 @@ export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD
     })
 }
 
-export async function getAverageRgbTile(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null) {
+export async function getAverageRgbTile(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null, satellite = DEFAULT_SATELLITE, reliability = 0) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -324,13 +330,15 @@ export async function getAverageRgbTile(start, end, bbox, cloud = DEFAULT_CLOUD_
         throw new Error("Invalid geometry format")
     }
 
-    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const filterValue = satellite === "modis" ? reliability : cloud
+    const collection = satelliteConfig.getCollection(ee)
         .filterBounds(rectangle)
         .filterDate(startDate, endDate)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
+        .filter(satelliteConfig.getCloudFilter(ee, filterValue))
 
     const mean = collection.mean().clip(clipGeometry)
-    const vis = { min: 0, max: 3000, bands: ["B4", "B3", "B2"] }
+    const vis = satelliteConfig.getRgbVis()
 
     return await new Promise((resolve, reject) => {
         mean.getMap(vis, (mapObj, err) => {
@@ -344,7 +352,7 @@ export async function getAverageRgbTile(start, end, bbox, cloud = DEFAULT_CLOUD_
     })
 }
 
-export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
+export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, satellite = DEFAULT_SATELLITE, reliability = 0) {
     await initEarthEngine()
 
     if (isNaN(lat) || isNaN(lon)) {
@@ -361,11 +369,13 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT
     const rectangle = ee.Geometry.Rectangle([minLon, minLat, maxLon, maxLat])
     const point = ee.Geometry.Point([lon, lat])
 
-    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const filterValue = satellite === "modis" ? reliability : cloud
+    const collection = satelliteConfig.getCollection(ee)
         .filterBounds(rectangle)
         .filterDate(startDate, endDate)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
-        .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
+        .filter(satelliteConfig.getCloudFilter(ee, filterValue))
+        .map(img => satelliteConfig.calculateNDVI(img, reliability))
 
     const collectionSize = await new Promise((resolve, reject) => {
         collection.size().getInfo((size, err) => {
@@ -386,7 +396,7 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT
     const ndviValue = mean.select("NDVI").reduceRegion({
         reducer: ee.Reducer.mean(),
         geometry: point,
-        scale: 10,
+        scale: satelliteConfig.getScale(),
         maxPixels: 1e9
     }).get("NDVI")
 
@@ -402,12 +412,12 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT
     })
 }
 
-export async function getNdviAtPointForMonth(lat, lon, year, month, bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
+export async function getNdviAtPointForMonth(lat, lon, year, month, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, satellite = DEFAULT_SATELLITE, reliability = 0) {
     const dateRange = getMonthDateRange(year, month)
-    return await getNdviAtPoint(lat, lon, dateRange.start, dateRange.end, bbox, cloud)
+    return await getNdviAtPoint(lat, lon, dateRange.start, dateRange.end, bbox, cloud, satellite, reliability)
 }
 
-export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null) {
+export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null, satellite = DEFAULT_SATELLITE, reliability = 0) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -427,11 +437,13 @@ export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CL
         throw new Error("Invalid geometry format")
     }
 
-    const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const filterValue = satellite === "modis" ? reliability : cloud
+    const collection = satelliteConfig.getCollection(ee)
         .filterBounds(rectangle)
         .filterDate(startDate, endDate)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
-        .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
+        .filter(satelliteConfig.getCloudFilter(ee, filterValue))
+        .map(img => satelliteConfig.calculateNDVI(img, reliability))
 
     const collectionSize = await new Promise((resolve, reject) => {
         collection.size().getInfo((size, err) => {
@@ -452,7 +464,7 @@ export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CL
     const ndviValue = mean.select("NDVI").reduceRegion({
         reducer: ee.Reducer.mean(),
         geometry: clipGeometry,
-        scale: 10,
+        scale: satelliteConfig.getScale(),
         maxPixels: 1e9
     }).get("NDVI")
 

@@ -11,7 +11,7 @@ import useToast from "@/app/hooks/useToast"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getSixMonthsBackFrom, getCurrentMonth } from "@/app/lib/monthUtils"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
-import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
+import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL, DEFAULT_SATELLITE, getSatelliteConfig } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
 import ComparePointSnapshots from "./ComparePointSnapshots"
@@ -20,12 +20,12 @@ import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
-function getInitialVisibleRange(selectedYear, selectedMonth) {
+function getInitialVisibleRange(selectedYear, selectedMonth, satellite = DEFAULT_SATELLITE) {
     if (!selectedYear || !selectedMonth) {
         return null
     }
     
-    const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+    const months = getSixMonthsBackFrom(selectedYear, selectedMonth, satellite)
     if (months.length === 0) {
         return null
     }
@@ -36,13 +36,17 @@ function getInitialVisibleRange(selectedYear, selectedMonth) {
     }
 }
 
-function getAllMonthsInRange(startMonth, endMonth) {
+function getAllMonthsInRange(startMonth, endMonth, satellite = DEFAULT_SATELLITE) {
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const minYear = satelliteConfig.minYear
+    const minMonth = satelliteConfig.minMonth
+    
     const months = []
     let year = startMonth.year
     let month = startMonth.month
     
     while (year < endMonth.year || (year === endMonth.year && month <= endMonth.month)) {
-        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
+        if (year < minYear || (year === minYear && month < minMonth)) {
             break
         }
         months.push({ year, month })
@@ -69,8 +73,8 @@ function buildDisplayDataItem(month, dataMap) {
     }
 }
 
-function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
-    const { dataMap, fetchMissingMonths } = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker)
+function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, reliability, requestTracker, onDataMapReady, satellite }) {
+    const { dataMap, fetchMissingMonths } = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker, satellite, reliability)
     const dataMapSizeRef = useRef(0)
     const dataMapRef = useRef(dataMap)
     
@@ -100,6 +104,8 @@ export default function PointsModePanel({
     selectedMonth, 
     rectangleBounds, 
     cloudTolerance,
+    reliability = 0,
+    satellite = DEFAULT_SATELLITE,
     onMonthChange,
     onRemovePoint 
 }) {
@@ -128,9 +134,9 @@ export default function PointsModePanel({
     }, [])
     
     useEffect(() => {
-        const newRange = getInitialVisibleRange(selectedYear, selectedMonth)
+        const newRange = getInitialVisibleRange(selectedYear, selectedMonth, satellite)
         setVisibleRange(newRange)
-    }, [selectedYear, selectedMonth])
+    }, [selectedYear, selectedMonth, satellite])
     
     useEffect(() => {
         if (!visibleRange || selectedPoints.length === 0) {
@@ -197,7 +203,7 @@ export default function PointsModePanel({
             }))
         }
         
-        const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+        const months = getSixMonthsBackFrom(selectedYear, selectedMonth, satellite)
         return selectedPoints.map((point, index) => {
             const dataMap = pointDataMaps[index]?.dataMap || new Map()
             console.log(`[PointsModePanel] tableData for point ${index}, dataMap size:`, dataMap.size, 'months:', months.length)
@@ -279,9 +285,12 @@ export default function PointsModePanel({
     
     const canGoLeft = useCallback(() => {
         if (!visibleRange) return false
+        const satelliteConfig = getSatelliteConfig(satellite)
+        const minYear = satelliteConfig.minYear
+        const minMonth = satelliteConfig.minMonth
         const { year, month } = visibleRange.startMonth
-        return year > MIN_YEAR || (year === MIN_YEAR && month > MIN_MONTH)
-    }, [visibleRange])
+        return year > minYear || (year === minYear && month > minMonth)
+    }, [visibleRange, satellite])
     
     const canGoRight = useCallback(() => {
         if (!visibleRange) return false
@@ -342,22 +351,27 @@ export default function PointsModePanel({
                     index={index}
                     rectangleBounds={rectangleBounds}
                     cloudTolerance={cloudTolerance}
+                    reliability={reliability}
                     requestTracker={requestTracker}
                     onDataMapReady={handleDataMapReady}
+                    satellite={satellite}
                 />
             ))}
             
             <MonthDropdown 
                 selectedYear={selectedYear} 
                 selectedMonth={selectedMonth} 
-                onMonthChange={onMonthChange} 
+                onMonthChange={onMonthChange}
+                satellite={satellite}
             />
             
             {selectedPoints.length > 0 && (
                 <ComparePointSnapshots
                     selectedPoints={selectedPoints}
                     cloudTolerance={cloudTolerance}
+                    reliability={reliability}
                     visibleRange={visibleRange}
+                    satellite={satellite}
                 />
             )}
             

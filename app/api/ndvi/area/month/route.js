@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import { getAverageNdviForArea } from "@/app/lib/earthengineUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
-import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_CLOUD_TOLERANCE, DEFAULT_RELIABILITY, DEFAULT_SATELLITE } from "@/app/lib/config"
 
 async function handleRequest(request) {
     console.log(`[API] ${request.method} /api/ndvi/area/month - Request received`)
     try {
-        let geometryParam, year, month, bbox, cloud
+        let geometryParam, year, month, bbox, cloud, satelliteParam
         
         if (request.method === "POST") {
             let body
@@ -37,15 +37,21 @@ async function handleRequest(request) {
             month = body.month
             bbox = body.bbox
             cloud = body.cloud
+            reliabilityParam = body.reliability
+            satelliteParam = body.satellite
         } else {
             const { searchParams } = new URL(request.url)
-            console.log("[API] /api/ndvi/area/month - GET Params:", { year: searchParams.get("year"), month: searchParams.get("month"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
+            console.log("[API] /api/ndvi/area/month - GET Params:", { year: searchParams.get("year"), month: searchParams.get("month"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud"), satellite: searchParams.get("satellite") })
             geometryParam = searchParams.get("geometry")
             year = searchParams.get("year")
             month = searchParams.get("month")
             bbox = searchParams.get("bbox")
             cloud = searchParams.get("cloud")
+            reliabilityParam = searchParams.get("reliability")
+            satelliteParam = searchParams.get("satellite")
         }
+
+        const satellite = satelliteParam || DEFAULT_SATELLITE
 
         if (!geometryParam || !year || !month || !bbox) {
             return NextResponse.json(
@@ -67,6 +73,7 @@ async function handleRequest(request) {
         const yearNum = parseInt(year, 10)
         const monthNum = parseInt(month, 10)
         const cloudNum = cloud ? parseFloat(cloud) : DEFAULT_CLOUD_TOLERANCE
+        const reliability = reliabilityParam ? parseInt(reliabilityParam) : DEFAULT_RELIABILITY
 
         if (isNaN(yearNum) || isNaN(monthNum)) {
             return NextResponse.json(
@@ -93,7 +100,7 @@ async function handleRequest(request) {
         })
         
         try {
-            const ndvi = await getAverageNdviForArea(dateRange.start, dateRange.end, bbox, cloudNum, geometry)
+            const ndvi = await getAverageNdviForArea(dateRange.start, dateRange.end, bbox, cloudNum, geometry, satellite, reliability)
             console.log(`[API] /api/ndvi/area/month - Success for ${yearNum}-${monthNum}:`, { ndvi })
             return NextResponse.json({
                 year: yearNum,

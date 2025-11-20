@@ -10,7 +10,7 @@ import useRequestTracker from "@/app/hooks/useRequestTracker"
 import useToast from "@/app/hooks/useToast"
 import useNullDataDetection from "@/app/hooks/useNullDataDetection"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
-import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
+import { MONTH_NAMES_FULL, TOAST_DURATION, DEFAULT_SATELLITE } from "@/app/lib/config"
 import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import ChartLoadingMessage from "./ChartLoadingMessage"
@@ -20,8 +20,8 @@ import ToastMessage from "./ToastMessage"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
-function PointMonthsDataWrapper({ point, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
-    const dataMap = usePointDataMap(point, rectangleBounds, cloudTolerance, "POINT_MONTHS", requestTracker)
+function PointMonthsDataWrapper({ point, rectangleBounds, cloudTolerance, reliability, requestTracker, onDataMapReady, satellite }) {
+    const dataMap = usePointDataMap(point, rectangleBounds, cloudTolerance, "POINT_MONTHS", requestTracker, satellite, reliability)
     const mapSize = dataMap?.dataMap?.size ?? 0
     const previousSizeRef = useRef(-1)
     const dataMapRef = useRef(null)
@@ -44,6 +44,8 @@ export default function PointMonthsModePanel({
     selectedPoint,
     rectangleBounds,
     cloudTolerance,
+    reliability = 0,
+    satellite = DEFAULT_SATELLITE,
     onMonthChange
 }) {
     const requestTracker = useRequestTracker()
@@ -131,7 +133,7 @@ export default function PointMonthsModePanel({
         const success = addMonth(selectedYear, selectedMonth)
         
         if (success) {
-            const allMonths = getAllAvailableMonths()
+            const allMonths = getAllAvailableMonths(satellite)
             const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
             excludedKeys.add(addedKey)
             
@@ -235,8 +237,10 @@ export default function PointMonthsModePanel({
                 point={selectedPoint}
                 rectangleBounds={rectangleBounds}
                 cloudTolerance={cloudTolerance}
+                reliability={reliability}
                 requestTracker={requestTracker}
                 onDataMapReady={handleDataMapReady}
+                satellite={satellite}
             />
             
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
@@ -246,6 +250,7 @@ export default function PointMonthsModePanel({
                         selectedMonth={selectedMonth} 
                         onMonthChange={handleMonthDropdownChange}
                         excludedMonths={selectedMonths}
+                        satellite={satellite}
                     />
                 </div>
                 <a

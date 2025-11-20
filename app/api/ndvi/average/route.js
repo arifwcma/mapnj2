@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
 import { getAverageNdviTile, getAverageNdviThumbnail } from "@/app/lib/earthengineUtils"
-import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_CLOUD_TOLERANCE, DEFAULT_RELIABILITY, DEFAULT_SATELLITE } from "@/app/lib/config"
 
 async function handleRequest(request) {
     console.log(`[API] ${request.method} /api/ndvi/average - Request received`)
-    let start, end, bbox, cloudParam, geometryParam, thumbnailParam, dimensions
+    let start, end, bbox, cloudParam, geometryParam, thumbnailParam, dimensions, satelliteParam
     
     if (request.method === "POST") {
         let body
@@ -36,22 +36,28 @@ async function handleRequest(request) {
         end = body.end
         bbox = body.bbox
         cloudParam = body.cloud
+        reliabilityParam = body.reliability
         geometryParam = body.geometry
         thumbnailParam = body.thumbnail
         dimensions = body.dimensions
+        satelliteParam = body.satellite
     } else {
         const { searchParams } = new URL(request.url)
-        console.log("[API] /api/ndvi/average - GET Params:", { start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud"), hasGeometry: !!searchParams.get("geometry"), thumbnail: searchParams.get("thumbnail") })
+        console.log("[API] /api/ndvi/average - GET Params:", { start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud"), hasGeometry: !!searchParams.get("geometry"), thumbnail: searchParams.get("thumbnail"), satellite: searchParams.get("satellite") })
         start = searchParams.get("start")
         end = searchParams.get("end")
         bbox = searchParams.get("bbox")
         cloudParam = searchParams.get("cloud")
+        reliabilityParam = searchParams.get("reliability")
         geometryParam = searchParams.get("geometry")
         thumbnailParam = searchParams.get("thumbnail")
         dimensions = searchParams.get("dimensions")
+        satelliteParam = searchParams.get("satellite")
     }
     
     const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
+    const reliability = reliabilityParam ? parseInt(reliabilityParam) : DEFAULT_RELIABILITY
+    const satellite = satelliteParam || DEFAULT_SATELLITE
 
     if (!start || !end || !bbox) {
         return NextResponse.json(
@@ -95,9 +101,9 @@ async function handleRequest(request) {
                 hasGeometry: !!geometry,
                 geometryType: geometry?.geometry?.type || geometry?.type || "none"
             })
-            const imageUrl = await getAverageNdviThumbnail(start, end, bbox, cloud, geometry, dimensionsNum)
+            const imageUrl = await getAverageNdviThumbnail(start, end, bbox, cloud, geometry, dimensionsNum, satellite, reliability)
             console.log(`[API] /api/ndvi/average - Thumbnail success:`, { imageUrl: imageUrl?.substring(0, 100) + "..." })
-            return NextResponse.json({ imageUrl, start, end, bbox, cloud })
+            return NextResponse.json({ imageUrl, start, end, bbox, cloud, satellite })
         } else {
             console.log(`[API] /api/ndvi/average - Calling getAverageNdviTile:`, {
                 start,
@@ -105,11 +111,12 @@ async function handleRequest(request) {
                 bbox,
                 cloud,
                 hasGeometry: !!geometry,
-                geometryType: geometry?.geometry?.type || geometry?.type || "none"
+                geometryType: geometry?.geometry?.type || geometry?.type || "none",
+                satellite
             })
-            const tileUrl = await getAverageNdviTile(start, end, bbox, cloud, geometry)
+            const tileUrl = await getAverageNdviTile(start, end, bbox, cloud, geometry, satellite, reliability)
             console.log(`[API] /api/ndvi/average - Tile success`)
-            return NextResponse.json({ tileUrl, start, end, bbox, cloud })
+            return NextResponse.json({ tileUrl, start, end, bbox, cloud, satellite })
         }
     } catch (error) {
         const errorMessage = error.message || error.toString() || ""

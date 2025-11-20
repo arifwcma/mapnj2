@@ -1,8 +1,9 @@
 "use client"
 import { getAllAvailableMonths, formatMonthDropdownLabel, getCurrentMonth } from "@/app/lib/monthUtils"
+import { DEFAULT_SATELLITE } from "@/app/lib/config"
 
-export default function MonthDropdown({ selectedYear, selectedMonth, onMonthChange, excludedMonths = [] }) {
-    const allMonths = getAllAvailableMonths()
+export default function MonthDropdown({ selectedYear, selectedMonth, onMonthChange, excludedMonths = [], satellite = DEFAULT_SATELLITE }) {
+    const allMonths = getAllAvailableMonths(satellite)
     const current = getCurrentMonth()
     const defaultYear = selectedYear || current.year
     const defaultMonth = selectedMonth || current.month

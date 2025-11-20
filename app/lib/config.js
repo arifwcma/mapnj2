@@ -17,6 +17,9 @@ export const MIN_YEAR = 2019
 export const MIN_MONTH = 1
 
 export const DEFAULT_CLOUD_TOLERANCE = 50
+export const DEFAULT_RELIABILITY = 0
+
+export { DEFAULT_SATELLITE, SATELLITES, getSatelliteConfig } from "./satelliteConfig"
 
 export const DEBUG_CONFIG = {
     ZOOM_LOGGING: true

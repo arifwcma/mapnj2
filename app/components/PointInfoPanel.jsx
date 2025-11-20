@@ -10,7 +10,7 @@ import {
     Tooltip,
     Legend
 } from "chart.js"
-import { MIN_YEAR, MIN_MONTH } from "@/app/lib/config"
+import { MIN_YEAR, MIN_MONTH, DEFAULT_SATELLITE, getSatelliteConfig } from "@/app/lib/config"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
 import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
@@ -31,17 +31,21 @@ ChartJS.register(
     Legend
 )
 
-function getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum) {
+function getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum, satellite = DEFAULT_SATELLITE) {
     if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
         return null
     }
+    
+    const satelliteConfig = getSatelliteConfig(satellite)
+    const minYear = satelliteConfig.minYear
+    const minMonth = satelliteConfig.minMonth
     
     const months = []
     let year = selectedYear
     let month = selectedMonth
     
     for (let i = 0; i < 6; i++) {
-        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
+        if (year < minYear || (year === minYear && month < minMonth)) {
             break
         }
         
@@ -54,7 +58,7 @@ function getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNu
             month--
         }
         
-        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
+        if (year < minYear || (year === minYear && month < minMonth)) {
             break
         }
     }
@@ -105,13 +109,13 @@ function buildDisplayDataItem(month, dataMap) {
     }
 }
 
-export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance, secondPoint = null, secondPointNdvi = null, secondPointNdviLoading = false, onSecondPointLoadingChange = undefined, onFirstPointMove = undefined, onSecondPointMove = undefined }) {
+export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading = false, selectedYear, selectedMonth, endYear, endMonthNum, rectangleBounds, cloudTolerance, reliability = 0, satellite = DEFAULT_SATELLITE, secondPoint = null, secondPointNdvi = null, secondPointNdviLoading = false, onSecondPointLoadingChange = undefined, onFirstPointMove = undefined, onSecondPointMove = undefined }) {
     const firstPoint = lat !== null && lon !== null ? { lat, lon } : null
     const secondPointForHook = secondPoint && secondPoint.lat !== null && secondPoint.lon !== null ? secondPoint : null
 
     const requestTracker = useRequestTracker()
-    const blueDataMap = usePointDataMap(firstPoint, rectangleBounds, cloudTolerance, "BLUE", requestTracker)
-    const redDataMap = usePointDataMap(secondPointForHook, rectangleBounds, cloudTolerance, "RED", requestTracker)
+    const blueDataMap = usePointDataMap(firstPoint, rectangleBounds, cloudTolerance, "BLUE", requestTracker, satellite, reliability)
+    const redDataMap = usePointDataMap(secondPointForHook, rectangleBounds, cloudTolerance, "RED", requestTracker, satellite, reliability)
 
 
     const previousVisibleRangeRef = useRef(null)
@@ -120,7 +124,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
         if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
             return null
         }
-        return getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum)
+        return getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum, satellite)
     })
 
     const previousSelectedYearRef = useRef(selectedYear)
@@ -166,7 +170,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
                     return null
                 }
-                return getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum)
+                return getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum, satellite)
             })
         }
 
@@ -175,10 +179,10 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 if (!selectedYear || !selectedMonth || !endYear || !endMonthNum) {
                     return null
                 }
-                return getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum)
+                return getInitialVisibleRange(selectedYear, selectedMonth, endYear, endMonthNum, satellite)
             })
         }
-    }, [cloudTolerance, selectedYear, selectedMonth, endYear, endMonthNum, lat, lon, firstPoint])
+    }, [cloudTolerance, selectedYear, selectedMonth, endYear, endMonthNum, lat, lon, firstPoint, satellite])
 
     useEffect(() => {
         if (!visibleRange || (!firstPoint && !secondPointForHook)) {
@@ -308,9 +312,12 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
 
     const canGoLeft = useCallback(() => {
         if (!visibleRange) return false
+        const satelliteConfig = getSatelliteConfig(satellite)
+        const minYear = satelliteConfig.minYear
+        const minMonth = satelliteConfig.minMonth
         const startMonth = visibleRange.startMonth
-        return !(startMonth.year < MIN_YEAR || (startMonth.year === MIN_YEAR && startMonth.month <= MIN_MONTH))
-    }, [visibleRange])
+        return !(startMonth.year < minYear || (startMonth.year === minYear && startMonth.month <= minMonth))
+    }, [visibleRange, satellite])
 
     const canGoRight = useCallback(() => {
         if (!visibleRange) return false
@@ -345,9 +352,12 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
             }
 
             let newStartMonth = { ...visibleRange.startMonth }
+            const satelliteConfig = getSatelliteConfig(satellite)
+            const minYear = satelliteConfig.minYear
+            const minMonth = satelliteConfig.minMonth
             for (let i = 0; i < offset; i++) {
                 const prev = getPreviousMonth(newStartMonth.year, newStartMonth.month)
-                if (prev.year < MIN_YEAR || (prev.year === MIN_YEAR && prev.month < MIN_MONTH)) {
+                if (prev.year < minYear || (prev.year === minYear && prev.month < minMonth)) {
                     break
                 }
                 newStartMonth = prev
@@ -358,7 +368,7 @@ export default function PointInfoPanel({ lat, lon, ndvi, isReloading, isLoading 
                 endMonth: prev.endMonth
             }))
         }, 1000)
-    }, [visibleRange, canGoLeft])
+    }, [visibleRange, canGoLeft, satellite])
 
     const handleRightArrow = useCallback(() => {
         if (!visibleRange) {

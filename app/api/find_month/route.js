@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server"
 import { findAvailableMonth } from "@/app/lib/earthengineUtils"
-import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_CLOUD_TOLERANCE, DEFAULT_RELIABILITY, DEFAULT_SATELLITE } from "@/app/lib/config"
 
 export async function GET(request) {
     console.log("[API] GET /api/find_month - Request received")
     const { searchParams } = new URL(request.url)
-    console.log("[API] /api/find_month - Params:", { bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
+    console.log("[API] /api/find_month - Params:", { bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud"), satellite: searchParams.get("satellite") })
     const bbox = searchParams.get("bbox")
     const cloudParam = searchParams.get("cloud")
+    const reliabilityParam = searchParams.get("reliability")
+    const satelliteParam = searchParams.get("satellite")
     const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
+    const reliability = reliabilityParam ? parseInt(reliabilityParam) : DEFAULT_RELIABILITY
+    const satellite = satelliteParam || DEFAULT_SATELLITE
 
     if (!bbox) {
         return NextResponse.json(
@@ -25,7 +29,7 @@ export async function GET(request) {
     }
 
     try {
-        const result = await findAvailableMonth(bbox, cloud)
+        const result = await findAvailableMonth(bbox, cloud, satellite, reliability)
         return NextResponse.json(result)
     } catch (error) {
         console.error("Error finding available month:", error)
