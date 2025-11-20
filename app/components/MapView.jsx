@@ -410,19 +410,38 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {string} [props.analysisMode]
  * @param {string} [props.compareMode]
  * @param {Function} [props.onMapBoundsChange]
+ * @param {string|null} [props.recentNdviTileUrl]
+ * @param {boolean} [props.recentNdviLoading]
+ * @param {string|null} [props.recentNdviError]
  */
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", recentNdviTileUrl = null, recentNdviLoading = false, recentNdviError = null, isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
     const { boundary, loading, error } = useBoundary()
-    const tileUrl = basemap === "satellite" 
-        ? TILE_LAYER_SATELLITE 
-        : basemap === "topographic" 
-        ? TILE_LAYER_TOPOGRAPHIC 
-        : TILE_LAYER_STREET
-    const attribution = basemap === "satellite" 
-        ? '&copy; <a href="https://www.esri.com/">Esri</a>'
-        : basemap === "topographic"
-        ? '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
-        : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    
+    const getBasemapTileUrl = () => {
+        if (basemap === "ndvi-recent") {
+            return recentNdviTileUrl
+        }
+        return basemap === "satellite" 
+            ? TILE_LAYER_SATELLITE 
+            : basemap === "topographic" 
+            ? TILE_LAYER_TOPOGRAPHIC 
+            : TILE_LAYER_STREET
+    }
+    
+    const tileUrl = getBasemapTileUrl()
+    
+    const getAttribution = () => {
+        if (basemap === "ndvi-recent") {
+            return '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>'
+        }
+        return basemap === "satellite" 
+            ? '&copy; <a href="https://www.esri.com/">Esri</a>'
+            : basemap === "topographic"
+            ? '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+            : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }
+    
+    const attribution = getAttribution()
 
     if (error) {
         return <div>Error loading boundary: {error.message}</div>
@@ -435,7 +454,43 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <ZoomLogger />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
             {onMapBoundsChange && <MapBoundsTracker onBoundsChange={onMapBoundsChange} />}
-            <TileLayer key={basemap} url={tileUrl} attribution={attribution} />
+            {tileUrl && (
+                <TileLayer 
+                    key={basemap === "ndvi-recent" ? `ndvi-recent-${recentNdviTileUrl}` : basemap} 
+                    url={tileUrl} 
+                    attribution={attribution}
+                    opacity={basemap === "ndvi-recent" ? 1 : 1}
+                />
+            )}
+            {basemap === "ndvi-recent" && recentNdviLoading && (
+                <div style={{
+                    position: "absolute",
+                    top: "10px",
+                    left: "10px",
+                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    padding: "8px 12px",
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                    zIndex: 1000
+                }}>
+                    Loading recent NDVI...
+                </div>
+            )}
+            {basemap === "ndvi-recent" && recentNdviError && (
+                <div style={{
+                    position: "absolute",
+                    top: "10px",
+                    left: "10px",
+                    backgroundColor: "rgba(220, 53, 69, 0.9)",
+                    color: "white",
+                    padding: "8px 12px",
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                    zIndex: 1000
+                }}>
+                    {recentNdviError}
+                </div>
+            )}
             {!isDrawing && !isMoveMode && !fieldSelectionMode && <PointClickHandler isActive={isPointClickMode || isPointSelectMode} onPointClick={onPointClick || (() => {})} />}
             {isMoveMode && <MoveModeHandler isActive={isMoveMode} onMarkerDragEnd={onMarkerDragEnd} />}
             {boundary && <BoundaryLayer data={boundary} />}

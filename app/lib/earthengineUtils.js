@@ -84,6 +84,45 @@ export async function findAvailableMonth(bbox, cloud = DEFAULT_CLOUD_TOLERANCE) 
     }
 }
 
+export async function findRecentSnapshot(bbox) {
+    const now = new Date()
+    let currentYear = now.getFullYear()
+    let currentMonth = now.getMonth() + 1
+
+    const bboxStr = Array.isArray(bbox) 
+        ? `${bbox[0][1]},${bbox[0][0]},${bbox[1][1]},${bbox[1][0]}`
+        : bbox
+
+    const maxMonthsToSearch = 60
+
+    for (let i = 0; i < maxMonthsToSearch; i++) {
+        const dateRange = getMonthDateRange(currentYear, currentMonth)
+        
+        try {
+            const count = await countAvailableImages(dateRange.start, dateRange.end, bboxStr, 100)
+            
+            if (count > 0) {
+                return {
+                    year: currentYear,
+                    month: currentMonth,
+                    monthName: MONTH_NAMES_FULL[currentMonth - 1],
+                    count,
+                    start: dateRange.start,
+                    end: dateRange.end
+                }
+            }
+        } catch (error) {
+            console.error(`Error checking ${currentYear}-${currentMonth}:`, error)
+        }
+
+        const prev = getPreviousMonth(currentYear, currentMonth)
+        currentYear = prev.year
+        currentMonth = prev.month
+    }
+
+    return null
+}
+
 function geoJsonToEeGeometry(geoJson) {
     if (!geoJson || !geoJson.geometry) {
         return null
@@ -98,8 +137,8 @@ function geoJsonToEeGeometry(geoJson) {
         )
         return ee.Geometry.Polygon(rings)
     } else if (geom.type === "MultiPolygon") {
-        const polygons = coords.map(polygon =>
-            polygon.map(ring =>
+        const polygons = coords.map(polygon => 
+            polygon.map(ring => 
                 ring.map(([lng, lat]) => [lng, lat])
             )
         )
@@ -138,7 +177,8 @@ export async function getAverageNdviThumbnail(start, end, bbox, cloud = DEFAULT_
     const collectionSize = await new Promise((resolve, reject) => {
         collection.size().getInfo((size, err) => {
             if (err) {
-                reject(err)
+                const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
+                reject(new Error(errorMsg))
                 return
             }
             resolve(size)
@@ -191,11 +231,20 @@ export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
-    const [minLng, minLat, maxLng, maxLat] = bboxArray || []
+    let [minLng, minLat, maxLng, maxLat] = bboxArray || []
 
     if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
         throw new Error("Invalid bbox format")
     }
+
+    const latDiff = maxLat - minLat
+    const lngDiff = maxLng - minLng
+    const buffer = Math.max(latDiff, lngDiff) * 0.2
+    
+    minLat -= buffer
+    maxLat += buffer
+    minLng -= buffer
+    maxLng += buffer
 
     const startDate = ee.Date(start)
     const endDate = ee.Date(end).advance(1, "day")
@@ -216,9 +265,11 @@ export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD
     const mean = collection.mean().clip(clipGeometry)
     const vis = { min: -1, max: 1, palette: ["darkred", "orangered", "red", "yellow", "darkgreen"] }
 
-
     return await new Promise((resolve, reject) => {
-        mean.getMap(vis, (mapObj, err) => {
+        mean.getMap({
+            ...vis,
+            region: rectangle
+        }, (mapObj, err) => {
             if (err) {
                 reject(err)
                 return
@@ -253,7 +304,6 @@ export async function getAverageRgbTile(start, end, bbox, cloud = DEFAULT_CLOUD_
         .filterBounds(rectangle)
         .filterDate(startDate, endDate)
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
-        .select(["B4", "B3", "B2"])
 
     const mean = collection.mean().clip(clipGeometry)
     const vis = { min: 0, max: 3000, bands: ["B4", "B3", "B2"] }
@@ -281,7 +331,7 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT
     }
 
     if (isNaN(lat) || isNaN(lon)) {
-        throw new Error("Invalid lat/lon format")
+        throw new Error("Invalid lat or lon")
     }
 
     const startDate = ee.Date(start)
@@ -296,50 +346,33 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
+    const mean = collection.mean().clip(rectangle)
+
+    const ndviValue = mean.select("NDVI").reduceRegion({
+        reducer: ee.Reducer.mean(),
+        geometry: point,
+        scale: 10,
+        maxPixels: 1e9
+    }).get("NDVI")
+
     return await new Promise((resolve, reject) => {
-        collection.size().getInfo((size, err) => {
+        ndviValue.getInfo((value, err) => {
             if (err) {
                 const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
-                console.error("Earth Engine error checking collection size:", errorMsg)
                 reject(new Error(errorMsg))
                 return
             }
-            
-            if (size === 0) {
-                reject(new Error("No images found for the specified criteria"))
-                return
-            }
-            
-            const mean = collection.mean().clip(rectangle)
-            const sampled = mean.sampleRegions({
-                collection: ee.FeatureCollection([ee.Feature(point)]),
-                scale: 10,
-                tileScale: 2
-            })
-            
-            sampled.first().getInfo((feature, err) => {
-                if (err) {
-                    const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
-                    console.error("Earth Engine error:", errorMsg)
-                    reject(new Error(errorMsg))
-                    return
-                }
-                const ndviValue = feature?.properties?.NDVI
-                if (ndviValue === null || ndviValue === undefined) {
-                    console.log("No NDVI value found at point")
-                    reject(new Error("No NDVI value found at this point"))
-                    return
-                }
-                const startDate = new Date(start)
-                const monthYear = `${MONTH_NAMES_FULL[startDate.getMonth()]} ${startDate.getFullYear()}`
-                console.log(`NDVI value retrieved for ${monthYear}:`, ndviValue)
-                resolve(ndviValue)
-            })
+            resolve(value)
         })
     })
 }
 
-export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry) {
+export async function getNdviAtPointForMonth(lat, lon, year, month, bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
+    const dateRange = getMonthDateRange(year, month)
+    return await getNdviAtPoint(lat, lon, dateRange.start, dateRange.end, bbox, cloud)
+}
+
+export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE, geometry = null) {
     await initEarthEngine()
 
     const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
@@ -349,15 +382,11 @@ export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CL
         throw new Error("Invalid bbox format")
     }
 
-    if (!geometry) {
-        throw new Error("Geometry is required for area NDVI calculation")
-    }
-
     const startDate = ee.Date(start)
     const endDate = ee.Date(end).advance(1, "day")
 
     const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
-    const clipGeometry = geoJsonToEeGeometry(geometry)
+    const clipGeometry = geometry ? geoJsonToEeGeometry(geometry) : rectangle
 
     if (!clipGeometry) {
         throw new Error("Invalid geometry format")
@@ -369,47 +398,23 @@ export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CL
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
+    const mean = collection.mean().clip(clipGeometry)
+
+    const ndviValue = mean.select("NDVI").reduceRegion({
+        reducer: ee.Reducer.mean(),
+        geometry: clipGeometry,
+        scale: 10,
+        maxPixels: 1e9
+    }).get("NDVI")
+
     return await new Promise((resolve, reject) => {
-        collection.size().getInfo((size, err) => {
+        ndviValue.getInfo((value, err) => {
             if (err) {
                 const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
-                console.error("Earth Engine error checking collection size:", errorMsg)
                 reject(new Error(errorMsg))
                 return
             }
-            
-            if (size === 0) {
-                reject(new Error("No images found for the specified criteria"))
-                return
-            }
-            
-            const mean = collection.mean().clip(clipGeometry)
-            const reduced = mean.reduceRegion({
-                reducer: ee.Reducer.mean(),
-                geometry: clipGeometry,
-                scale: 10,
-                maxPixels: 1e9,
-                tileScale: 2
-            })
-            
-            reduced.getInfo((result, err) => {
-                if (err) {
-                    const errorMsg = err.message || err.toString() || "Unknown Earth Engine error"
-                    console.error("Earth Engine error:", errorMsg)
-                    reject(new Error(errorMsg))
-                    return
-                }
-                const ndviValue = result?.NDVI
-                if (ndviValue === null || ndviValue === undefined) {
-                    console.log("No NDVI value found for area")
-                    reject(new Error("No NDVI value found for this area"))
-                    return
-                }
-                const startDate = new Date(start)
-                const monthYear = `${MONTH_NAMES_FULL[startDate.getMonth()]} ${startDate.getFullYear()}`
-                console.log(`Average NDVI value retrieved for ${monthYear}:`, ndviValue)
-                resolve(ndviValue)
-            })
+            resolve(value)
         })
     })
 }

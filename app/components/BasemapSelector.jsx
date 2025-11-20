@@ -20,6 +20,7 @@ export default function BasemapSelector({ basemap, onBasemapChange }) {
                 <option value="street">Street</option>
                 <option value="satellite">Satellite</option>
                 <option value="topographic">Topographic</option>
+                <option value="ndvi-recent">NDVI (Recent)</option>
             </select>
         </div>
     )

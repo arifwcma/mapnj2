@@ -20,6 +20,9 @@ import useNdviData from "@/app/hooks/useNdviData"
 
 export default function Page() {
     const [basemap, setBasemap] = useState("street")
+    const [recentNdviTileUrl, setRecentNdviTileUrl] = useState<string | null>(null)
+    const [recentNdviLoading, setRecentNdviLoading] = useState(false)
+    const [recentNdviError, setRecentNdviError] = useState<string | null>(null)
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
     const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
@@ -164,6 +167,53 @@ export default function Page() {
             updateCloudTolerance(newValue)
         }, 1000)
     }
+    
+    const loadRecentNdvi = useCallback(async (bbox: [[number, number], [number, number]]) => {
+        if (!bbox) return
+        
+        setRecentNdviLoading(true)
+        setRecentNdviError(null)
+        
+        try {
+            const bboxStr = `${bbox[0][1]},${bbox[0][0]},${bbox[1][1]},${bbox[1][0]}`
+            const response = await fetch(`/api/ndvi/recent?bbox=${bboxStr}`)
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
+                throw new Error(errorData.error || `Failed to load recent NDVI`)
+            }
+            
+            const data = await response.json()
+            setRecentNdviTileUrl(data.tileUrl)
+        } catch (err: any) {
+            console.error("Error loading recent NDVI:", err)
+            setRecentNdviError(err.message || "Failed to load recent NDVI")
+            setRecentNdviTileUrl(null)
+        } finally {
+            setRecentNdviLoading(false)
+        }
+    }, [])
+    
+    const handleBasemapChange = useCallback((newBasemap: string) => {
+        setBasemap(newBasemap)
+        
+        if (newBasemap === "ndvi-recent") {
+            if (mapBounds) {
+                loadRecentNdvi(mapBounds)
+            } else {
+                setRecentNdviError("Map bounds not available")
+            }
+        } else {
+            setRecentNdviTileUrl(null)
+            setRecentNdviError(null)
+        }
+    }, [mapBounds, loadRecentNdvi])
+    
+    useEffect(() => {
+        if (basemap === "ndvi-recent" && mapBounds && !recentNdviTileUrl && !recentNdviLoading && !recentNdviError) {
+            loadRecentNdvi(mapBounds)
+        }
+    }, [basemap, mapBounds, recentNdviTileUrl, recentNdviLoading, recentNdviError, loadRecentNdvi])
     
     const handlePointClick = useCallback((lat: number, lon: number) => {
         if (analysisMode === "point" && compareMode === "points") {
@@ -357,7 +407,7 @@ export default function Page() {
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
             <div style={{ width: "10%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
-                <BasemapSelector basemap={basemap} onBasemapChange={setBasemap} />
+                <BasemapSelector basemap={basemap} onBasemapChange={handleBasemapChange} />
                 <AnalysisModeSelector analysisMode={analysisMode} onAnalysisModeChange={handleAnalysisModeChange} />
                 <CompareModeSelector 
                     compareMode={compareMode} 
@@ -452,6 +502,9 @@ export default function Page() {
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}
+                    recentNdviTileUrl={recentNdviTileUrl}
+                    recentNdviLoading={recentNdviLoading}
+                    recentNdviError={recentNdviError}
                     isPointClickMode={!!(isPointClickMode || isPointSelectMode)}
                     isPointSelectMode={isPointSelectMode}
                     selectedPoints={selectedPoints}
@@ -508,6 +561,7 @@ export default function Page() {
                 {analysisMode === "area" && compareMode === "months" && selectedAreas.length > 0 && (
                     <AreaMonthsModePanel
                         selectedArea={selectedAreas[0]}
+                        rectangleBounds={selectedAreas[0].bounds || mapBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onResetSelection={handleResetAreaSelection}

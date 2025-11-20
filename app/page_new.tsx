@@ -236,6 +236,18 @@ export default function Page() {
                     <AreaSelectionPrompt
                         onSelectParcel={handleStartFieldSelection}
                         onDrawRectangle={handleStartDrawing}
+                        isSelectionMode={isDrawing || fieldSelectionMode}
+                        onCancel={() => {
+                            setFieldSelectionMode(false)
+                            stopDrawing()
+                            resetRectangle()
+                            setSelectedFieldFeature(null)
+                            setBoundsSource(null)
+                        }}
+                        isDrawing={isDrawing}
+                        fieldSelectionMode={fieldSelectionMode}
+                        currentZoom={currentZoom}
+                        fieldsData={fieldsData}
                     />
                 )}
                 
