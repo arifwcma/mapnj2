@@ -263,35 +263,6 @@ function ZoomTracker({ onZoomChange }) {
     return null
 }
 
-function MapBoundsTracker({ onBoundsChange }) {
-    const map = useMap()
-    
-    useEffect(() => {
-        if (!map || !onBoundsChange) return
-        
-        const updateBounds = () => {
-            const bounds = map.getBounds()
-            const sw = bounds.getSouthWest()
-            const ne = bounds.getNorthEast()
-            onBoundsChange([
-                [sw.lat, sw.lng],
-                [ne.lat, ne.lng]
-            ])
-        }
-        
-        updateBounds()
-        map.on("moveend", updateBounds)
-        map.on("zoomend", updateBounds)
-        
-        return () => {
-            map.off("moveend", updateBounds)
-            map.off("zoomend", updateBounds)
-        }
-    }, [map, onBoundsChange])
-    
-    return null
-}
-
 function PointClickHandler({ isActive, onPointClick }) {
     const map = useMap()
     
@@ -409,27 +380,11 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {Array} [props.selectedAreas]
  * @param {string} [props.analysisMode]
  * @param {string} [props.compareMode]
- * @param {Function} [props.onMapBoundsChange]
- * @param {string|null} [props.recentNdviTileUrl]
- * @param {boolean} [props.recentNdviLoading]
- * @param {string|null} [props.recentNdviError]
  */
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", recentNdviTileUrl = null, recentNdviLoading = false, recentNdviError = null, isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
-    const previousTileUrlRef = useRef<string | null>(null)
-    
-    useEffect(() => {
-        if (basemap === "ndvi-recent" && recentNdviTileUrl) {
-            previousTileUrlRef.current = recentNdviTileUrl
-        } else if (basemap !== "ndvi-recent") {
-            previousTileUrlRef.current = null
-        }
-    }, [basemap, recentNdviTileUrl])
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points" }) {
     const { boundary, loading, error } = useBoundary()
     
     const getBasemapTileUrl = () => {
-        if (basemap === "ndvi-recent") {
-            return recentNdviTileUrl
-        }
         return basemap === "satellite" 
             ? TILE_LAYER_SATELLITE 
             : basemap === "topographic" 
@@ -439,14 +394,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     
     const tileUrl = getBasemapTileUrl()
     
-    const effectiveTileUrl = basemap === "ndvi-recent" && !tileUrl && recentNdviLoading && previousTileUrlRef.current
-        ? previousTileUrlRef.current
-        : tileUrl
-    
     const getAttribution = () => {
-        if (basemap === "ndvi-recent") {
-            return '&copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>'
-        }
         return basemap === "satellite" 
             ? '&copy; <a href="https://www.esri.com/">Esri</a>'
             : basemap === "topographic"
@@ -466,34 +414,12 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <FixMarkerIcon />
             <ZoomLogger />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
-            {onMapBoundsChange && <MapBoundsTracker onBoundsChange={onMapBoundsChange} />}
-            {effectiveTileUrl && (
+            {tileUrl && (
                 <TileLayer 
                     key={basemap} 
-                    url={effectiveTileUrl} 
+                    url={tileUrl} 
                     attribution={attribution}
-                    opacity={basemap === "ndvi-recent" ? 1 : 1}
                 />
-            )}
-            {basemap === "ndvi-recent" && recentNdviLoading && (
-                <div className="absolute top-2.5 left-2.5 bg-white/90 p-2 rounded text-sm z-[1000]">
-                    <span className="animate-blink text-red-600">Loading NDVI...</span>
-                </div>
-            )}
-            {basemap === "ndvi-recent" && recentNdviError && (
-                <div style={{
-                    position: "absolute",
-                    top: "10px",
-                    left: "10px",
-                    backgroundColor: "rgba(220, 53, 69, 0.9)",
-                    color: "white",
-                    padding: "8px 12px",
-                    borderRadius: "4px",
-                    fontSize: "13px",
-                    zIndex: 1000
-                }}>
-                    {recentNdviError}
-                </div>
             )}
             {!isDrawing && !isMoveMode && !fieldSelectionMode && <PointClickHandler isActive={isPointClickMode || isPointSelectMode} onPointClick={onPointClick || (() => {})} />}
             {isMoveMode && <MoveModeHandler isActive={isMoveMode} onMarkerDragEnd={onMarkerDragEnd} />}

@@ -20,10 +20,6 @@ import useNdviData from "@/app/hooks/useNdviData"
 
 export default function Page() {
     const [basemap, setBasemap] = useState("street")
-    const [recentNdviTileUrl, setRecentNdviTileUrl] = useState<string | null>(null)
-    const [recentNdviLoading, setRecentNdviLoading] = useState(false)
-    const [recentNdviError, setRecentNdviError] = useState<string | null>(null)
-    const previousTileUrlRef = useRef<string | null>(null)
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
     const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
@@ -37,7 +33,6 @@ export default function Page() {
     const [currentZoom, setCurrentZoom] = useState<number | null>(null)
     const [selectedYear, setSelectedYear] = useState<number | null>(null)
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
-    const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | null>(null)
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -179,113 +174,9 @@ export default function Page() {
             updateCloudTolerance(newValue)
         }, 1000)
     }
-    
-    const loadRecentNdvi = useCallback(async (bbox: [[number, number], [number, number]]) => {
-        if (!bbox) return
-        
-        setRecentNdviLoading(true)
-        setRecentNdviError(null)
-        
-        if (recentNdviTileUrl) {
-            previousTileUrlRef.current = recentNdviTileUrl
-        }
-        
-        try {
-            const bboxStr = `${bbox[0][1]},${bbox[0][0]},${bbox[1][1]},${bbox[1][0]}`
-            const response = await fetch(`/api/ndvi/recent?bbox=${bboxStr}`)
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
-                throw new Error(errorData.error || `Failed to NDVI`)
-            }
-            
-            const data = await response.json()
-            if (data.tileUrl) {
-                setRecentNdviTileUrl(data.tileUrl)
-            } else {
-                throw new Error("No tile URL returned")
-            }
-        } catch (err: any) {
-            console.error("Error loading NDVI:", err)
-            setRecentNdviError(err.message || "Failed to load NDVI")
-            if (!previousTileUrlRef.current) {
-                setRecentNdviTileUrl(null)
-            }
-        } finally {
-            setRecentNdviLoading(false)
-        }
-    }, [recentNdviTileUrl])
-    
     const handleBasemapChange = useCallback((newBasemap: string) => {
-        if (recentNdviDebounceRef.current) {
-            clearTimeout(recentNdviDebounceRef.current)
-            recentNdviDebounceRef.current = null
-        }
-        
         setBasemap(newBasemap)
-        
-        if (newBasemap === "ndvi-recent") {
-            isInitialLoadRef.current = true
-            if (mapBounds) {
-                loadRecentNdvi(mapBounds)
-            } else {
-                setRecentNdviError("Map bounds not available")
-            }
-        } else {
-            setRecentNdviTileUrl(null)
-            setRecentNdviError(null)
-            setRecentNdviLoading(false)
-            previousMapBoundsRef.current = null
-            previousTileUrlRef.current = null
-        }
-    }, [mapBounds, loadRecentNdvi])
-    
-    const recentNdviDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const previousMapBoundsRef = useRef<[[number, number], [number, number]] | null>(null)
-    const isInitialLoadRef = useRef(false)
-    
-    useEffect(() => {
-        if (basemap !== "ndvi-recent") {
-            previousMapBoundsRef.current = null
-            isInitialLoadRef.current = false
-            return
-        }
-        
-        if (!mapBounds) {
-            return
-        }
-        
-        const boundsChanged = !previousMapBoundsRef.current || 
-            previousMapBoundsRef.current[0][0] !== mapBounds[0][0] ||
-            previousMapBoundsRef.current[0][1] !== mapBounds[0][1] ||
-            previousMapBoundsRef.current[1][0] !== mapBounds[1][0] ||
-            previousMapBoundsRef.current[1][1] !== mapBounds[1][1]
-        
-        if (!boundsChanged && previousMapBoundsRef.current !== null) {
-            return
-        }
-        
-        previousMapBoundsRef.current = mapBounds
-        
-        if (isInitialLoadRef.current) {
-            isInitialLoadRef.current = false
-            return
-        }
-        
-        if (recentNdviDebounceRef.current) {
-            clearTimeout(recentNdviDebounceRef.current)
-        }
-        
-        recentNdviDebounceRef.current = setTimeout(() => {
-            loadRecentNdvi(mapBounds)
-        }, 300)
-        
-        return () => {
-            if (recentNdviDebounceRef.current) {
-                clearTimeout(recentNdviDebounceRef.current)
-            }
-        }
-    }, [basemap, mapBounds, loadRecentNdvi])
+    }, [])
     
     const handlePointClick = useCallback((lat: number, lon: number) => {
         if (analysisMode === "point" && compareMode === "points") {
@@ -582,9 +473,6 @@ export default function Page() {
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}
-                    recentNdviTileUrl={recentNdviTileUrl}
-                    recentNdviLoading={recentNdviLoading}
-                    recentNdviError={recentNdviError}
                     isPointClickMode={!!(isPointClickMode || isPointSelectMode)}
                     isPointSelectMode={isPointSelectMode}
                     selectedPoints={selectedPoints}
@@ -600,7 +488,6 @@ export default function Page() {
                     onFieldClick={handleFieldClick}
                     currentZoom={currentZoom}
                     onZoomChange={setCurrentZoom}
-                    onMapBoundsChange={setMapBounds}
                 />
             </div>
             
@@ -610,7 +497,7 @@ export default function Page() {
                         selectedPoints={selectedPoints}
                         selectedYear={selectedYear}
                         selectedMonth={selectedMonth}
-                        rectangleBounds={rectangleBounds || mapBounds}
+                        rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onRemovePoint={handleRemovePoint}
@@ -620,7 +507,7 @@ export default function Page() {
                 {analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null && (
                     <PointMonthsModePanel
                         selectedPoint={selectedPoint}
-                        rectangleBounds={rectangleBounds || mapBounds}
+                        rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                     />
@@ -631,7 +518,7 @@ export default function Page() {
                         selectedAreas={selectedAreas}
                         selectedYear={selectedYear}
                         selectedMonth={selectedMonth}
-                        rectangleBounds={rectangleBounds || mapBounds}
+                        rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onRemoveArea={(index: number) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
@@ -641,7 +528,7 @@ export default function Page() {
                 {analysisMode === "area" && compareMode === "months" && selectedAreas.length > 0 && (
                     <AreaMonthsModePanel
                         selectedArea={selectedAreas[0]}
-                        rectangleBounds={selectedAreas[0].bounds || mapBounds}
+                        rectangleBounds={selectedAreas[0].bounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onResetSelection={handleResetAreaSelection}
