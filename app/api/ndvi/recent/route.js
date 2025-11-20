@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
-import { findRecentSnapshot, getAverageNdviTile } from "@/app/lib/earthengineUtils"
+import { getAverageNdviTile } from "@/app/lib/earthengineUtils"
+import { getCurrentMonth, getPreviousMonth } from "@/app/lib/monthUtils"
+import { getMonthDateRange } from "@/app/lib/dateUtils"
 
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/recent - Request received")
@@ -14,23 +16,27 @@ export async function GET(request) {
     }
 
     try {
-        const snapshot = await findRecentSnapshot(bbox)
+        const currentMonth = getCurrentMonth()
+        const monthsBack = 12
         
-        if (!snapshot) {
-            return NextResponse.json(
-                { error: "No recent snapshot found" },
-                { status: 404 }
-            )
+        const endDateRange = getMonthDateRange(currentMonth.year, currentMonth.month)
+        
+        let startMonth = { year: currentMonth.year, month: currentMonth.month }
+        for (let i = 0; i < monthsBack - 1; i++) {
+            const prev = getPreviousMonth(startMonth.year, startMonth.month)
+            startMonth.year = prev.year
+            startMonth.month = prev.month
         }
-
-        const tileUrl = await getAverageNdviTile(snapshot.start, snapshot.end, bbox, 10, null)
+        const startDateRange = getMonthDateRange(startMonth.year, startMonth.month)
+        
+        const tileUrl = await getAverageNdviTile(startDateRange.start, endDateRange.end, bbox, 10, null)
         
         return NextResponse.json({
-            year: snapshot.year,
-            month: snapshot.month,
-            monthName: snapshot.monthName,
-            start: snapshot.start,
-            end: snapshot.end,
+            year: currentMonth.year,
+            month: currentMonth.month,
+            monthName: endDateRange.start,
+            start: startDateRange.start,
+            end: endDateRange.end,
             tileUrl
         })
     } catch (error) {

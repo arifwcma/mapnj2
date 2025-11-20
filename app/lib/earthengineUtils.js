@@ -272,7 +272,7 @@ export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
-    const mean = collection.mean().clip(clipGeometry)
+    const mean = collection.sort('system:time_start', false).mosaic().clip(clipGeometry)
     const vis = { min: -1, max: 1, palette: ["darkred", "orangered", "red", "yellow", "darkgreen"] }
 
     return await new Promise((resolve, reject) => {
