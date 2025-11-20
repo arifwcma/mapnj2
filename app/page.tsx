@@ -48,14 +48,14 @@ export default function Page() {
     }, [selectedYear, selectedMonth])
     
     const loadFieldsForBounds = useCallback((bounds: [[number, number], [number, number]], zoom: number) => {
-        console.log("[CLIENT] loadFieldsForBounds called", { bounds, zoom })
-        
         if (zoom < 13) {
-            console.log("[CLIENT] Zoom < 13, skipping load", { zoom })
             setFieldsData(null)
             setFieldsLoading(false)
             return
         }
+        
+        previousFieldsBoundsRef.current = bounds
+        previousFieldsZoomRef.current = zoom
         
         if (fieldsDebounceTimeoutRef.current) {
             clearTimeout(fieldsDebounceTimeoutRef.current)
@@ -63,7 +63,6 @@ export default function Page() {
         
         fieldsDebounceTimeoutRef.current = setTimeout(() => {
             const bboxStr = bboxToString(bounds)
-            console.log("[CLIENT] Starting fetch for fields", { bboxStr, zoom, url: `/api/fields/geojson?bbox=${bboxStr}&zoom=${zoom}` })
             setFieldsLoading(true)
             
             fetch(`/api/fields/geojson?bbox=${bboxStr}&zoom=${zoom}`)
@@ -85,8 +84,6 @@ export default function Page() {
                     setFieldsData((prevData: any) => {
                         if (!prevData || !prevData.features || prevData.features.length === 0) {
                             console.log("[CLIENT] No previous data, using new data")
-                            previousFieldsBoundsRef.current = bounds
-                            previousFieldsZoomRef.current = zoom
                             return data
                         }
                         
@@ -117,9 +114,6 @@ export default function Page() {
                             added: newFeatures.length,
                             total: mergedFeatures.length 
                         })
-                        
-                        previousFieldsBoundsRef.current = bounds
-                        previousFieldsZoomRef.current = zoom
                         
                         return {
                             ...prevData,
@@ -153,7 +147,6 @@ export default function Page() {
         }
         
         if (currentZoom === null || currentZoom === undefined || currentZoom < 13) {
-            console.log("[CLIENT] Zoom insufficient or null", { currentZoom })
             setFieldsData(null)
             setFieldsLoading(false)
             return
@@ -172,13 +165,8 @@ export default function Page() {
         
         const zoomChanged = previousFieldsZoomRef.current !== currentZoom
         
-        console.log("[CLIENT] Change detection", { boundsChanged, zoomChanged })
-        
         if (boundsChanged || zoomChanged) {
-            console.log("[CLIENT] Changes detected, calling loadFieldsForBounds")
             loadFieldsForBounds(mapBounds, currentZoom)
-        } else {
-            console.log("[CLIENT] No changes detected, skipping load")
         }
     }, [fieldSelectionMode, mapBounds, currentZoom, loadFieldsForBounds])
     
@@ -363,15 +351,12 @@ export default function Page() {
         
         if (currentZoom !== null && currentZoom !== undefined && currentZoom >= 13) {
             if (mapBounds) {
-                console.log("[CLIENT] mapBounds available, loading fields")
                 loadFieldsForBounds(mapBounds, currentZoom)
             } else {
-                console.log("[CLIENT] mapBounds is null, will wait for useEffect to trigger")
                 setFieldsData(null)
                 setFieldsLoading(false)
             }
         } else {
-            console.log("[CLIENT] Zoom insufficient", { currentZoom })
             setFieldsData(null)
             setFieldsLoading(false)
         }

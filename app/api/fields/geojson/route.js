@@ -1,21 +1,6 @@
 import { NextResponse } from "next/server"
-import { join } from "path"
-import { existsSync, readFileSync } from "fs"
-import { read } from "shapefile"
-import proj4 from "proj4"
-import { featureIntersectsBbox } from "@/app/lib/bboxUtils"
 
-const sourceProj = "+proj=tmerc +lat_0=0 +lon_0=141 +k=0.9996 +x_0=500000 +y_0=10000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-const targetProj = "EPSG:4326"
-
-function transformCoordinates(coords, transformFn) {
-    if (Array.isArray(coords[0])) {
-        return coords.map(coord => transformCoordinates(coord, transformFn))
-    }
-    const [x, y] = coords
-    const [lon, lat] = transformFn([x, y])
-    return [lon, lat]
-}
+const WFS_BASE_URL = "http://testpozi.online/cgi-bin/qgis_mapserv.fcgi?MAP=/var/www/qgis_projects/wimmera_parcels/wimmera_parcels.qgz"
 
 export async function GET(request) {
     console.log("[API] GET /api/fields/geojson - Request received")
@@ -23,121 +8,64 @@ export async function GET(request) {
     const bboxParam = searchParams.get("bbox")
     const zoomParam = searchParams.get("zoom")
     
-    console.log("[API] Request parameters:", { bboxParam, zoomParam })
-    
     const zoom = zoomParam ? parseFloat(zoomParam) : null
-    console.log("[API] Parsed zoom:", zoom)
     
     if (zoom !== null && zoom < 13) {
-        console.log("[API] Zoom < 13, returning empty features")
         return NextResponse.json({
             type: "FeatureCollection",
             features: []
         })
     }
     
-    let bbox = null
-    if (bboxParam) {
-        try {
-            const [minLng, minLat, maxLng, maxLat] = bboxParam.split(",").map(parseFloat)
-            console.log("[API] Parsed bbox values:", { minLng, minLat, maxLng, maxLat })
-            if (!isNaN(minLng) && !isNaN(minLat) && !isNaN(maxLng) && !isNaN(maxLat)) {
-                bbox = [[minLat, minLng], [maxLat, maxLng]]
-                console.log("[API] Bbox set:", bbox)
-            } else {
-                console.log("[API] Invalid bbox values (NaN detected)")
-            }
-        } catch (e) {
-            console.error("[API] Error parsing bbox:", e)
-        }
-    } else {
+    if (!bboxParam) {
         console.log("[API] No bbox parameter provided")
+        return NextResponse.json({
+            type: "FeatureCollection",
+            features: []
+        })
     }
     
     try {
-        const shapefilePath = join(process.cwd(), "public", "data", "wparcel", "PARCEL_VIEW.shp")
-        const dbfPath = join(process.cwd(), "public", "data", "wparcel", "PARCEL_VIEW.dbf")
+        const [minLng, minLat, maxLng, maxLat] = bboxParam.split(",").map(parseFloat)
+        console.log("[API] Parsed bbox values:", { minLng, minLat, maxLng, maxLat })
         
-        if (!existsSync(shapefilePath)) {
-            console.error("Shapefile not found at:", shapefilePath)
-            return NextResponse.json(
-                { error: "Shapefile not found", details: `Path: ${shapefilePath}` },
-                { status: 404 }
-            )
-        }
-        
-        if (!existsSync(dbfPath)) {
-            console.error("DBF file not found at:", dbfPath)
-            return NextResponse.json(
-                { error: "DBF file not found", details: `Path: ${dbfPath}` },
-                { status: 404 }
-            )
-        }
-        
-        console.log("Reading shapefile from:", shapefilePath)
-        
-        const shpBuffer = readFileSync(shapefilePath)
-        const dbfBuffer = readFileSync(dbfPath)
-        
-        const featureCollection = await read(shpBuffer.buffer, dbfBuffer.buffer)
-        console.log("Shapefile read successfully, features:", featureCollection.features?.length || 0)
-        
-        try {
-            const transformedFeatures = featureCollection.features.map((feature, idx) => {
-                try {
-                    const transformedGeometry = {
-                        ...feature.geometry,
-                        coordinates: transformCoordinates(feature.geometry.coordinates, (coords) => {
-                            return proj4(sourceProj, targetProj, coords)
-                        })
-                    }
-                    return {
-                        ...feature,
-                        geometry: transformedGeometry
-                    }
-                } catch (err) {
-                    console.error(`Error transforming feature ${idx}:`, err)
-                    throw err
-                }
+        if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
+            console.log("[API] Invalid bbox values (NaN detected)")
+            return NextResponse.json({
+                type: "FeatureCollection",
+                features: []
             })
-            
-            let filteredFeatures = transformedFeatures
-            
-            console.log("[API] Total transformed features:", transformedFeatures.length)
-            
-            if (bbox) {
-                console.log("[API] Filtering features by bbox:", bbox)
-                filteredFeatures = transformedFeatures.filter(feature => 
-                    featureIntersectsBbox(feature, bbox)
-                )
-                console.log(`[API] Filtered features by bbox: ${transformedFeatures.length} -> ${filteredFeatures.length}`)
-            } else {
-                console.log("[API] No bbox provided, returning all features")
-            }
-            
-            const transformedCollection = {
-                ...featureCollection,
-                features: filteredFeatures
-            }
-            
-            console.log("[API] Coordinates transformed to WGS84")
-            console.log("[API] Returning feature collection with", filteredFeatures.length, "features")
-            
-            return NextResponse.json(transformedCollection)
-        } catch (transformError) {
-            console.error("Error during coordinate transformation:", transformError)
-            console.error("Transform error message:", transformError.message)
-            console.error("Transform error stack:", transformError.stack)
-            throw transformError
         }
+        
+        const bbox = `${minLng},${minLat},${maxLng},${maxLat},EPSG:4326`
+        const wfsUrl = `${WFS_BASE_URL}&SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=PARCEL_VIEW&OUTPUTFORMAT=application/vnd.geo+json&SRSNAME=EPSG:4326&BBOX=${bbox}`
+        
+        console.log("[API] Fetching from WFS:", wfsUrl)
+        
+        const wfsResponse = await fetch(wfsUrl)
+        
+        if (!wfsResponse.ok) {
+            console.error("[API] WFS request failed:", wfsResponse.status, wfsResponse.statusText)
+            throw new Error(`WFS request failed: ${wfsResponse.status} ${wfsResponse.statusText}`)
+        }
+        
+        const geoJsonData = await wfsResponse.json()
+        console.log("[API] WFS response received", { 
+            type: geoJsonData?.type, 
+            featureCount: geoJsonData?.features?.length || 0 
+        })
+        
+        return NextResponse.json(geoJsonData)
     } catch (error) {
-        console.error("Error converting shapefile to GeoJSON:", error)
-        console.error("Error message:", error.message)
-        console.error("Error stack:", error.stack)
+        console.error("[API] Error fetching from WFS:", error)
+        console.error("[API] Error message:", error.message)
+        console.error("[API] Error stack:", error.stack)
         return NextResponse.json(
-            { error: "Failed to load shapefile", details: error.message || String(error) },
+            { 
+                error: "Failed to fetch parcels from WFS", 
+                details: error.message || String(error) 
+            },
             { status: 500 }
         )
     }
 }
-

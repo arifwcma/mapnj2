@@ -228,14 +228,12 @@ function MapBoundsTracker({ onBoundsChange }) {
         map.on("moveend", updateBounds)
         map.on("zoomend", updateBounds)
         map.on("load", updateBounds)
-        map.on("move", updateBounds)
         
         return () => {
             clearTimeout(timeout)
             map.off("moveend", updateBounds)
             map.off("zoomend", updateBounds)
             map.off("load", updateBounds)
-            map.off("move", updateBounds)
         }
     }, [map, onBoundsChange])
     
@@ -273,25 +271,12 @@ function FieldSelectionBoundsUpdater({ fieldSelectionMode, onBoundsChange }) {
             }
         }
         
-        console.log("[FieldSelectionBoundsUpdater] Setting up bounds updater, calling updateBounds immediately")
         updateBounds()
-        
-        const timeout1 = setTimeout(() => {
-            console.log("[FieldSelectionBoundsUpdater] Timeout 1 (100ms) fired, updating bounds")
-            updateBounds()
-        }, 100)
-        
-        const timeout2 = setTimeout(() => {
-            console.log("[FieldSelectionBoundsUpdater] Timeout 2 (500ms) fired, updating bounds")
-            updateBounds()
-        }, 500)
         
         map.on("moveend", updateBounds)
         map.on("zoomend", updateBounds)
         
         return () => {
-            clearTimeout(timeout1)
-            clearTimeout(timeout2)
             map.off("moveend", updateBounds)
             map.off("zoomend", updateBounds)
         }
@@ -311,28 +296,6 @@ function ZoomToRectangle({ bounds }) {
 }
 
 function ZoomLogger() {
-    const map = useMap()
-    
-    useEffect(() => {
-        if (!DEBUG_CONFIG.ZOOM_LOGGING || !map) {
-            return
-        }
-        
-        const handleZoomEnd = () => {
-            const zoom = map.getZoom()
-            console.log("Zoom level:", zoom)
-        }
-        
-        const timeout = setTimeout(() => {
-            map.on("zoomend", handleZoomEnd)
-        }, 500)
-        
-        return () => {
-            clearTimeout(timeout)
-            map.off("zoomend", handleZoomEnd)
-        }
-    }, [map])
-    
     return null
 }
 
@@ -346,13 +309,11 @@ function ZoomTracker({ onZoomChange }) {
         
         const handleZoomEnd = () => {
             const zoom = map.getZoom()
-            console.log("Current zoom level:", zoom)
             onZoomChange(zoom)
         }
         
         const timeout = setTimeout(() => {
             const initialZoom = map.getZoom()
-            console.log("Current zoom level:", initialZoom)
             onZoomChange(initialZoom)
             map.on("zoomend", handleZoomEnd)
         }, 500)
