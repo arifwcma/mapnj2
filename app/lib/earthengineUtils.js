@@ -272,6 +272,20 @@ export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
+    const collectionSize = await new Promise((resolve, reject) => {
+        collection.size().getInfo((size, err) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            resolve(size)
+        })
+    })
+
+    if (collectionSize === 0) {
+        throw new Error("No images found")
+    }
+
     const mean = collection.sort('system:time_start', false).mosaic().clip(clipGeometry)
     const vis = { min: -1, max: 1, palette: ["darkred", "orangered", "red", "yellow", "darkgreen"] }
 
@@ -407,6 +421,20 @@ export async function getAverageNdviForArea(start, end, bbox, cloud = DEFAULT_CL
         .filterDate(startDate, endDate)
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
+
+    const collectionSize = await new Promise((resolve, reject) => {
+        collection.size().getInfo((size, err) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            resolve(size)
+        })
+    })
+
+    if (collectionSize === 0) {
+        throw new Error("No images found")
+    }
 
     const mean = collection.mean().clip(clipGeometry)
 

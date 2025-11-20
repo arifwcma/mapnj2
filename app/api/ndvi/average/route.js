@@ -120,6 +120,11 @@ async function handleRequest(request) {
             return NextResponse.json({ imageUrl: null, start, end, bbox, cloud })
         }
         
+        if (isNoDataError) {
+            console.log(`[API] /api/ndvi/average - No data found for tile`)
+            return NextResponse.json({ error: "No images found" }, { status: 500 })
+        }
+        
         console.error(`[API] /api/ndvi/average - Error:`, {
             error: errorMessage,
             errorType: error.constructor?.name || typeof error,

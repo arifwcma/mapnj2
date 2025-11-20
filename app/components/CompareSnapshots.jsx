@@ -38,7 +38,7 @@ function calculateAspectRatio(area) {
     return 4/3
 }
 
-export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibleRange }) {
+export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibleRange, selectedMonths = null }) {
     const [showPopup, setShowPopup] = useState(false)
     const [tileUrls, setTileUrls] = useState({})
     const [loading, setLoading] = useState({})
@@ -48,12 +48,24 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
     const fetchedRef = useRef(new Set())
     
     useEffect(() => {
-        if (!showPopup || !visibleRange || selectedAreas.length === 0) {
+        if (!showPopup || selectedAreas.length === 0) {
             fetchedRef.current.clear()
             return
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        if (selectedMonths && selectedMonths.length > 0) {
+            if (!showPopup) {
+                fetchedRef.current.clear()
+                return
+            }
+        } else if (!visibleRange) {
+            fetchedRef.current.clear()
+            return
+        }
+        
+        const months = selectedMonths && selectedMonths.length > 0 
+            ? [...selectedMonths] 
+            : getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         
         selectedAreas.forEach((area, areaIndex) => {
             if (!area.bounds) return
@@ -125,7 +137,11 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                     })
             })
         })
-    }, [showPopup, visibleRange, cloudTolerance, selectedAreas])
+    }, [showPopup, visibleRange, cloudTolerance, selectedAreas, selectedMonths])
+    
+    const months = selectedMonths && selectedMonths.length > 0 
+        ? [...selectedMonths] 
+        : (visibleRange ? getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth) : [])
     
     const handleClose = () => {
         setShowPopup(false)
@@ -170,11 +186,13 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
         }
     }, [isDragging, dragOffset])
     
-    if (!visibleRange || selectedAreas.length === 0) {
+    if (selectedAreas.length === 0) {
         return null
     }
     
-    const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+    if (!selectedMonths && !visibleRange) {
+        return null
+    }
     
     return (
         <>

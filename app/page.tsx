@@ -102,7 +102,20 @@ export default function Page() {
             
             if (!tileResponse.ok) {
                 const errorData = await tileResponse.json().catch(() => ({ error: `HTTP ${tileResponse.status}` }))
-                console.error("Failed to load NDVI for area:", area.id, errorData.error || `HTTP ${tileResponse.status}`)
+                const errorMessage = errorData.error || `HTTP ${tileResponse.status}`
+                const isNoDataError = errorMessage.includes("No images found")
+                
+                if (isNoDataError) {
+                    console.log("No images found for area:", area.id, "- No overlay will be displayed")
+                } else {
+                    console.error("Failed to load NDVI for area:", area.id, errorMessage)
+                }
+                
+                setSelectedAreas(prev => prev.map(a => 
+                    a.id === area.id 
+                        ? { ...a, ndviTileUrl: null }
+                        : a
+                ))
                 return
             }
             
