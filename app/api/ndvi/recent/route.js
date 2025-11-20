@@ -34,7 +34,7 @@ export async function GET(request) {
         return NextResponse.json({
             year: currentMonth.year,
             month: currentMonth.month,
-            monthName: endDateRange.start,
+            monthName: `${startDateRange.start} to ${endDateRange.end}`,
             start: startDateRange.start,
             end: endDateRange.end,
             tileUrl
