@@ -237,20 +237,30 @@ export async function getAverageNdviTile(start, end, bbox, cloud = DEFAULT_CLOUD
         throw new Error("Invalid bbox format")
     }
 
-    const latDiff = maxLat - minLat
-    const lngDiff = maxLng - minLng
-    const buffer = Math.max(latDiff, lngDiff) * 0.2
-    
-    minLat -= buffer
-    maxLat += buffer
-    minLng -= buffer
-    maxLng += buffer
-
     const startDate = ee.Date(start)
     const endDate = ee.Date(end).advance(1, "day")
 
-    const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
-    const clipGeometry = geometry ? geoJsonToEeGeometry(geometry) : rectangle
+    const originalRectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+    
+    let rectangle
+    let clipGeometry
+    
+    if (geometry === null) {
+        const latDiff = maxLat - minLat
+        const lngDiff = maxLng - minLng
+        const buffer = Math.max(latDiff, lngDiff) * 0.2
+        
+        minLat -= buffer
+        maxLat += buffer
+        minLng -= buffer
+        maxLng += buffer
+        
+        rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+        clipGeometry = originalRectangle
+    } else {
+        rectangle = originalRectangle
+        clipGeometry = geoJsonToEeGeometry(geometry)
+    }
 
     if (!clipGeometry) {
         throw new Error("Invalid geometry format")
