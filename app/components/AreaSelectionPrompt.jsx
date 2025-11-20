@@ -30,15 +30,19 @@ export default function AreaSelectionPrompt({
 
     return (
         <div className="text-sm text-gray-800 mb-4">
-            Select area by choosing a{" "}
-            <button onClick={onSelectParcel} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline inline font-inherit hover:underline">
-                parcel
-            </button>
-            {" "}or drawing a{" "}
-            <button onClick={onDrawRectangle} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline inline font-inherit hover:underline">
-                rectangle
-            </button>
-            .
+            {!isSelectionMode && (
+                <>
+                    Select area by choosing a{" "}
+                    <button onClick={onSelectParcel} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline inline font-inherit hover:underline">
+                        parcel
+                    </button>
+                    {" "}or drawing a{" "}
+                    <button onClick={onDrawRectangle} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline inline font-inherit hover:underline">
+                        rectangle
+                    </button>
+                    .
+                </>
+            )}
             {isSelectionMode && (
                 <>
                     {message && (
