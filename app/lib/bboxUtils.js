@@ -49,3 +49,54 @@ export function createPointBbox(lat, lon, bufferDegrees = 0.01) {
     ]
 }
 
+function extractCoordinates(geometry) {
+    if (geometry.type === "Point") {
+        return [[geometry.coordinates[1], geometry.coordinates[0]]]
+    } else if (geometry.type === "LineString" || geometry.type === "MultiPoint") {
+        return geometry.coordinates.map(c => [c[1], c[0]])
+    } else if (geometry.type === "Polygon" || geometry.type === "MultiLineString") {
+        return geometry.coordinates.flat().map(c => [c[1], c[0]])
+    } else if (geometry.type === "MultiPolygon") {
+        return geometry.coordinates.flat(2).map(c => [c[1], c[0]])
+    }
+    return []
+}
+
+function getFeatureBounds(feature) {
+    if (!feature || !feature.geometry) {
+        return null
+    }
+    const coords = extractCoordinates(feature.geometry)
+    if (coords.length === 0) {
+        return null
+    }
+    let minLat = coords[0][0]
+    let maxLat = coords[0][0]
+    let minLng = coords[0][1]
+    let maxLng = coords[0][1]
+    coords.forEach(([lat, lng]) => {
+        minLat = Math.min(minLat, lat)
+        maxLat = Math.max(maxLat, lat)
+        minLng = Math.min(minLng, lng)
+        maxLng = Math.max(maxLng, lng)
+    })
+    return [[minLat, minLng], [maxLat, maxLng]]
+}
+
+export function featureIntersectsBbox(feature, bbox) {
+    if (!bbox || !Array.isArray(bbox) || bbox.length !== 2) {
+        return false
+    }
+    const featureBounds = getFeatureBounds(feature)
+    if (!featureBounds) {
+        return false
+    }
+    const [bboxMinLat, bboxMinLng] = bbox[0]
+    const [bboxMaxLat, bboxMaxLng] = bbox[1]
+    const [featMinLat, featMinLng] = featureBounds[0]
+    const [featMaxLat, featMaxLng] = featureBounds[1]
+    
+    return !(featMaxLat < bboxMinLat || featMinLat > bboxMaxLat || 
+             featMaxLng < bboxMinLng || featMinLng > bboxMaxLng)
+}
+

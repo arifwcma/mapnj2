@@ -16,11 +16,13 @@ export default function AreaSelectionPrompt({
             return "Click and drag to draw a rectangle"
         }
         if (fieldSelectionMode) {
-            if (!fieldsData) {
+            if (currentZoom === null || currentZoom === undefined || currentZoom < FIELD_SELECTION_MIN_ZOOM) {
+                return "Zoom in further to see parcels"
+            }
+            if (!fieldsData || fieldsData.features?.length === 0) {
                 return "Loading parcel data..."
             }
-            const zoomSufficient = currentZoom !== null && currentZoom !== undefined && currentZoom >= FIELD_SELECTION_MIN_ZOOM
-            return zoomSufficient ? "Click the desired parcel" : "Zoom further to view parcels"
+            return "Click the desired parcel"
         }
         return null
     }

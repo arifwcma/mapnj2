@@ -206,26 +206,96 @@ function MapBoundsTracker({ onBoundsChange }) {
         if (!map || !onBoundsChange) return
         
         const updateBounds = () => {
-            const bounds = map.getBounds()
-            const sw = bounds.getSouthWest()
-            const ne = bounds.getNorthEast()
-            onBoundsChange([
-                [sw.lat, sw.lng],
-                [ne.lat, ne.lng]
-            ])
+            try {
+                const bounds = map.getBounds()
+                const sw = bounds.getSouthWest()
+                const ne = bounds.getNorthEast()
+                const boundsArray = [
+                    [sw.lat, sw.lng],
+                    [ne.lat, ne.lng]
+                ]
+                console.log("[MapBoundsTracker] Updating bounds:", boundsArray)
+                onBoundsChange(boundsArray)
+            } catch (e) {
+                console.error("[MapBoundsTracker] Error getting bounds:", e)
+            }
         }
         
-        updateBounds()
+        const timeout = setTimeout(() => {
+            updateBounds()
+        }, 100)
+        
         map.on("moveend", updateBounds)
         map.on("zoomend", updateBounds)
         map.on("load", updateBounds)
+        map.on("move", updateBounds)
         
         return () => {
+            clearTimeout(timeout)
             map.off("moveend", updateBounds)
             map.off("zoomend", updateBounds)
             map.off("load", updateBounds)
+            map.off("move", updateBounds)
         }
     }, [map, onBoundsChange])
+    
+    return null
+}
+
+function FieldSelectionBoundsUpdater({ fieldSelectionMode, onBoundsChange }) {
+    const map = useMap()
+    
+    useEffect(() => {
+        console.log("[FieldSelectionBoundsUpdater] useEffect triggered", { fieldSelectionMode, hasMap: !!map, hasCallback: !!onBoundsChange })
+        
+        if (!fieldSelectionMode || !map || !onBoundsChange) {
+            console.log("[FieldSelectionBoundsUpdater] Early return", { fieldSelectionMode, hasMap: !!map, hasCallback: !!onBoundsChange })
+            return
+        }
+        
+        const updateBounds = () => {
+            try {
+                const bounds = map.getBounds()
+                if (!bounds) {
+                    console.log("[FieldSelectionBoundsUpdater] Map bounds not available yet")
+                    return
+                }
+                const sw = bounds.getSouthWest()
+                const ne = bounds.getNorthEast()
+                const boundsArray = [
+                    [sw.lat, sw.lng],
+                    [ne.lat, ne.lng]
+                ]
+                console.log("[FieldSelectionBoundsUpdater] Updating bounds for field selection:", boundsArray)
+                onBoundsChange(boundsArray)
+            } catch (e) {
+                console.error("[FieldSelectionBoundsUpdater] Error getting bounds:", e)
+            }
+        }
+        
+        console.log("[FieldSelectionBoundsUpdater] Setting up bounds updater, calling updateBounds immediately")
+        updateBounds()
+        
+        const timeout1 = setTimeout(() => {
+            console.log("[FieldSelectionBoundsUpdater] Timeout 1 (100ms) fired, updating bounds")
+            updateBounds()
+        }, 100)
+        
+        const timeout2 = setTimeout(() => {
+            console.log("[FieldSelectionBoundsUpdater] Timeout 2 (500ms) fired, updating bounds")
+            updateBounds()
+        }, 500)
+        
+        map.on("moveend", updateBounds)
+        map.on("zoomend", updateBounds)
+        
+        return () => {
+            clearTimeout(timeout1)
+            clearTimeout(timeout2)
+            map.off("moveend", updateBounds)
+            map.off("zoomend", updateBounds)
+        }
+    }, [fieldSelectionMode, map, onBoundsChange])
     
     return null
 }
@@ -276,11 +346,13 @@ function ZoomTracker({ onZoomChange }) {
         
         const handleZoomEnd = () => {
             const zoom = map.getZoom()
+            console.log("Current zoom level:", zoom)
             onZoomChange(zoom)
         }
         
         const timeout = setTimeout(() => {
             const initialZoom = map.getZoom()
+            console.log("Current zoom level:", initialZoom)
             onZoomChange(initialZoom)
             map.on("zoomend", handleZoomEnd)
         }, 500)
@@ -413,7 +485,7 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {string} [props.compareMode]
  * @param {Function} [props.onMapBoundsChange]
  */
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
     const { boundary, loading, error } = useBoundary()
     
     const getBasemapTileUrl = () => {
@@ -447,6 +519,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <ZoomLogger />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
             {onMapBoundsChange && <MapBoundsTracker onBoundsChange={onMapBoundsChange} />}
+            {onMapBoundsChange && <FieldSelectionBoundsUpdater fieldSelectionMode={fieldSelectionMode} onBoundsChange={onMapBoundsChange} />}
             {tileUrl && (
                 <TileLayer 
                     key={basemap} 
@@ -582,6 +655,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <FieldsLayer 
                 fieldSelectionMode={fieldSelectionMode}
                 fieldsData={fieldsData}
+                fieldsLoading={fieldsLoading}
                 boundsSource={boundsSource}
                 onFieldClick={onFieldClick}
                 currentZoom={currentZoom}

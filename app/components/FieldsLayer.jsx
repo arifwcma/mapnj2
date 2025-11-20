@@ -126,6 +126,7 @@ export default function FieldsLayer({
 
     return (
         <GeoJSON 
+            key={`fields-${fieldsData?.features?.length || 0}`}
             ref={layerRef} 
             data={fieldsData} 
             style={FIELDS_STYLE}

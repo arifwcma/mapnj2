@@ -28,6 +28,10 @@ export default function Page() {
     const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
     const [fieldSelectionMode, setFieldSelectionMode] = useState(false)
     const [fieldsData, setFieldsData] = useState<any>(null)
+    const [fieldsLoading, setFieldsLoading] = useState(false)
+    const fieldsDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const previousFieldsBoundsRef = useRef<[[number, number], [number, number]] | null>(null)
+    const previousFieldsZoomRef = useRef<number | null>(null)
     const [boundsSource, setBoundsSource] = useState<'rectangle' | 'field' | null>(null)
     const [selectedFieldFeature, setSelectedFieldFeature] = useState<any>(null)
     const [currentZoom, setCurrentZoom] = useState<number | null>(null)
@@ -42,6 +46,149 @@ export default function Page() {
             setSelectedMonth(current.month)
         }
     }, [selectedYear, selectedMonth])
+    
+    const loadFieldsForBounds = useCallback((bounds: [[number, number], [number, number]], zoom: number) => {
+        console.log("[CLIENT] loadFieldsForBounds called", { bounds, zoom })
+        
+        if (zoom < 13) {
+            console.log("[CLIENT] Zoom < 13, skipping load", { zoom })
+            setFieldsData(null)
+            setFieldsLoading(false)
+            return
+        }
+        
+        if (fieldsDebounceTimeoutRef.current) {
+            clearTimeout(fieldsDebounceTimeoutRef.current)
+        }
+        
+        fieldsDebounceTimeoutRef.current = setTimeout(() => {
+            const bboxStr = bboxToString(bounds)
+            console.log("[CLIENT] Starting fetch for fields", { bboxStr, zoom, url: `/api/fields/geojson?bbox=${bboxStr}&zoom=${zoom}` })
+            setFieldsLoading(true)
+            
+            fetch(`/api/fields/geojson?bbox=${bboxStr}&zoom=${zoom}`)
+                .then(async response => {
+                    console.log("[CLIENT] Fetch response received", { status: response.status, ok: response.ok })
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                        throw new Error(errorData.error || errorData.details || "Failed to fetch fields data")
+                    }
+                    return response.json()
+                })
+                .then(data => {
+                    console.log("[CLIENT] Fields data received", { 
+                        type: data?.type, 
+                        featureCount: data?.features?.length || 0,
+                        firstFeature: data?.features?.[0] 
+                    })
+                    
+                    setFieldsData((prevData: any) => {
+                        if (!prevData || !prevData.features || prevData.features.length === 0) {
+                            console.log("[CLIENT] No previous data, using new data")
+                            previousFieldsBoundsRef.current = bounds
+                            previousFieldsZoomRef.current = zoom
+                            return data
+                        }
+                        
+                        const existingFeatureIds = new Set()
+                        prevData.features.forEach((f: any) => {
+                            if (f.id) {
+                                existingFeatureIds.add(f.id)
+                            } else if (f.properties && f.properties.id) {
+                                existingFeatureIds.add(f.properties.id)
+                            } else {
+                                const geomStr = JSON.stringify(f.geometry)
+                                existingFeatureIds.add(geomStr)
+                            }
+                        })
+                        
+                        const newFeatures = data.features.filter((f: any) => {
+                            if (f.id && existingFeatureIds.has(f.id)) return false
+                            if (f.properties && f.properties.id && existingFeatureIds.has(f.properties.id)) return false
+                            const geomStr = JSON.stringify(f.geometry)
+                            if (existingFeatureIds.has(geomStr)) return false
+                            return true
+                        })
+                        
+                        const mergedFeatures = [...prevData.features, ...newFeatures]
+                        console.log("[CLIENT] Merging parcels", { 
+                            previous: prevData.features.length, 
+                            new: data.features.length, 
+                            added: newFeatures.length,
+                            total: mergedFeatures.length 
+                        })
+                        
+                        previousFieldsBoundsRef.current = bounds
+                        previousFieldsZoomRef.current = zoom
+                        
+                        return {
+                            ...prevData,
+                            features: mergedFeatures
+                        }
+                    })
+                })
+                .catch(err => {
+                    console.error("[CLIENT] Error loading fields:", err.message || err)
+                    setFieldsData(null)
+                })
+                .finally(() => {
+                    console.log("[CLIENT] Fetch completed, setting loading to false")
+                    setFieldsLoading(false)
+                })
+        }, 500)
+    }, [])
+    
+    useEffect(() => {
+        console.log("[CLIENT] useEffect for field selection", { 
+            fieldSelectionMode, 
+            currentZoom, 
+            mapBounds,
+            previousBounds: previousFieldsBoundsRef.current,
+            previousZoom: previousFieldsZoomRef.current
+        })
+        
+        if (!fieldSelectionMode) {
+            console.log("[CLIENT] Not in field selection mode, returning")
+            return
+        }
+        
+        if (currentZoom === null || currentZoom === undefined || currentZoom < 13) {
+            console.log("[CLIENT] Zoom insufficient or null", { currentZoom })
+            setFieldsData(null)
+            setFieldsLoading(false)
+            return
+        }
+        
+        if (!mapBounds) {
+            console.log("[CLIENT] No map bounds available")
+            return
+        }
+        
+        const boundsChanged = !previousFieldsBoundsRef.current || 
+            Math.abs(previousFieldsBoundsRef.current[0][0] - mapBounds[0][0]) > 0.01 ||
+            Math.abs(previousFieldsBoundsRef.current[0][1] - mapBounds[0][1]) > 0.01 ||
+            Math.abs(previousFieldsBoundsRef.current[1][0] - mapBounds[1][0]) > 0.01 ||
+            Math.abs(previousFieldsBoundsRef.current[1][1] - mapBounds[1][1]) > 0.01
+        
+        const zoomChanged = previousFieldsZoomRef.current !== currentZoom
+        
+        console.log("[CLIENT] Change detection", { boundsChanged, zoomChanged })
+        
+        if (boundsChanged || zoomChanged) {
+            console.log("[CLIENT] Changes detected, calling loadFieldsForBounds")
+            loadFieldsForBounds(mapBounds, currentZoom)
+        } else {
+            console.log("[CLIENT] No changes detected, skipping load")
+        }
+    }, [fieldSelectionMode, mapBounds, currentZoom, loadFieldsForBounds])
+    
+    useEffect(() => {
+        return () => {
+            if (fieldsDebounceTimeoutRef.current) {
+                clearTimeout(fieldsDebounceTimeoutRef.current)
+            }
+        }
+    }, [])
     
     const {
         isDrawing,
@@ -204,31 +351,31 @@ export default function Page() {
     }, [])
     
     const handleStartFieldSelection = useCallback(() => {
+        console.log("[CLIENT] handleStartFieldSelection called", { currentZoom, mapBounds })
+        
         if (isDrawing) {
             stopDrawing()
             resetRectangle()
             setBoundsSource(null)
         }
         setFieldSelectionMode(true)
-        if (fieldsData) {
-            return
+        setFieldsLoading(false)
+        
+        if (currentZoom !== null && currentZoom !== undefined && currentZoom >= 13) {
+            if (mapBounds) {
+                console.log("[CLIENT] mapBounds available, loading fields")
+                loadFieldsForBounds(mapBounds, currentZoom)
+            } else {
+                console.log("[CLIENT] mapBounds is null, will wait for useEffect to trigger")
+                setFieldsData(null)
+                setFieldsLoading(false)
+            }
+        } else {
+            console.log("[CLIENT] Zoom insufficient", { currentZoom })
+            setFieldsData(null)
+            setFieldsLoading(false)
         }
-        fetch("/api/fields/geojson")
-            .then(async response => {
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-                    throw new Error(errorData.error || errorData.details || "Failed to fetch fields data")
-                }
-                return response.json()
-            })
-            .then(data => {
-                setFieldsData(data)
-            })
-            .catch(err => {
-                console.error("Error loading fields:", err.message || err)
-                setFieldSelectionMode(false)
-            })
-    }, [fieldsData, isDrawing, stopDrawing, resetRectangle])
+    }, [isDrawing, stopDrawing, resetRectangle, currentZoom, mapBounds, loadFieldsForBounds])
     
     const handleCancelFieldSelection = useCallback(() => {
         setFieldSelectionMode(false)
@@ -489,6 +636,7 @@ export default function Page() {
                     onFieldClick={handleFieldClick}
                     currentZoom={currentZoom}
                     onZoomChange={setCurrentZoom}
+                    onMapBoundsChange={setMapBounds}
                 />
             </div>
             
