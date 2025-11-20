@@ -47,8 +47,7 @@ export default function AreaMonthsModePanel({
     selectedArea,
     rectangleBounds,
     cloudTolerance,
-    onMonthChange,
-    onResetSelection
+    onMonthChange
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
@@ -251,24 +250,6 @@ export default function AreaMonthsModePanel({
                 requestTracker={requestTracker}
                 onDataMapReady={handleDataMapReady}
             />
-            
-            <div style={{ marginBottom: "15px" }}>
-                <a
-                    href="#"
-                    onClick={(e) => {
-                        e.preventDefault()
-                        onResetSelection()
-                    }}
-                    style={{
-                        fontSize: "13px",
-                        cursor: "pointer",
-                        color: "#0066cc",
-                        textDecoration: "underline"
-                    }}
-                >
-                    Reset selection
-                </a>
-            </div>
             
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
                 <div style={{ flex: 1 }}>

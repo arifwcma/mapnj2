@@ -553,7 +553,7 @@ export default function Page() {
                     onCloudChange={handleCloudChange}
                 />
                 
-                {(rectangleBounds || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && !(analysisMode === "area" && compareMode === "months") && (
+                {((rectangleBounds && !(analysisMode === "area" && compareMode === "areas")) || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && (
                     <a
                         href="#"
                         onClick={(e) => {
@@ -649,7 +649,6 @@ export default function Page() {
                         rectangleBounds={selectedAreas[0].bounds || mapBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
-                        onResetSelection={handleResetAreaSelection}
                     />
                 )}
             </div>
