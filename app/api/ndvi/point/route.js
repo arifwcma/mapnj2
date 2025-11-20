@@ -5,18 +5,17 @@ import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/point - Request received")
     const { searchParams } = new URL(request.url)
-    console.log("[API] /api/ndvi/point - Params:", { lat: searchParams.get("lat"), lon: searchParams.get("lon"), start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud") })
+    console.log("[API] /api/ndvi/point - Params:", { lat: searchParams.get("lat"), lon: searchParams.get("lon"), start: searchParams.get("start"), end: searchParams.get("end"), cloud: searchParams.get("cloud") })
     const lat = searchParams.get("lat")
     const lon = searchParams.get("lon")
     const start = searchParams.get("start")
     const end = searchParams.get("end")
-    const bbox = searchParams.get("bbox")
     const cloudParam = searchParams.get("cloud")
     const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
 
-    if (!lat || !lon || !start || !end || !bbox) {
+    if (!lat || !lon || !start || !end) {
         return NextResponse.json(
-            { error: "Missing required parameters: lat, lon, start, end, or bbox" },
+            { error: "Missing required parameters: lat, lon, start, or end" },
             { status: 400 }
         )
     }
@@ -39,8 +38,8 @@ export async function GET(request) {
     }
 
     try {
-        console.log("API: Getting NDVI at point", { lat: latNum, lon: lonNum, start, end, bbox, cloud })
-        const ndvi = await getNdviAtPoint(latNum, lonNum, start, end, bbox, cloud)
+        console.log("API: Getting NDVI at point", { lat: latNum, lon: lonNum, start, end, cloud })
+        const ndvi = await getNdviAtPoint(latNum, lonNum, start, end, null, cloud)
         console.log("API: NDVI retrieved:", ndvi)
         return NextResponse.json({ ndvi, lat: latNum, lon: lonNum })
     } catch (error) {

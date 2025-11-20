@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from "react"
-import { bboxToString } from "@/app/lib/bboxUtils"
 import { monthKey, parseMonthKey } from "@/app/lib/dateUtils"
 
 export default function usePointDataMap(point, rectangleBounds, cloudTolerance, pointType = "", requestTracker = null) {
@@ -10,19 +9,17 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
     const previousCloudToleranceRef = useRef(cloudTolerance)
 
     const fetchSingleMonth = useCallback(async (year, month, pointLat, pointLon, pointType = "") => {
-        if (!rectangleBounds) {
-            console.log(`[HOOK] usePointDataMap - Skipping fetch for ${year}-${month}: no rectangleBounds`)
+        if (!pointLat || !pointLon) {
+            console.log(`[HOOK] usePointDataMap - Skipping fetch for ${year}-${month}: no point coordinates`)
             return null
         }
 
         console.log(`[HOOK] usePointDataMap - Fetching NDVI for point (${pointLat}, ${pointLon}) for ${year}-${month}`)
-        const bboxStr = bboxToString(rectangleBounds)
         const params = new URLSearchParams({
             lat: pointLat.toString(),
             lon: pointLon.toString(),
             year: year.toString(),
             month: month.toString(),
-            bbox: bboxStr,
             cloud: cloudTolerance.toString()
         })
 
@@ -42,7 +39,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             console.error(`[HOOK] usePointDataMap - Error fetching NDVI for ${year}-${month}:`, error)
             return { year, month, ndvi: null }
         }
-    }, [rectangleBounds, cloudTolerance])
+    }, [cloudTolerance])
 
     const reset = useCallback(() => {
         const emptyMap = new Map()
@@ -82,7 +79,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
     }, [point?.lat, point?.lon, cloudTolerance, reset])
 
     const fetchMissingMonths = useCallback(async (monthKeys) => {
-        if (!point || point.lat === null || point.lon === null || !rectangleBounds) {
+        if (!point || point.lat === null || point.lon === null) {
             return
         }
 
@@ -144,7 +141,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
         })
 
         await Promise.allSettled(fetchPromises)
-    }, [point, rectangleBounds, fetchSingleMonth, requestTracker])
+    }, [point, fetchSingleMonth, requestTracker])
 
     const isLoading = fetchingMonthsRef.current.size > 0
 

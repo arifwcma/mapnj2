@@ -1,7 +1,7 @@
 import { ee, initEarthEngine } from "@/app/lib/earthengine"
 import { MONTH_NAMES_FULL, DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 import { getMonthDateRange, getPreviousMonth } from "@/app/lib/dateUtils"
-import { bboxToArray } from "@/app/lib/bboxUtils"
+import { bboxToArray, createPointBbox } from "@/app/lib/bboxUtils"
 
 export async function countAvailableImages(start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
     await initEarthEngine()
@@ -347,21 +347,18 @@ export async function getAverageRgbTile(start, end, bbox, cloud = DEFAULT_CLOUD_
 export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT_CLOUD_TOLERANCE) {
     await initEarthEngine()
 
-    const bboxArray = Array.isArray(bbox) ? bboxToArray(bbox) : bbox.split(",").map(parseFloat)
-    const [minLng, minLat, maxLng, maxLat] = bboxArray || []
-
-    if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
-        throw new Error("Invalid bbox format")
-    }
-
     if (isNaN(lat) || isNaN(lon)) {
         throw new Error("Invalid lat or lon")
     }
 
+    const pointBbox = createPointBbox(lat, lon, 0.01)
+    const [minLat, minLon] = pointBbox[0]
+    const [maxLat, maxLon] = pointBbox[1]
+
     const startDate = ee.Date(start)
     const endDate = ee.Date(end).advance(1, "day")
 
-    const rectangle = ee.Geometry.Rectangle([minLng, minLat, maxLng, maxLat])
+    const rectangle = ee.Geometry.Rectangle([minLon, minLat, maxLon, maxLat])
     const point = ee.Geometry.Point([lon, lat])
 
     const collection = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")

@@ -199,6 +199,37 @@ function MapResize({ ndviTileUrl, rgbTileUrl }) {
     return null
 }
 
+function MapBoundsTracker({ onBoundsChange }) {
+    const map = useMap()
+    
+    useEffect(() => {
+        if (!map || !onBoundsChange) return
+        
+        const updateBounds = () => {
+            const bounds = map.getBounds()
+            const sw = bounds.getSouthWest()
+            const ne = bounds.getNorthEast()
+            onBoundsChange([
+                [sw.lat, sw.lng],
+                [ne.lat, ne.lng]
+            ])
+        }
+        
+        updateBounds()
+        map.on("moveend", updateBounds)
+        map.on("zoomend", updateBounds)
+        map.on("load", updateBounds)
+        
+        return () => {
+            map.off("moveend", updateBounds)
+            map.off("zoomend", updateBounds)
+            map.off("load", updateBounds)
+        }
+    }, [map, onBoundsChange])
+    
+    return null
+}
+
 function ZoomToRectangle({ bounds }) {
     const map = useMap()
     useEffect(() => {
@@ -380,8 +411,9 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {Array} [props.selectedAreas]
  * @param {string} [props.analysisMode]
  * @param {string} [props.compareMode]
+ * @param {Function} [props.onMapBoundsChange]
  */
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points" }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
     const { boundary, loading, error } = useBoundary()
     
     const getBasemapTileUrl = () => {
@@ -414,6 +446,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <FixMarkerIcon />
             <ZoomLogger />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
+            {onMapBoundsChange && <MapBoundsTracker onBoundsChange={onMapBoundsChange} />}
             {tileUrl && (
                 <TileLayer 
                     key={basemap} 

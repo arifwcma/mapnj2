@@ -42,3 +42,10 @@ export function getAreaCenter(area) {
     return null
 }
 
+export function createPointBbox(lat, lon, bufferDegrees = 0.01) {
+    return [
+        [lat - bufferDegrees, lon - bufferDegrees],
+        [lat + bufferDegrees, lon + bufferDegrees]
+    ]
+}
+

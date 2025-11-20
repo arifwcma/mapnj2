@@ -12,12 +12,11 @@ export async function GET(request) {
         const lon = searchParams.get("lon")
         const year = searchParams.get("year")
         const month = searchParams.get("month")
-        const bbox = searchParams.get("bbox")
         const cloud = searchParams.get("cloud")
 
-        if (!lat || !lon || !year || !month || !bbox) {
+        if (!lat || !lon || !year || !month) {
             return NextResponse.json(
-                { error: "Missing required parameters: lat, lon, year, month, or bbox" },
+                { error: "Missing required parameters: lat, lon, year, or month" },
                 { status: 400 }
             )
         }
@@ -45,7 +44,7 @@ export async function GET(request) {
         const dateRange = getMonthDateRange(yearNum, monthNum)
         
         try {
-            const ndvi = await getNdviAtPoint(latNum, lonNum, dateRange.start, dateRange.end, bbox, cloudNum)
+            const ndvi = await getNdviAtPoint(latNum, lonNum, dateRange.start, dateRange.end, null, cloudNum)
             return NextResponse.json({
                 year: yearNum,
                 month: monthNum,

@@ -14,7 +14,7 @@ import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
-import { bboxToString } from "@/app/lib/bboxUtils"
+import { bboxToString, createPointBbox } from "@/app/lib/bboxUtils"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
 
@@ -33,6 +33,7 @@ export default function Page() {
     const [currentZoom, setCurrentZoom] = useState<number | null>(null)
     const [selectedYear, setSelectedYear] = useState<number | null>(null)
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
+    const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | null>(null)
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -370,7 +371,7 @@ export default function Page() {
         } else {
             clearNdvi()
         }
-    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi])
+    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, mapBounds, selectedPoints.length])
     
     const isPointClickMode = analysisMode === "point" && compareMode === "points"
     const isPointSelectMode = analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null
@@ -528,7 +529,7 @@ export default function Page() {
                 {analysisMode === "area" && compareMode === "months" && selectedAreas.length > 0 && (
                     <AreaMonthsModePanel
                         selectedArea={selectedAreas[0]}
-                        rectangleBounds={selectedAreas[0].bounds}
+                        rectangleBounds={selectedAreas[0].bounds || mapBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onResetSelection={handleResetAreaSelection}
