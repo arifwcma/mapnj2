@@ -69,6 +69,8 @@ Below the Analysis dropdown, a dropdown selector: "Compare: Points / Months"
 **Chart**
 - Shows average NDVI for selected point(s) for visible range
 - Updates when month dropdown changes
+- **Default visible range**: When a month is selected via the month dropdown, the chart displays all 12 months of that calendar year (January through December)
+- **Example**: Selecting "May 2022" shows data from January 2022 to December 2022 by default
 - Y-axis range toggle: Button (↓/↑) toggles between 0-1 and -1 to +1 range
 - Default y-axis range: 0-1
 - Chart navigation arrows: Left/right arrows below chart
@@ -201,6 +203,8 @@ Similar to Point Analysis: "Compare: Areas / Months"
 **Chart**
 - Shows average NDVI for each month in x-axis (average of all pixels in the area for that month)
 - Updates when month dropdown changes
+- **Default visible range**: When a month is selected via the month dropdown, the chart displays all 12 months of that calendar year (January through December)
+- **Example**: Selecting "May 2022" shows data from January 2022 to December 2022 by default
 - Y-axis range toggle: Button (↓/↑) toggles between 0-1 and -1 to +1 range
 - Default y-axis range: 0-1
 - Chart navigation arrows: Left/right arrows below chart
@@ -341,6 +345,7 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Cloud tolerance applies to all image filtering
 - Point NDVI fetching: Uses small bbox (0.01° buffer ≈ 1km) around point, not full viewport
 - Area NDVI fetching: Uses area bounds (with geometry clipping for parcels)
+- **Initial visible range**: For Point-Points and Area-Areas modes, the initial visible range spans the full calendar year (12 months) of the selected month, from January to December of that year
 
 ### State Management
 - Mode changes (Point/Area) reset all state except cloud tolerance

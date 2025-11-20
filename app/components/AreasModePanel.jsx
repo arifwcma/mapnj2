@@ -9,7 +9,7 @@ import useAreaDataMap from "@/app/hooks/useAreaDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
 import useToast from "@/app/hooks/useToast"
 import { getColorForIndex } from "@/app/lib/colorUtils"
-import { getSixMonthsBackFrom, getCurrentMonth } from "@/app/lib/monthUtils"
+import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
 import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
@@ -25,14 +25,12 @@ function getInitialVisibleRange(selectedYear, selectedMonth) {
         return null
     }
     
-    const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
-    if (months.length === 0) {
-        return null
-    }
+    const startMonth = { year: selectedYear, month: 1 }
+    const endMonth = { year: selectedYear, month: 12 }
     
     return {
-        startMonth: months[0],
-        endMonth: months[months.length - 1]
+        startMonth,
+        endMonth
     }
 }
 

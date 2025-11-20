@@ -583,7 +583,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     index={index}
                 />
             ))}
-            {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && !selectedPoints?.length && (
+            {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
                 compareMode === "months" && analysisMode === "point" ? (
                     <PointMonthsMarker 
                         position={[selectedPoint.lat, selectedPoint.lon]}
@@ -591,14 +591,14 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                         onDragEnd={onMarkerDragEnd}
                         rectangleBounds={rectangleBounds}
                     />
-                ) : (
+                ) : !selectedPoints?.length ? (
                     <DraggableMarker 
                         position={[selectedPoint.lat, selectedPoint.lon]}
                         draggable={isMoveMode}
                         onDragEnd={onMarkerDragEnd}
                         rectangleBounds={rectangleBounds}
                     />
-                )
+                ) : null
             )}
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
                 <SecondPointMarker 

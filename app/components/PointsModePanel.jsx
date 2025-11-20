@@ -9,7 +9,7 @@ import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
 import useToast from "@/app/hooks/useToast"
 import { getColorForIndex } from "@/app/lib/colorUtils"
-import { getSixMonthsBackFrom, getCurrentMonth } from "@/app/lib/monthUtils"
+import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
 import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
 import ChartLoadingMessage from "./ChartLoadingMessage"
@@ -25,14 +25,12 @@ function getInitialVisibleRange(selectedYear, selectedMonth) {
         return null
     }
     
-    const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
-    if (months.length === 0) {
-        return null
-    }
+    const startMonth = { year: selectedYear, month: 1 }
+    const endMonth = { year: selectedYear, month: 12 }
     
     return {
-        startMonth: months[0],
-        endMonth: months[months.length - 1]
+        startMonth,
+        endMonth
     }
 }
 
@@ -188,7 +186,7 @@ export default function PointsModePanel({
     }, [visibleRange, selectedPoints, pointDataMaps])
     
     const tableData = useMemo(() => {
-        if (!selectedYear || !selectedMonth) {
+        if (!selectedYear || !selectedMonth || !visibleRange) {
             return selectedPoints.map((point, index) => ({
                 point,
                 index,
@@ -197,7 +195,7 @@ export default function PointsModePanel({
             }))
         }
         
-        const months = getSixMonthsBackFrom(selectedYear, selectedMonth)
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         return selectedPoints.map((point, index) => {
             const dataMap = pointDataMaps[index]?.dataMap || new Map()
             console.log(`[PointsModePanel] tableData for point ${index}, dataMap size:`, dataMap.size, 'months:', months.length)
@@ -223,7 +221,7 @@ export default function PointsModePanel({
                 currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null
             }
         })
-    }, [selectedPoints, selectedYear, selectedMonth, pointDataMaps])
+    }, [selectedPoints, selectedYear, selectedMonth, pointDataMaps, visibleRange])
     
     const chartData = useMemo(() => {
         if (displayData.length === 0 || displayData[0].length === 0) {
