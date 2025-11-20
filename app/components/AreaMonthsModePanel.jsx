@@ -297,7 +297,7 @@ export default function AreaMonthsModePanel({
                 </a>
             </div>
             
-            {selectedMonths.length > 0 && visibleRange && (
+            {selectedMonths.length > 1 && visibleRange && (
                 <div style={{ textAlign: "left", marginBottom: "15px" }}>
                     <CompareSnapshots
                         selectedAreas={[selectedArea]}
