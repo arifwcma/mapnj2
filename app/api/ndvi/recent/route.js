@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAverageNdviTile } from "@/app/lib/earthengineUtils"
-import { getCurrentMonth, getPreviousMonth } from "@/app/lib/monthUtils"
-import { getMonthDateRange } from "@/app/lib/dateUtils"
+import { getCurrentMonth } from "@/app/lib/monthUtils"
+import { getMonthDateRange, getPreviousMonth } from "@/app/lib/dateUtils"
 
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/recent - Request received")
