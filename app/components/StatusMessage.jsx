@@ -79,8 +79,7 @@ export const StatusMessageProvider = ({ children }) => {
                     pointerEvents: "none",
                     transition: "top 0.2s ease"
                 }}>
-                    <div style={{
-                        fontSize: "13px",
+                    <div className="text-sm" style={{
                         color: "#dc2626",
                         backgroundColor: "#f8f9fa",
                         border: "1px solid #e0e0e0",
