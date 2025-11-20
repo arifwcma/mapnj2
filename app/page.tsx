@@ -23,6 +23,7 @@ export default function Page() {
     const [recentNdviTileUrl, setRecentNdviTileUrl] = useState<string | null>(null)
     const [recentNdviLoading, setRecentNdviLoading] = useState(false)
     const [recentNdviError, setRecentNdviError] = useState<string | null>(null)
+    const previousTileUrlRef = useRef<string | null>(null)
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
     const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
@@ -185,30 +186,46 @@ export default function Page() {
         setRecentNdviLoading(true)
         setRecentNdviError(null)
         
+        if (recentNdviTileUrl) {
+            previousTileUrlRef.current = recentNdviTileUrl
+        }
+        
         try {
             const bboxStr = `${bbox[0][1]},${bbox[0][0]},${bbox[1][1]},${bbox[1][0]}`
             const response = await fetch(`/api/ndvi/recent?bbox=${bboxStr}`)
             
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
-                throw new Error(errorData.error || `Failed to load recent NDVI`)
+                throw new Error(errorData.error || `Failed to NDVI`)
             }
             
             const data = await response.json()
-            setRecentNdviTileUrl(data.tileUrl)
+            if (data.tileUrl) {
+                setRecentNdviTileUrl(data.tileUrl)
+            } else {
+                throw new Error("No tile URL returned")
+            }
         } catch (err: any) {
-            console.error("Error loading recent NDVI:", err)
-            setRecentNdviError(err.message || "Failed to load recent NDVI")
-            setRecentNdviTileUrl(null)
+            console.error("Error loading NDVI:", err)
+            setRecentNdviError(err.message || "Failed to load NDVI")
+            if (!previousTileUrlRef.current) {
+                setRecentNdviTileUrl(null)
+            }
         } finally {
             setRecentNdviLoading(false)
         }
-    }, [])
+    }, [recentNdviTileUrl])
     
     const handleBasemapChange = useCallback((newBasemap: string) => {
+        if (recentNdviDebounceRef.current) {
+            clearTimeout(recentNdviDebounceRef.current)
+            recentNdviDebounceRef.current = null
+        }
+        
         setBasemap(newBasemap)
         
         if (newBasemap === "ndvi-recent") {
+            isInitialLoadRef.current = true
             if (mapBounds) {
                 loadRecentNdvi(mapBounds)
             } else {
@@ -217,14 +234,58 @@ export default function Page() {
         } else {
             setRecentNdviTileUrl(null)
             setRecentNdviError(null)
+            setRecentNdviLoading(false)
+            previousMapBoundsRef.current = null
+            previousTileUrlRef.current = null
         }
     }, [mapBounds, loadRecentNdvi])
     
+    const recentNdviDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const previousMapBoundsRef = useRef<[[number, number], [number, number]] | null>(null)
+    const isInitialLoadRef = useRef(false)
+    
     useEffect(() => {
-        if (basemap === "ndvi-recent" && mapBounds && !recentNdviTileUrl && !recentNdviLoading && !recentNdviError) {
-            loadRecentNdvi(mapBounds)
+        if (basemap !== "ndvi-recent") {
+            previousMapBoundsRef.current = null
+            isInitialLoadRef.current = false
+            return
         }
-    }, [basemap, mapBounds, recentNdviTileUrl, recentNdviLoading, recentNdviError, loadRecentNdvi])
+        
+        if (!mapBounds) {
+            return
+        }
+        
+        const boundsChanged = !previousMapBoundsRef.current || 
+            previousMapBoundsRef.current[0][0] !== mapBounds[0][0] ||
+            previousMapBoundsRef.current[0][1] !== mapBounds[0][1] ||
+            previousMapBoundsRef.current[1][0] !== mapBounds[1][0] ||
+            previousMapBoundsRef.current[1][1] !== mapBounds[1][1]
+        
+        if (!boundsChanged && previousMapBoundsRef.current !== null) {
+            return
+        }
+        
+        previousMapBoundsRef.current = mapBounds
+        
+        if (isInitialLoadRef.current) {
+            isInitialLoadRef.current = false
+            return
+        }
+        
+        if (recentNdviDebounceRef.current) {
+            clearTimeout(recentNdviDebounceRef.current)
+        }
+        
+        recentNdviDebounceRef.current = setTimeout(() => {
+            loadRecentNdvi(mapBounds)
+        }, 300)
+        
+        return () => {
+            if (recentNdviDebounceRef.current) {
+                clearTimeout(recentNdviDebounceRef.current)
+            }
+        }
+    }, [basemap, mapBounds, loadRecentNdvi])
     
     const handlePointClick = useCallback((lat: number, lon: number) => {
         if (analysisMode === "point" && compareMode === "points") {

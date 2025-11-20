@@ -40,9 +40,9 @@ export async function GET(request) {
             tileUrl
         })
     } catch (error) {
-        console.error("Error getting recent NDVI snapshot:", error)
+        console.error("Error getting NDVI snapshot:", error)
         return NextResponse.json(
-            { error: "Failed to get recent NDVI snapshot", details: error.message },
+            { error: "Failed to get NDVI snapshot", details: error.message },
             { status: 500 }
         )
     }

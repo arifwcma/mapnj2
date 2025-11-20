@@ -415,6 +415,15 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  * @param {string|null} [props.recentNdviError]
  */
 export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", recentNdviTileUrl = null, recentNdviLoading = false, recentNdviError = null, isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
+    const previousTileUrlRef = useRef<string | null>(null)
+    
+    useEffect(() => {
+        if (basemap === "ndvi-recent" && recentNdviTileUrl) {
+            previousTileUrlRef.current = recentNdviTileUrl
+        } else if (basemap !== "ndvi-recent") {
+            previousTileUrlRef.current = null
+        }
+    }, [basemap, recentNdviTileUrl])
     const { boundary, loading, error } = useBoundary()
     
     const getBasemapTileUrl = () => {
@@ -429,6 +438,10 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     }
     
     const tileUrl = getBasemapTileUrl()
+    
+    const effectiveTileUrl = basemap === "ndvi-recent" && !tileUrl && recentNdviLoading && previousTileUrlRef.current
+        ? previousTileUrlRef.current
+        : tileUrl
     
     const getAttribution = () => {
         if (basemap === "ndvi-recent") {
@@ -454,17 +467,17 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             <ZoomLogger />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
             {onMapBoundsChange && <MapBoundsTracker onBoundsChange={onMapBoundsChange} />}
-            {tileUrl && (
+            {effectiveTileUrl && (
                 <TileLayer 
-                    key={basemap === "ndvi-recent" ? `ndvi-recent-${recentNdviTileUrl}` : basemap} 
-                    url={tileUrl} 
+                    key={basemap} 
+                    url={effectiveTileUrl} 
                     attribution={attribution}
                     opacity={basemap === "ndvi-recent" ? 1 : 1}
                 />
             )}
             {basemap === "ndvi-recent" && recentNdviLoading && (
                 <div className="absolute top-2.5 left-2.5 bg-white/90 p-2 rounded text-sm z-[1000]">
-                    <span className="animate-blink text-red-600">Loading recent NDVI...</span>
+                    <span className="animate-blink text-red-600">Loading NDVI...</span>
                 </div>
             )}
             {basemap === "ndvi-recent" && recentNdviError && (
