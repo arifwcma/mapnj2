@@ -367,6 +367,20 @@ export async function getNdviAtPoint(lat, lon, start, end, bbox, cloud = DEFAULT
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud))
         .map(img => img.normalizedDifference(["B8", "B4"]).rename("NDVI"))
 
+    const collectionSize = await new Promise((resolve, reject) => {
+        collection.size().getInfo((size, err) => {
+            if (err) {
+                reject(err)
+                return
+            }
+            resolve(size)
+        })
+    })
+
+    if (collectionSize === 0) {
+        throw new Error("No images found")
+    }
+
     const mean = collection.mean().clip(rectangle)
 
     const ndviValue = mean.select("NDVI").reduceRegion({

@@ -353,12 +353,11 @@ export default function PointsModePanel({
                 onMonthChange={onMonthChange} 
             />
             
-            {selectedPoints.length > 1 && (
+            {selectedPoints.length > 0 && (
                 <ComparePointSnapshots
                     selectedPoints={selectedPoints}
                     cloudTolerance={cloudTolerance}
                     visibleRange={visibleRange}
-                    rectangleBounds={rectangleBounds}
                 />
             )}
             

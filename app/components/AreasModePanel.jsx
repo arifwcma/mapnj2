@@ -360,7 +360,7 @@ export default function AreasModePanel({
                 onMonthChange={onMonthChange} 
             />
             
-            {selectedAreas.length > 1 && (
+            {selectedAreas.length > 0 && (
                 <CompareSnapshots
                     selectedAreas={selectedAreas}
                     cloudTolerance={cloudTolerance}
