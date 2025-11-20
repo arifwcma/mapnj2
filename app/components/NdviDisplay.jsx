@@ -1,30 +1,7 @@
 "use client"
+import { useEffect } from "react"
 import { formatMonthLabelFull } from "@/app/lib/dateUtils"
-
-const statusMessageStyle = {
-    fontSize: "13px",
-    color: "#333",
-    backgroundColor: "#f0f8ff",
-    border: "1px solid #b3d9ff",
-    borderRadius: "4px",
-    padding: "10px 15px",
-    marginBottom: "15px",
-    textAlign: "center",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px"
-}
-
-const spinnerStyle = {
-    display: "inline-block",
-    width: "14px",
-    height: "14px",
-    border: "2px solid #b3d9ff",
-    borderTop: "2px solid #0066cc",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite"
-}
+import { useStatusMessage } from "./StatusMessage"
 
 export default function NdviDisplay({ 
     ndvi, 
@@ -37,28 +14,16 @@ export default function NdviDisplay({
     const timeLabel = selectedYear && selectedMonth 
         ? ` (${formatMonthLabelFull(selectedYear, selectedMonth)})`
         : ""
+    const { setStatusMessage } = useStatusMessage()
 
-    if (isLoading) {
-        return (
-            <>
-                <style>{`
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                `}</style>
-                <div style={statusMessageStyle}>
-                    <img 
-                        src={markerIcon}
-                        alt={markerAlt}
-                        style={{ width: "20px", height: "32px" }}
-                    />
-                    <div style={spinnerStyle}></div>
-                    <span>Calculating NDVI ...</span>
-                </div>
-            </>
-        )
-    }
+    useEffect(() => {
+        if (isLoading) {
+            setStatusMessage("Calculating NDVI ...")
+        } else {
+            setStatusMessage(null)
+        }
+        return () => setStatusMessage(null)
+    }, [isLoading, setStatusMessage])
 
     const hasData = ndvi !== null && ndvi !== undefined
 

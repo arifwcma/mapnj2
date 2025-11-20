@@ -1,5 +1,7 @@
 "use client"
+import { useEffect } from "react"
 import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
+import { useStatusMessage } from "./StatusMessage"
 
 const linkStyle = {
     background: "none",
@@ -83,14 +85,22 @@ export default function AreaOfInterestControls({
     if (fieldSelectionMode) {
         const zoomSufficient = currentZoom !== null && currentZoom !== undefined && currentZoom >= FIELD_SELECTION_MIN_ZOOM
         const fieldsLoaded = fieldsData !== null
+        const { setStatusMessage } = useStatusMessage()
+
+        useEffect(() => {
+            if (!fieldsLoaded) {
+                setStatusMessage("Loading parcels ...")
+            } else {
+                setStatusMessage(null)
+            }
+            return () => setStatusMessage(null)
+        }, [fieldsLoaded, setStatusMessage])
         
         return (
             <>
                 <div>
                     <div className="mt-2.5 text-sm bg-gray-50 border border-gray-200 rounded p-2 text-center">
-                        {!fieldsLoaded ? (
-                            <span className="animate-blink text-red-600">Loading parcels ...</span>
-                        ) : <span className="text-red-600">{zoomSufficient ? "Click parcel to select" : "Zoom in further to see parcels"}</span>}
+                        {fieldsLoaded && <span className="text-red-600">{zoomSufficient ? "Click parcel to select" : "Zoom in further to see parcels"}</span>}
                     </div>
                 {fieldsLoaded && zoomSufficient && (
                     <div style={buttonContainerStyle}>

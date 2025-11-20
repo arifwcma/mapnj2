@@ -1,4 +1,6 @@
 "use client"
+import { useEffect } from "react"
+import { useStatusMessage } from "./StatusMessage"
 
 const linkStyle = {
     background: "none",
@@ -13,17 +15,6 @@ const linkStyle = {
     display: "block"
 }
 
-const directionMessageStyle = {
-    marginTop: "10px",
-    fontSize: "13px",
-    color: "#dc2626",
-    backgroundColor: "#f8f9fa",
-    border: "1px solid #e0e0e0",
-    borderRadius: "4px",
-    padding: "8px 12px",
-    textAlign: "center"
-}
-
 export default function PointInteractionControls({ 
     isImageAvailable, 
     pointLoaded, 
@@ -34,6 +25,27 @@ export default function PointInteractionControls({
     onCancelMove,
     onCompareClick
 }) {
+    const { setDirectionalMessage } = useStatusMessage()
+
+    useEffect(() => {
+        if (!isImageAvailable) {
+            setDirectionalMessage(null)
+            return
+        }
+
+        if (isMoveMode) {
+            setDirectionalMessage("Drag a marker to move")
+        } else if (secondPointSelection && (!secondPoint || secondPoint.lat === null || secondPoint.lon === null)) {
+            setDirectionalMessage("Click to choose the second point")
+        } else if (!pointLoaded) {
+            setDirectionalMessage("Click a point to analyse")
+        } else {
+            setDirectionalMessage(null)
+        }
+
+        return () => setDirectionalMessage(null)
+    }, [isImageAvailable, isMoveMode, secondPointSelection, secondPoint, pointLoaded, setDirectionalMessage])
+
     if (!isImageAvailable) {
         return null
     }
@@ -41,9 +53,6 @@ export default function PointInteractionControls({
     if (isMoveMode) {
         return (
             <>
-                <div style={directionMessageStyle}>
-                    Drag a marker to move
-                </div>
                 <button
                     onClick={onCancelMove}
                     style={linkStyle}
@@ -88,11 +97,6 @@ export default function PointInteractionControls({
                     >
                         Move point marker
                     </button>
-                )}
-                {(!secondPoint || secondPoint.lat === null || secondPoint.lon === null) && (
-                    <div style={directionMessageStyle}>
-                        Click to choose the second point
-                    </div>
                 )}
             </>
         )
@@ -139,11 +143,7 @@ export default function PointInteractionControls({
                         Compare with another point
                     </button>
                 </>
-            ) : (
-                <div style={directionMessageStyle}>
-                    Click a point to analyse
-                </div>
-            )}
+            ) : null}
         </>
     )
 }

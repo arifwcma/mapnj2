@@ -17,6 +17,7 @@ import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { bboxToString, createPointBbox } from "@/app/lib/bboxUtils"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
+import { useStatusMessage } from "@/app/components/StatusMessage"
 
 export default function Page() {
     const [basemap, setBasemap] = useState("street")
@@ -509,6 +510,19 @@ export default function Page() {
     
     const isPointClickMode = analysisMode === "point" && compareMode === "points"
     const isPointSelectMode = analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null
+    const { setDirectionalMessage } = useStatusMessage()
+
+    useEffect(() => {
+        if (analysisMode === "point" && compareMode === "points") {
+            setDirectionalMessage("Click on the map to place a point")
+        } else if (analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null) {
+            setDirectionalMessage("Click to select a point")
+        } else if (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null) {
+            setDirectionalMessage("Add a calendar month")
+        } else if (analysisMode === "point") {
+            setDirectionalMessage(null)
+        }
+    }, [analysisMode, compareMode, selectedPoint.lat, selectedPoint.lon, setDirectionalMessage])
     
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
@@ -539,7 +553,7 @@ export default function Page() {
                     onCloudChange={handleCloudChange}
                 />
                 
-                {(rectangleBounds || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && (
+                {(rectangleBounds || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && !(analysisMode === "area" && compareMode === "months") && (
                     <a
                         href="#"
                         onClick={(e) => {
@@ -561,36 +575,6 @@ export default function Page() {
                     >
                         Reset
                     </a>
-                )}
-                
-                {analysisMode === "point" && compareMode === "points" && (
-                    <div style={{
-                        marginTop: "10px",
-                        fontSize: "13px",
-                        color: "#dc2626",
-                        backgroundColor: "#f8f9fa",
-                        border: "1px solid #e0e0e0",
-                        borderRadius: "4px",
-                        padding: "8px 12px",
-                        textAlign: "center"
-                    }}>
-                        Click on the map to place a point
-                    </div>
-                )}
-                
-                {analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null && (
-                    <div style={{
-                        marginTop: "10px",
-                        fontSize: "13px",
-                        color: "#dc2626",
-                        backgroundColor: "#f8f9fa",
-                        border: "1px solid #e0e0e0",
-                        borderRadius: "4px",
-                        padding: "8px 12px",
-                        textAlign: "center"
-                    }}>
-                        Click to select a point
-                    </div>
                 )}
             </div>
             

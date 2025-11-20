@@ -11,6 +11,7 @@ import useBoundary from "@/app/hooks/useBoundary"
 import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, TILE_LAYER_TOPOGRAPHIC, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG, FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 import { validatePointInBounds, getAreaCenter } from "@/app/lib/bboxUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
+import { useStatusMessage } from "./StatusMessage"
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
@@ -448,6 +449,16 @@ function MoveModeHandler({ isActive, onMarkerDragEnd }) {
  */
 export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
     const { boundary, loading, error } = useBoundary()
+    const { setStatusMessage } = useStatusMessage()
+    
+    useEffect(() => {
+        if (error) {
+            setStatusMessage(`Error loading boundary: ${error.message}`)
+        } else {
+            setStatusMessage(null)
+        }
+        return () => setStatusMessage(null)
+    }, [error, setStatusMessage])
     
     const getBasemapTileUrl = () => {
         return basemap === "satellite" 
@@ -468,10 +479,6 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     }
     
     const attribution = getAttribution()
-
-    if (error) {
-        return <div>Error loading boundary: {error.message}</div>
-    }
 
     return (
         <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>

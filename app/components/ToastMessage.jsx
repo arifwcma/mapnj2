@@ -1,9 +1,12 @@
 "use client"
 import { useEffect, useState } from "react"
+import { useStatusMessage } from "./StatusMessage"
+
+const BASE_TOP = 20
 
 const toastStyle = {
     position: "fixed",
-    top: "20px",
+    top: `${BASE_TOP}px`,
     left: "50%",
     transform: "translateX(-50%)",
     backgroundColor: "#333",
@@ -14,7 +17,8 @@ const toastStyle = {
     zIndex: 10000,
     boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
     minWidth: "250px",
-    textAlign: "center"
+    textAlign: "center",
+    transition: "top 0.2s ease"
 }
 
 const timerBarStyle = {
@@ -29,6 +33,12 @@ const timerBarStyle = {
 
 export default function ToastMessage({ message, duration = 3000, onClose }) {
     const [width, setWidth] = useState(100)
+    const { registerToast, unregisterToast } = useStatusMessage()
+
+    useEffect(() => {
+        registerToast()
+        return () => unregisterToast()
+    }, [registerToast, unregisterToast])
 
     useEffect(() => {
         setWidth(100)

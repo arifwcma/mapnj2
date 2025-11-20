@@ -1,5 +1,7 @@
 "use client"
+import { useEffect, useLayoutEffect } from "react"
 import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
+import { useStatusMessage } from "./StatusMessage"
 
 export default function AreaSelectionPrompt({ 
     onSelectParcel, 
@@ -29,38 +31,106 @@ export default function AreaSelectionPrompt({
 
     const message = getMessage()
     const isLoadingMessage = message === "Loading parcel data..."
+    const { setStatusMessage, setDirectionalMessage } = useStatusMessage()
 
-    return (
-        <div className="text-sm text-gray-800 mb-4">
-            {!isSelectionMode && (
+    useEffect(() => {
+        if (isLoadingMessage) {
+            setStatusMessage("Loading parcel data...")
+        } else {
+            setStatusMessage(null)
+        }
+        return () => setStatusMessage(null)
+    }, [isLoadingMessage, setStatusMessage])
+
+    useLayoutEffect(() => {
+        if (!isSelectionMode) {
+            setDirectionalMessage(
                 <>
                     Select area by choosing a{" "}
-                    <button onClick={onSelectParcel} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline inline font-inherit hover:underline">
+                    <button 
+                        onClick={onSelectParcel} 
+                        style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            margin: 0,
+                            cursor: "pointer",
+                            fontSize: "13px",
+                            color: "#0066cc",
+                            textDecoration: "none",
+                            fontFamily: "inherit"
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.textDecoration = "underline"
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.textDecoration = "none"
+                        }}
+                    >
                         parcel
                     </button>
                     {" "}or drawing a{" "}
-                    <button onClick={onDrawRectangle} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline inline font-inherit hover:underline">
+                    <button 
+                        onClick={onDrawRectangle} 
+                        style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            margin: 0,
+                            cursor: "pointer",
+                            fontSize: "13px",
+                            color: "#0066cc",
+                            textDecoration: "none",
+                            fontFamily: "inherit"
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.textDecoration = "underline"
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.textDecoration = "none"
+                        }}
+                    >
                         rectangle
                     </button>
                     .
                 </>
-            )}
-            {isSelectionMode && (
-                <>
-                    {message && (
-                        <div className="mt-2.5 text-sm bg-gray-50 border border-gray-200 rounded p-2 text-center">
-                            <span className={isLoadingMessage ? "animate-blink text-red-600" : "text-red-600"}>
-                                {message}
-                            </span>
-                        </div>
-                    )}
-                    <div className="mt-2.5">
-                        <button onClick={onCancel} className="bg-transparent border-0 p-0 m-0 cursor-pointer text-sm text-blue-600 no-underline font-inherit hover:underline">
-                            Cancel
-                        </button>
-                    </div>
-                </>
-            )}
+            )
+        } else if (message && !isLoadingMessage && isSelectionMode) {
+            setDirectionalMessage(
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                    <div>{message}</div>
+                    <button 
+                        onClick={onCancel} 
+                        style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            margin: 0,
+                            cursor: "pointer",
+                            fontSize: "13px",
+                            color: "#0066cc",
+                            textDecoration: "none",
+                            fontFamily: "inherit"
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.textDecoration = "underline"
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.textDecoration = "none"
+                        }}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )
+        } else {
+            setDirectionalMessage(null)
+        }
+        return () => setDirectionalMessage(null)
+    }, [isSelectionMode, message, isLoadingMessage, onSelectParcel, onDrawRectangle, onCancel, setDirectionalMessage])
+
+    return (
+        <div className="text-sm text-gray-800 mb-4">
         </div>
     )
 }
