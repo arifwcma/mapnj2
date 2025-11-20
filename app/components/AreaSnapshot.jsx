@@ -387,7 +387,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                                         color: "#666"
                                                     }}
                                                 >
-                                                    <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading...</span>
+                                                    <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>Loading...</span>
                                                 </div>
                                             </>
                                         ) : tileUrl ? (

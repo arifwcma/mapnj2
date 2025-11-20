@@ -320,7 +320,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                                                                     }
                                                                 `}</style>
                                                                 <div style={{ fontSize: "12px", color: "#666" }}>
-                                                                    <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading...</span>
+                                                                    <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>Loading...</span>
                                                                 </div>
                                                             </>
                                                         ) : ndvi !== null && ndvi !== undefined ? (

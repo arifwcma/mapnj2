@@ -74,7 +74,7 @@ export default function AreaSelectionPrompt({
                     <>
                         {message && (
                             <div style={messageStyle}>
-                                <span style={isLoadingMessage ? { animation: "blink 1.5s ease-in-out infinite" } : {}}>
+                                <span style={isLoadingMessage ? { animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" } : {}}>
                                     {message}
                                 </span>
                             </div>

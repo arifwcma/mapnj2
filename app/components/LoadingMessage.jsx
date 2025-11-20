@@ -46,7 +46,7 @@ export default function LoadingMessage({ loading, overlayLoading, overlayType, s
                     borderRadius: "50%",
                     animation: "spin 1s linear infinite"
                 }}></div>
-                <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>
+                <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>
                     {displayMonth ? (
                         <>Loading {overlayTypeText} data for <strong>{displayMonth}</strong> (less than <strong>{cloudTolerance}%</strong> cloud)...</>
                     ) : (

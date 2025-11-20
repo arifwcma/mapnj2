@@ -41,7 +41,7 @@ export default function PointStatusMessage({ isReloading, isLoading, ndvi }) {
                 `}</style>
                 <div style={statusMessageStyle}>
                     <div style={spinnerStyle}></div>
-                    <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Reloading ...</span>
+                    <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>Reloading ...</span>
                 </div>
             </>
         )

@@ -480,7 +480,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                         fontSize: "13px",
                         zIndex: 1000
                     }}>
-                        <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading recent NDVI...</span>
+                        <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>Loading recent NDVI...</span>
                     </div>
                 </>
             )}

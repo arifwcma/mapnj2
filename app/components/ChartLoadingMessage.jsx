@@ -46,7 +46,7 @@ export default function ChartLoadingMessage({ loading }) {
             {loading && (
                 <div style={loadingMessageStyle}>
                     <div style={spinnerStyle}></div>
-                    <span style={{ animation: "blink 1.5s ease-in-out infinite" }}>Loading data...</span>
+                    <span style={{ animation: "blink 0.8s ease-in-out infinite", color: "#dc3545" }}>Loading data...</span>
                 </div>
             )}
         </>
