@@ -567,7 +567,7 @@ export default function Page() {
                     <div style={{
                         marginTop: "10px",
                         fontSize: "13px",
-                        color: "#555",
+                        color: "#dc2626",
                         backgroundColor: "#f8f9fa",
                         border: "1px solid #e0e0e0",
                         borderRadius: "4px",
@@ -582,7 +582,7 @@ export default function Page() {
                     <div style={{
                         marginTop: "10px",
                         fontSize: "13px",
-                        color: "#555",
+                        color: "#dc2626",
                         backgroundColor: "#f8f9fa",
                         border: "1px solid #e0e0e0",
                         borderRadius: "4px",

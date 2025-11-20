@@ -48,8 +48,8 @@ export default function AreaSelectionPrompt({
             {isSelectionMode && (
                 <>
                     {message && (
-                        <div className="mt-2.5 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded p-2 text-center">
-                            <span className={isLoadingMessage ? "animate-blink text-red-600" : ""}>
+                        <div className="mt-2.5 text-sm bg-gray-50 border border-gray-200 rounded p-2 text-center">
+                            <span className={isLoadingMessage ? "animate-blink text-red-600" : "text-red-600"}>
                                 {message}
                             </span>
                         </div>

@@ -17,7 +17,7 @@ const linkStyle = {
 const messageStyle = {
     marginTop: "10px",
     fontSize: "13px",
-    color: "#555",
+    color: "#dc2626",
     backgroundColor: "#f8f9fa",
     border: "1px solid #e0e0e0",
     borderRadius: "4px",
@@ -87,10 +87,10 @@ export default function AreaOfInterestControls({
         return (
             <>
                 <div>
-                    <div className="mt-2.5 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded p-2 text-center">
+                    <div className="mt-2.5 text-sm bg-gray-50 border border-gray-200 rounded p-2 text-center">
                         {!fieldsLoaded ? (
                             <span className="animate-blink text-red-600">Loading parcels ...</span>
-                        ) : (zoomSufficient ? "Click parcel to select" : "Zoom in further to see parcels")}
+                        ) : <span className="text-red-600">{zoomSufficient ? "Click parcel to select" : "Zoom in further to see parcels"}</span>}
                     </div>
                 {fieldsLoaded && zoomSufficient && (
                     <div style={buttonContainerStyle}>
