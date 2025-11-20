@@ -9,9 +9,9 @@ const DIRECTIONAL_HEIGHT = 45
 
 const StatusMessageContext = createContext({
     statusMessage: null,
-    setStatusMessage: () => {},
+    setStatusMessage: (message) => {},
     directionalMessage: null,
-    setDirectionalMessage: () => {},
+    setDirectionalMessage: (message) => {},
     registerToast: () => {},
     unregisterToast: () => {}
 })
