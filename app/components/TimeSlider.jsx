@@ -9,7 +9,6 @@ export default function TimeSlider({ sliderValue, maxValue, label, onTimeChange,
                 style={{
                     width: "30px",
                     height: "30px",
-                    fontSize: "13px",
                     cursor: sliderValue === 0 ? "not-allowed" : "pointer",
                     opacity: sliderValue === 0 ? 0.5 : 1,
                     border: "1px solid #ccc",
@@ -20,7 +19,7 @@ export default function TimeSlider({ sliderValue, maxValue, label, onTimeChange,
                 -
             </button>
             <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                <label style={{ fontSize: "13px", display: "block" }}>
+                <label style={{ display: "block" }}>
                     {label}
                 </label>
                 <input
@@ -38,7 +37,6 @@ export default function TimeSlider({ sliderValue, maxValue, label, onTimeChange,
                 style={{
                     width: "30px",
                     height: "30px",
-                    fontSize: "13px",
                     cursor: sliderValue >= maxValue ? "not-allowed" : "pointer",
                     opacity: sliderValue >= maxValue ? 0.5 : 1,
                     border: "1px solid #ccc",

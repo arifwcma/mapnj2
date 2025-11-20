@@ -15,7 +15,7 @@ export default function ChartAverages({ plotData, secondPlotData }) {
     }
 
     return (
-        <div style={{ fontSize: "13px", color: "#555", marginTop: "10px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ color: "#555", marginTop: "10px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", flexWrap: "wrap" }}>
             {average !== null && (
                 <>
                     <img 

@@ -9,7 +9,6 @@ const linkStyle = {
     padding: "10px 0",
     margin: "0 0 10px 0",
     cursor: "pointer",
-    fontSize: "13px",
     color: "#0066cc",
     textDecoration: "none",
     fontFamily: "inherit",
@@ -18,7 +17,6 @@ const linkStyle = {
 
 const messageStyle = {
     marginTop: "10px",
-    fontSize: "13px",
     color: "#dc2626",
     backgroundColor: "#f8f9fa",
     border: "1px solid #e0e0e0",
@@ -41,7 +39,6 @@ const cancelButtonStyle = {
     padding: "6px 12px",
     borderRadius: "4px",
     cursor: "pointer",
-    fontSize: "12px",
     fontFamily: "inherit"
 }
 

@@ -28,7 +28,7 @@ export default function NdviDisplay({
     const hasData = ndvi !== null && ndvi !== undefined
 
     return (
-        <div style={{ fontSize: "13px", color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
+        <div style={{ color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "5px" }}>
             <img 
                 src={markerIcon}
                 alt={markerAlt}

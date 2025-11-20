@@ -36,7 +36,6 @@ export default function NdviLegend({ width = "100%" }) {
             <div style={{ 
                 display: "flex", 
                 justifyContent: "space-between",
-                fontSize: "11px",
                 color: "#666",
                 paddingTop: "4px"
             }}>
@@ -47,7 +46,6 @@ export default function NdviLegend({ width = "100%" }) {
                 ))}
             </div>
             <div style={{ 
-                fontSize: "11px", 
                 color: "#666", 
                 marginTop: "4px",
                 textAlign: "center"

@@ -11,9 +11,9 @@ export default function OverlayControls({ overlayType, endMonth, imageCount, isI
     }
 
     return (
-        <div style={{ fontSize: "13px", color: "#333", marginBottom: "10px" }}>
+        <div style={{ color: "#333", marginBottom: "10px" }}>
             <div style={{ marginBottom: "10px", display: "flex", alignItems: "center", gap: "15px" }}>
-                <span style={{ fontSize: "13px", color: "#333" }}>Overlay:</span>
+                <span style={{ color: "#333" }}>Overlay:</span>
                 <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
                     <input
                         type="radio"
@@ -22,7 +22,7 @@ export default function OverlayControls({ overlayType, endMonth, imageCount, isI
                         checked={overlayType === "NDVI"}
                         onChange={() => onOverlayChange("NDVI")}
                     />
-                    <span style={{ fontSize: "13px", color: "#333" }}>NDVI</span>
+                    <span style={{ color: "#333" }}>NDVI</span>
                 </label>
                 <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
                     <input
@@ -32,7 +32,7 @@ export default function OverlayControls({ overlayType, endMonth, imageCount, isI
                         checked={overlayType === "RGB"}
                         onChange={() => onOverlayChange("RGB")}
                     />
-                    <span style={{ fontSize: "13px", color: "#333" }}>RGB</span>
+                    <span style={{ color: "#333" }}>RGB</span>
                 </label>
             </div>
             <div>{overlayType} for <strong>{endMonth}</strong></div>

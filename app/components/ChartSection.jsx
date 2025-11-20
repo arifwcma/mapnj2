@@ -91,7 +91,6 @@ export default function ChartSection({
                         padding: "8px 12px",
                         cursor: !canGoLeft() ? "not-allowed" : "pointer",
                         opacity: !canGoLeft() ? 0.5 : 1,
-                        fontSize: "13px"
                     }}
                 >
                     ←
@@ -106,7 +105,6 @@ export default function ChartSection({
                         padding: "8px 12px",
                         cursor: !canGoRight() ? "not-allowed" : "pointer",
                         opacity: !canGoRight() ? 0.5 : 1,
-                        fontSize: "13px"
                     }}
                 >
                     →

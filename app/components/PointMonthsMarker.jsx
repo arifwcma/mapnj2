@@ -26,7 +26,6 @@ export default function PointMonthsMarker({ position, draggable = false, onDragE
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            font-size: 10px;
                             font-weight: bold;
                             color: ${color};
                             background-color: white;

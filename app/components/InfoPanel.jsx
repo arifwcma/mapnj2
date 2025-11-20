@@ -7,7 +7,7 @@ export default function InfoPanel({ lat, lon, secondPoint = null }) {
 
     return (
         <div>
-            <div style={{ fontSize: "13px", color: "#333", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
+            <div style={{ color: "#333", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
                 <img 
                     src="images/marker-icon.png" 
                     alt="Blue marker" 
@@ -16,7 +16,7 @@ export default function InfoPanel({ lat, lon, secondPoint = null }) {
                 <span> {lat.toFixed(6)},{lon.toFixed(6)}</span>
             </div>
             {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
-                <div style={{ fontSize: "13px", color: "#333", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
+                <div style={{ color: "#333", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
                     <img 
                         src="images/marker-icon-red.png" 
                         alt="Red marker" 

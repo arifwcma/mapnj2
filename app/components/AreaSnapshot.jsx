@@ -268,7 +268,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                     display: "inline-block",
                     cursor: "pointer",
                     verticalAlign: "middle",
-                    fontSize: "18px",
                     color: "#007bff",
                     padding: "4px 8px"
                 }}
@@ -324,14 +323,13 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                             }}
                             onMouseDown={handleMouseDown}
                         >
-                            <div style={{ fontSize: "18px", fontWeight: "bold" }}>
+                            <div style={{ fontWeight: "bold" }}>
                                 Area Snapshots
                             </div>
                             <button
                                 onClick={handleClose}
                                 style={{
                                     padding: "6px 12px",
-                                    fontSize: "14px",
                                     cursor: "pointer",
                                     backgroundColor: "#dc3545",
                                     color: "white",
@@ -396,7 +394,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                                         backgroundColor: "rgba(0,0,0,0.7)",
                                                         color: "white",
                                                         padding: "6px 8px",
-                                                        fontSize: "13px",
                                                         textAlign: "center"
                                                     }}
                                                 >
@@ -413,7 +410,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                                     flexDirection: "column",
                                                     alignItems: "center",
                                                     justifyContent: "center",
-                                                    fontSize: "14px",
                                                     color: "#666"
                                                 }}
                                             >
@@ -421,7 +417,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                                 <div
                                                     style={{
                                                         marginTop: "8px",
-                                                        fontSize: "13px",
                                                         color: "#999"
                                                     }}
                                                 >

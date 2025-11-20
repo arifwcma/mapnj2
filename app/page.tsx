@@ -566,7 +566,6 @@ export default function Page() {
                         }}
                         style={{
                             marginTop: "15px",
-                            fontSize: "13px",
                             cursor: "pointer",
                             color: "#0066cc",
                             textDecoration: "underline",

@@ -3,7 +3,6 @@
 export default function NoImageMessage({ endMonth }) {
     return (
         <div style={{
-            fontSize: "13px",
             color: "#555",
             backgroundColor: "#f8f9fa",
             border: "1px solid #e0e0e0",

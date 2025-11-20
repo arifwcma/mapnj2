@@ -7,7 +7,7 @@ export default function CompareModeSelector({ compareMode, onCompareModeChange, 
     
     return (
         <div style={{ marginBottom: "15px" }}>
-            <label style={{ fontSize: "13px", color: "#333", marginBottom: "5px", display: "block" }}>
+            <label style={{ color: "#333", marginBottom: "5px", display: "block" }}>
                 Compare:
             </label>
             <select
@@ -16,7 +16,6 @@ export default function CompareModeSelector({ compareMode, onCompareModeChange, 
                 style={{
                     width: "100%",
                     padding: "8px",
-                    fontSize: "13px",
                     border: "1px solid #ccc",
                     borderRadius: "4px"
                 }}

@@ -33,7 +33,6 @@ export default function TriangleMarker({ position, color, index }) {
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
-                                font-size: 10px;
                                 font-weight: bold;
                                 color: ${color};
                             ">${index + 1}</div>

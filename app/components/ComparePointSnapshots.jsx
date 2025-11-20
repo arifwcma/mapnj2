@@ -144,7 +144,6 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                         padding: 0,
                         margin: "10px 0",
                         cursor: "pointer",
-                        fontSize: "13px",
                         color: "#0066cc",
                         textDecoration: "none",
                         fontFamily: "inherit"
@@ -205,14 +204,13 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             }}
                             onMouseDown={handleMouseDown}
                         >
-                            <div style={{ fontSize: "18px", fontWeight: "bold" }}>
+                            <div style={{ fontWeight: "bold" }}>
                                 Compare Snapshots
                             </div>
                             <button
                                 onClick={handleClose}
                                 style={{
                                     padding: "6px 12px",
-                                    fontSize: "14px",
                                     cursor: "pointer",
                                     backgroundColor: "#dc3545",
                                     color: "white",
@@ -235,7 +233,6 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                                 style={{
                                     width: "100%",
                                     borderCollapse: "collapse",
-                                    fontSize: "13px"
                                 }}
                             >
                                 <thead style={{ position: "sticky", top: 0, backgroundColor: "white", zIndex: 10 }}>
@@ -270,7 +267,6 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                                                     display: "inline-flex",
                                                     alignItems: "center",
                                                     justifyContent: "center",
-                                                    fontSize: "10px",
                                                     fontWeight: "bold",
                                                     color: getColorForIndex(index),
                                                     backgroundColor: "white"
@@ -314,7 +310,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                                                         ) : ndvi !== null && ndvi !== undefined ? (
                                                             <PointSnapshot ndvi={ndvi} size={40} />
                                                         ) : (
-                                                            <div style={{ fontSize: "12px", color: "#999" }}>No data</div>
+                                                            <div style={{ color: "#999" }}>No data</div>
                                                         )}
                                                     </td>
                                                 )

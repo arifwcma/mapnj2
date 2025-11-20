@@ -13,7 +13,6 @@ const toastStyle = {
     color: "white",
     padding: "12px 24px",
     borderRadius: "4px",
-    fontSize: "13px",
     zIndex: 10000,
     boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
     minWidth: "250px",

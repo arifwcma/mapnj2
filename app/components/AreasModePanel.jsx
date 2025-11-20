@@ -369,7 +369,7 @@ export default function AreasModePanel({
             )}
             
             {tableData.length > 0 && (
-                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px", fontSize: "13px" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
@@ -392,7 +392,6 @@ export default function AreasModePanel({
                                         display: "inline-flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        fontSize: "10px",
                                         fontWeight: "bold",
                                         color: getColorForIndex(index),
                                         backgroundColor: "white"
@@ -423,7 +422,6 @@ export default function AreasModePanel({
                                             background: "none",
                                             border: "none",
                                             cursor: "pointer",
-                                            fontSize: "18px",
                                             color: "#dc3545"
                                         }}
                                     >
@@ -448,7 +446,6 @@ export default function AreasModePanel({
                                 disabled={!canGoLeft()}
                                 style={{
                                     padding: "8px 16px",
-                                    fontSize: "16px",
                                     cursor: canGoLeft() ? "pointer" : "not-allowed",
                                     opacity: canGoLeft() ? 1 : 0.5,
                                     backgroundColor: "white",
@@ -464,7 +461,6 @@ export default function AreasModePanel({
                                 onClick={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
                                 style={{
                                     padding: "8px 16px",
-                                    fontSize: "16px",
                                     cursor: "pointer",
                                     backgroundColor: "white",
                                     color: "#333",
@@ -480,7 +476,6 @@ export default function AreasModePanel({
                                 disabled={!canGoRight()}
                                 style={{
                                     padding: "8px 16px",
-                                    fontSize: "16px",
                                     cursor: canGoRight() ? "pointer" : "not-allowed",
                                     opacity: canGoRight() ? 1 : 0.5,
                                     backgroundColor: "white",

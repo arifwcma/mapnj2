@@ -267,7 +267,6 @@ export default function AreaMonthsModePanel({
                         handleAddMonth()
                     }}
                     style={{
-                        fontSize: "13px",
                         cursor: "pointer",
                         color: "#007bff",
                         textDecoration: "underline",
@@ -290,7 +289,7 @@ export default function AreaMonthsModePanel({
             )}
             
             {areaCenter && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", fontSize: "13px", color: "#333" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", color: "#333" }}>
                     <div style={{
                         width: "20px",
                         height: "20px",
@@ -299,7 +298,6 @@ export default function AreaMonthsModePanel({
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "10px",
                         fontWeight: "bold",
                         color: getColorForIndex(0),
                         backgroundColor: "white"
@@ -313,7 +311,7 @@ export default function AreaMonthsModePanel({
             )}
             
             {tableData.length > 0 && (
-                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px", fontSize: "13px" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Month</th>
@@ -347,7 +345,6 @@ export default function AreaMonthsModePanel({
                                             background: "none",
                                             border: "none",
                                             cursor: "pointer",
-                                            fontSize: "18px",
                                             color: "#dc3545"
                                         }}
                                     >
@@ -371,7 +368,6 @@ export default function AreaMonthsModePanel({
                                 onClick={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
                                 style={{
                                     padding: "8px 16px",
-                                    fontSize: "16px",
                                     cursor: "pointer",
                                     backgroundColor: "white",
                                     color: "#333",

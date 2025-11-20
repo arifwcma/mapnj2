@@ -55,7 +55,6 @@ export default function AreaSelectionPrompt({
                             padding: 0,
                             margin: 0,
                             cursor: "pointer",
-                            fontSize: "13px",
                             color: "#0066cc",
                             textDecoration: "none",
                             fontFamily: "inherit"
@@ -78,7 +77,6 @@ export default function AreaSelectionPrompt({
                             padding: 0,
                             margin: 0,
                             cursor: "pointer",
-                            fontSize: "13px",
                             color: "#0066cc",
                             textDecoration: "none",
                             fontFamily: "inherit"
@@ -107,7 +105,6 @@ export default function AreaSelectionPrompt({
                             padding: 0,
                             margin: 0,
                             cursor: "pointer",
-                            fontSize: "13px",
                             color: "#0066cc",
                             textDecoration: "none",
                             fontFamily: "inherit"

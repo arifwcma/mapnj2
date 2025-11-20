@@ -53,7 +53,7 @@ export default function PointSnapshot({ ndvi, size = 40 }) {
                             boxShadow: "0 4px 6px rgba(0,0,0,0.3)"
                         }}
                     >
-                        <div style={{ marginBottom: "10px", fontSize: "16px", fontWeight: "bold" }}>
+                        <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
                             NDVI Snapshot
                         </div>
                         <div
@@ -75,7 +75,6 @@ export default function PointSnapshot({ ndvi, size = 40 }) {
                                 display: "block",
                                 margin: "0 auto",
                                 padding: "8px 16px",
-                                fontSize: "14px",
                                 cursor: "pointer",
                                 backgroundColor: "#dc3545",
                                 color: "white",

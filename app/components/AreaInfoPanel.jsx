@@ -448,7 +448,6 @@ export default function AreaInfoPanel({ selectedAreas, selectedYear, selectedMon
                                 padding: "8px 12px",
                                 cursor: !canGoLeft() ? "not-allowed" : "pointer",
                                 opacity: !canGoLeft() ? 0.5 : 1,
-                                fontSize: "13px"
                             }}
                         >
                             ←
@@ -463,7 +462,6 @@ export default function AreaInfoPanel({ selectedAreas, selectedYear, selectedMon
                                 padding: "8px 12px",
                                 cursor: !canGoRight() ? "not-allowed" : "pointer",
                                 opacity: !canGoRight() ? 0.5 : 1,
-                                fontSize: "13px"
                             }}
                         >
                             →
@@ -475,7 +473,7 @@ export default function AreaInfoPanel({ selectedAreas, selectedYear, selectedMon
                         const sum = validData.reduce((acc, d) => acc + d.ndvi, 0)
                         const avg = sum / validData.length
                         return (
-                            <div key={index} style={{ marginTop: "10px", fontSize: "13px", textAlign: "center" }}>
+                            <div key={index} style={{ marginTop: "10px", textAlign: "center" }}>
                                 {selectedAreas[index].label || `Area ${index + 1}`} Average NDVI: {avg.toFixed(4)}
                             </div>
                         )

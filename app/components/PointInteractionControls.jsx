@@ -8,7 +8,6 @@ const linkStyle = {
     padding: "10px 0",
     margin: "10px 0 0 0",
     cursor: "pointer",
-    fontSize: "13px",
     color: "#0066cc",
     textDecoration: "none",
     fontFamily: "inherit",

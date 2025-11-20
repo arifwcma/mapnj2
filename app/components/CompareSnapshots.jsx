@@ -199,7 +199,6 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                     padding: 0,
                     margin: "10px 0",
                     cursor: "pointer",
-                    fontSize: "13px",
                     color: "#0066cc",
                     textDecoration: "none",
                     fontFamily: "inherit"
@@ -259,14 +258,13 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                             }}
                             onMouseDown={handleMouseDown}
                         >
-                            <div style={{ fontSize: "18px", fontWeight: "bold" }}>
+                            <div style={{ fontWeight: "bold" }}>
                                 Compare Snapshots
                             </div>
                             <button
                                 onClick={handleClose}
                                 style={{
                                     padding: "6px 12px",
-                                    fontSize: "14px",
                                     cursor: "pointer",
                                     backgroundColor: "#dc3545",
                                     color: "white",
@@ -289,7 +287,6 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                 style={{
                                     width: "100%",
                                     borderCollapse: "collapse",
-                                    fontSize: "13px"
                                 }}
                             >
                                 <thead style={{ position: "sticky", top: 0, backgroundColor: "white", zIndex: 10 }}>
@@ -324,7 +321,6 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                                     display: "inline-flex",
                                                     alignItems: "center",
                                                     justifyContent: "center",
-                                                    fontSize: "10px",
                                                     fontWeight: "bold",
                                                     color: getColorForIndex(index),
                                                     backgroundColor: "white"
@@ -397,7 +393,6 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                                                     flexDirection: "column",
                                                                     alignItems: "center",
                                                                     justifyContent: "center",
-                                                                    fontSize: "12px",
                                                                     color: "#666",
                                                                     margin: "0 auto",
                                                                     borderRadius: "4px"
