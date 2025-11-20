@@ -33,25 +33,3 @@ export function getColorForIndex(index) {
     return randomColors[index % randomColors.length]
 }
 
-export function getColorNameForIndex(index) {
-    if (index === 0) return "blue"
-    if (index === 1) return "red"
-    
-    const colorNames = [
-        "green",
-        "yellow",
-        "cyan",
-        "gray",
-        "orange",
-        "purple",
-        "teal",
-        "pink"
-    ]
-    
-    if (index < 10) {
-        return colorNames[index - 2]
-    }
-    
-    return `color-${index}`
-}
-

@@ -66,9 +66,7 @@ export default function Page() {
         loadNdviData,
         updateCloudTolerance,
         clearNdvi,
-        setOverlayType,
-        isImageAvailable,
-        loadOverlayTileOnly
+        isImageAvailable
     } = useNdviData()
     
     const loadAreaNdvi = useCallback(async (area: { id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }) => {

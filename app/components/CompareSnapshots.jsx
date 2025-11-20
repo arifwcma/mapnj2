@@ -53,12 +53,7 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
             return
         }
         
-        if (selectedMonths && selectedMonths.length > 0) {
-            if (!showPopup) {
-                fetchedRef.current.clear()
-                return
-            }
-        } else if (!visibleRange) {
+        if (!selectedMonths && !visibleRange) {
             fetchedRef.current.clear()
             return
         }
