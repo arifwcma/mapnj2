@@ -231,7 +231,6 @@ export default function Page() {
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
-            setFieldSelectionMode(false)
             if (selectedYear && selectedMonth) {
                 loadAreaNdvi(newArea)
         }
@@ -250,7 +249,6 @@ export default function Page() {
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
-            setFieldSelectionMode(false)
         }
     }, [analysisMode, compareMode, selectedAreas.length, setBounds, selectedYear, selectedMonth, loadAreaNdvi])
     
@@ -296,7 +294,10 @@ export default function Page() {
         finalizeRectangle()
         setBoundsSource('rectangle')
         setSelectedFieldFeature(null)
-    }, [finalizeRectangle, analysisMode, compareMode, currentBounds, selectedAreas.length, selectedYear, selectedMonth, loadAreaNdvi])
+        if (analysisMode === "area" && compareMode === "areas") {
+            startDrawing()
+        }
+    }, [finalizeRectangle, analysisMode, compareMode, currentBounds, selectedAreas.length, selectedYear, selectedMonth, loadAreaNdvi, startDrawing])
     
     const handleReset = useCallback(() => {
         resetRectangle()
