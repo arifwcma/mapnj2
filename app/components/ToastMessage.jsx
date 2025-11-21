@@ -74,11 +74,13 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
 
     if (!displayMessage) return null
 
-    return (
-        <div style={toastStyle}>
-            <div style={{ whiteSpace: "pre-line", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                {pointIdx !== null && (
-                    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+    const renderMessageWithIcon = () => {
+        if (pointIdx !== null && typeof displayMessage === "string" && displayMessage.includes("at this point")) {
+            const parts = displayMessage.split("at this point")
+            return (
+                <>
+                    {parts[0]}
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle", margin: "0 4px" }}>
                         <div style={{
                             width: 0,
                             height: 0,
@@ -108,9 +110,18 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
                                 {pointIdx + 1}
                             </div>
                         </div>
-                    </div>
-                )}
-                <span>{displayMessage}</span>
+                    </span>
+                    {parts[1]}
+                </>
+            )
+        }
+        return <span>{displayMessage}</span>
+    }
+
+    return (
+        <div style={toastStyle}>
+            <div style={{ whiteSpace: "pre-line", textAlign: "center" }}>
+                {renderMessageWithIcon()}
             </div>
             <div style={{ ...timerBarStyle, width: `${width}%` }}></div>
         </div>
