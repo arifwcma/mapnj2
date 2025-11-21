@@ -4,11 +4,11 @@ export default function useToast() {
     const [toastMessage, setToastMessage] = useState(null)
     const [toastKey, setToastKey] = useState(0)
     
-    const showToast = useCallback((message, pointIndex = null) => {
+    const showToast = useCallback((message, pointIndex = null, areaIndex = null, suffix = "") => {
         setToastMessage(null)
         setToastKey(prev => prev + 1)
         setTimeout(() => {
-            setToastMessage({ message, pointIndex })
+            setToastMessage({ message, pointIndex, areaIndex, suffix })
         }, 50)
     }, [])
     

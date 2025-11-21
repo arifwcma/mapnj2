@@ -80,7 +80,7 @@ export default function PointMonthsModePanel({
         }
     }, [dataMap, selectedMonths])
     
-    useNullDataDetection(dataMap, selectedMonths, showToast)
+    useNullDataDetection(dataMap, selectedMonths, showToast, 0, null)
     
     const handleDataMapReady = useCallback((dm) => {
         setDataMap(dm)

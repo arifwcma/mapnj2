@@ -83,7 +83,7 @@ export default function AreaMonthsModePanel({
         }
     }, [dataMap, selectedMonths])
     
-    useNullDataDetection(dataMap, selectedMonths, showToast)
+    useNullDataDetection(dataMap, selectedMonths, showToast, null, 0)
     
     const handleDataMapReady = useCallback((dm) => {
         setDataMap(dm)
@@ -390,6 +390,7 @@ export default function AreaMonthsModePanel({
                     key={toastKey}
                     message={toastMessage.message || toastMessage} 
                     pointIndex={toastMessage.pointIndex !== undefined ? toastMessage.pointIndex : null}
+                    areaIndex={toastMessage.areaIndex !== undefined ? toastMessage.areaIndex : null}
                     duration={TOAST_DURATION} 
                     onClose={hideToast} 
                 />

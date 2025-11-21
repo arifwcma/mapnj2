@@ -11,6 +11,7 @@ import { TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
 import { getAllMonthsInRange } from "@/app/lib/rangeUtils"
 import { buildDisplayDataItem, registerChartJS } from "@/app/lib/chartUtils"
 import { MESSAGES } from "@/app/lib/messageConstants"
+import { isMonthInFuture } from "@/app/lib/monthUtils"
 import useVisibleRange from "@/app/hooks/useVisibleRange"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import ChartNavigation from "./ChartNavigation"
@@ -134,7 +135,9 @@ export default function AreasModePanel({
                         
                         if (previousValue === undefined && currentValue === null) {
                             const monthName = MONTH_NAMES_FULL[month - 1]
-                            showToast(`${MESSAGES.NO_DATA_FOUND_PREFIX} ${year} ${monthName} for this area.\n${MESSAGES.NO_DATA_FOUND_SUFFIX}`)
+                            const isFuture = isMonthInFuture(year, month)
+                            const suffix = isFuture ? "" : MESSAGES.NO_DATA_FOUND_SUFFIX
+                            showToast(`${MESSAGES.NO_DATA_FOUND_PREFIX} ${year} ${monthName} for `, null, index, suffix)
                         }
                     })
                 }
@@ -365,6 +368,7 @@ export default function AreasModePanel({
                     key={toastKey}
                     message={toastMessage.message || toastMessage} 
                     pointIndex={toastMessage.pointIndex !== undefined ? toastMessage.pointIndex : null}
+                    areaIndex={toastMessage.areaIndex !== undefined ? toastMessage.areaIndex : null}
                     duration={TOAST_DURATION} 
                     onClose={hideToast} 
                 />

@@ -32,7 +32,7 @@ const timerBarStyle = {
     transition: "width linear"
 }
 
-export default function ToastMessage({ message, duration = 3000, onClose, pointIndex = null }) {
+export default function ToastMessage({ message, duration = 3000, onClose, pointIndex = null, areaIndex = null }) {
     const [width, setWidth] = useState(100)
     const { registerToast, unregisterToast } = useStatusMessage()
 
@@ -70,8 +70,11 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
         }
     }, [message, duration, onClose])
 
-    const displayMessage = typeof message === "string" ? message : (message?.message || message)
-    const pointIdx = pointIndex !== null ? pointIndex : (typeof message === "object" && message !== null ? message.pointIndex : null)
+    const messageObj = typeof message === "object" && message !== null ? message : null
+    const displayMessage = typeof message === "string" ? message : (messageObj?.message || message)
+    const pointIdx = pointIndex !== null ? pointIndex : (messageObj?.pointIndex ?? null)
+    const areaIdx = areaIndex !== null ? areaIndex : (messageObj?.areaIndex ?? null)
+    const messageSuffix = messageObj?.suffix ?? ""
 
     if (!displayMessage) return null
 
@@ -111,11 +114,36 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
                             </div>
                         </div>
                     </span>
-                    .<br />{MESSAGES.NO_DATA_FOUND_SUFFIX}
+                    .{messageSuffix && <><br />{messageSuffix}</>}
                 </>
             )
         }
-        return <span>{displayMessage}</span>
+        if (areaIdx !== null) {
+            return (
+                <>
+                    {displayMessage}
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle", margin: "0 2px" }}>
+                        <div style={{
+                            width: "16px",
+                            height: "16px",
+                            border: `2px solid ${getColorForIndex(areaIdx)}`,
+                            borderRadius: "2px",
+                            background: "white",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "10px",
+                            fontWeight: "bold",
+                            color: getColorForIndex(areaIdx)
+                        }}>
+                            {areaIdx + 1}
+                        </div>
+                    </span>
+                    .{messageSuffix && <><br />{messageSuffix}</>}
+                </>
+            )
+        }
+        return <span>{displayMessage}{messageSuffix && <><br />{messageSuffix}</>}</span>
     }
 
     return (

@@ -47,3 +47,10 @@ export function formatMonthDropdownLabel(year, month) {
     return `${year} ${MONTH_NAMES_FULL[month - 1]}`
 }
 
+export function isMonthInFuture(year, month) {
+    const current = getCurrentMonth()
+    if (year > current.year) return true
+    if (year === current.year && month > current.month) return true
+    return false
+}
+
