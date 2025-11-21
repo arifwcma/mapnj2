@@ -75,12 +75,11 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
     if (!displayMessage) return null
 
     const renderMessageWithIcon = () => {
-        if (pointIdx !== null && typeof displayMessage === "string" && displayMessage.includes("at this point")) {
-            const parts = displayMessage.split("at this point")
+        if (pointIdx !== null) {
             return (
                 <>
-                    {parts[0]}
-                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle", margin: "0 4px" }}>
+                    {displayMessage}
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle", margin: "0 2px" }}>
                         <div style={{
                             width: 0,
                             height: 0,
@@ -111,7 +110,7 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
                             </div>
                         </div>
                     </span>
-                    {parts[1]}
+                    .\nConsider increasing cloud tolerance.
                 </>
             )
         }
