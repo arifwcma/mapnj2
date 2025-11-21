@@ -72,7 +72,6 @@ export default function useNdviData() {
             
             if (!year || !month) {
                 timeSelectionRef.current.updateSelectedMonth(monthData.year, monthData.month)
-                timeSelectionRef.current.setInitialTime(monthData.year, monthData.month)
             } else {
                 setEndMonth(`${monthData.monthName} ${monthData.year}`)
             }
@@ -120,11 +119,6 @@ export default function useNdviData() {
         clearNdvi,
         setOverlayType: overlayTiles.setOverlayType,
         loadOverlayTileOnly: overlayTiles.loadOverlayTile,
-        isImageAvailable: imageFilters.isImageAvailable,
-        getMaxSliderValue: timeSelection.getMaxSliderValue,
-        getCurrentSliderValue: timeSelection.getCurrentSliderValue,
-        sliderValueToMonthYear: timeSelection.sliderValueToMonthYear,
-        monthYearToSliderValue: timeSelection.monthYearToSliderValue,
-        getCurrentDateRange: timeSelection.getCurrentDateRange
+        isImageAvailable: imageFilters.isImageAvailable
     }
 }

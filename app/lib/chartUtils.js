@@ -1,4 +1,24 @@
 import { formatMonthLabel, monthKey } from "./dateUtils"
+import {
+    Chart,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+} from "chart.js"
+
+Chart.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+)
 
 export function buildDisplayDataItem(month, dataMap) {
     const key = monthKey(month.year, month.month)
@@ -12,25 +32,5 @@ export function buildDisplayDataItem(month, dataMap) {
 }
 
 export function registerChartJS() {
-    const {
-        Chart as ChartJS,
-        CategoryScale,
-        LinearScale,
-        PointElement,
-        LineElement,
-        Title,
-        Tooltip,
-        Legend
-    } = require("chart.js")
-    
-    ChartJS.register(
-        CategoryScale,
-        LinearScale,
-        PointElement,
-        LineElement,
-        Title,
-        Tooltip,
-        Legend
-    )
 }
 
