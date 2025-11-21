@@ -1,71 +1,25 @@
 "use client"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import {
-    Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend
-} from "chart.js"
 import { Line } from "react-chartjs-2"
 import MonthDropdown from "./MonthDropdown"
 import usePointDataMap from "@/app/hooks/usePointDataMap"
 import useRequestTracker from "@/app/hooks/useRequestTracker"
 import useToast from "@/app/hooks/useToast"
 import { getColorForIndex } from "@/app/lib/colorUtils"
-import { getCurrentMonth } from "@/app/lib/monthUtils"
-import { formatMonthLabel, getPreviousMonth, getNextMonth, monthKey } from "@/app/lib/dateUtils"
-import { MIN_YEAR, MIN_MONTH, TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
+import { monthKey } from "@/app/lib/dateUtils"
+import { TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
+import { getAllMonthsInRange } from "@/app/lib/rangeUtils"
+import { buildDisplayDataItem, registerChartJS } from "@/app/lib/chartUtils"
+import { MESSAGES } from "@/app/lib/messageConstants"
+import useVisibleRange from "@/app/hooks/useVisibleRange"
 import ChartLoadingMessage from "./ChartLoadingMessage"
+import ChartNavigation from "./ChartNavigation"
 import PointSnapshot from "./PointSnapshot"
 import ComparePointSnapshots from "./ComparePointSnapshots"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
-
-function getInitialVisibleRange(selectedYear, selectedMonth) {
-    if (!selectedYear || !selectedMonth) {
-        return null
-    }
-    
-    const startMonth = { year: selectedYear, month: 1 }
-    const endMonth = { year: selectedYear, month: 12 }
-    
-    return {
-        startMonth,
-        endMonth
-    }
-}
-
-function getAllMonthsInRange(startMonth, endMonth) {
-    const months = []
-    let year = startMonth.year
-    let month = startMonth.month
-    
-    while (year < endMonth.year || (year === endMonth.year && month <= endMonth.month)) {
-        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
-            break
-        }
-        months.push({ year, month })
-        
-        if (month === 12) {
-            year++
-            month = 1
-        } else {
-            month++
-        }
-    }
-    
-    return months
-}
-
-function buildDisplayDataItem(month, dataMap) {
-    const key = monthKey(month.year, month.month)
-    const ndvi = dataMap.get(key)
-    return {
-        label: formatMonthLabel(month.year, month.month),
-        ndvi: ndvi !== null && ndvi !== undefined ? ndvi : null,
-        year: month.year,
-        month: month.month
-    }
-}
+registerChartJS()
 
 function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
     const { dataMap, fetchMissingMonths } = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker)
@@ -79,7 +33,6 @@ function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, reque
     useEffect(() => {
         const currentSize = dataMap?.size || 0
         if (currentSize !== dataMapSizeRef.current) {
-            console.log(`[PointDataWrapper] DataMap size changed for index ${index}: ${dataMapSizeRef.current} -> ${currentSize}`)
             dataMapSizeRef.current = currentSize
             onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths })
         }
@@ -106,29 +59,33 @@ export default function PointsModePanel({
     const [pointDataMaps, setPointDataMaps] = useState([])
     const pointDataMapsRef = useRef([])
     const previousDataMapsRef = useRef([])
-    const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
-    const leftArrowDebounceRef = useRef(null)
-    const rightArrowDebounceRef = useRef(null)
     const chartRef = useRef(null)
+    
+    const {
+        visibleRange,
+        setVisibleRange,
+        updateRangeForMonth,
+        canGoLeft,
+        canGoRight,
+        handleLeftArrow,
+        handleRightArrow
+    } = useVisibleRange(selectedYear, selectedMonth)
     
     useEffect(() => {
         pointDataMapsRef.current = pointDataMaps
     }, [pointDataMaps])
     
     const handleDataMapReady = useCallback((index, dataMapObj) => {
-        console.log(`[PointsModePanel] handleDataMapReady called for index ${index}, dataMap size:`, dataMapObj?.dataMap?.size || 0)
         setPointDataMaps(prev => {
             const newMaps = [...prev]
             newMaps[index] = dataMapObj
-            console.log(`[PointsModePanel] Updated pointDataMaps[${index}], new size:`, dataMapObj?.dataMap?.size || 0)
             return newMaps
         })
     }, [])
     
     useEffect(() => {
-        const newRange = getInitialVisibleRange(selectedYear, selectedMonth)
-        setVisibleRange(newRange)
-    }, [selectedYear, selectedMonth])
+        updateRangeForMonth(selectedYear, selectedMonth)
+    }, [selectedYear, selectedMonth, updateRangeForMonth])
     
     useEffect(() => {
         if (!visibleRange || selectedPoints.length === 0) {
@@ -161,7 +118,7 @@ export default function PointsModePanel({
                         
                         if (previousValue === undefined && currentValue === null) {
                             const monthName = MONTH_NAMES_FULL[month - 1]
-                            showToast(`No data found for ${year} ${monthName} at `, index)
+                            showToast(`${MESSAGES.NO_DATA_FOUND_PREFIX} ${year} ${monthName} at `, index)
                         }
                     })
                 }
@@ -198,14 +155,11 @@ export default function PointsModePanel({
         const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         return selectedPoints.map((point, index) => {
             const dataMap = pointDataMaps[index]?.dataMap || new Map()
-            console.log(`[PointsModePanel] tableData for point ${index}, dataMap size:`, dataMap.size, 'months:', months.length)
             const monthValues = months.map(m => {
                 const key = monthKey(m.year, m.month)
                 const value = dataMap.get(key)
-                console.log(`[PointsModePanel] Month ${m.year}-${m.month} (key: ${key}):`, value)
                 return value
             }).filter(v => v !== null && v !== undefined)
-            console.log(`[PointsModePanel] Filtered monthValues for point ${index}:`, monthValues)
             
             const avg = monthValues.length > 0 
                 ? monthValues.reduce((sum, val) => sum + val, 0) / monthValues.length 
@@ -275,59 +229,7 @@ export default function PointsModePanel({
         }
     }), [yAxisRange])
     
-    const canGoLeft = useCallback(() => {
-        if (!visibleRange) return false
-        const { year, month } = visibleRange.startMonth
-        return year > MIN_YEAR || (year === MIN_YEAR && month > MIN_MONTH)
-    }, [visibleRange])
-    
-    const canGoRight = useCallback(() => {
-        if (!visibleRange) return false
-        const current = getCurrentMonth()
-        const { year, month } = visibleRange.endMonth
-        return year < current.year || (year === current.year && month < current.month)
-    }, [visibleRange])
-    
     const isLoading = requestTracker.pendingCount > 0
-    
-    
-    const handleLeftArrow = useCallback(() => {
-        if (!canGoLeft() || !visibleRange) return
-        
-        if (leftArrowDebounceRef.current) {
-            clearTimeout(leftArrowDebounceRef.current)
-        }
-        
-        leftArrowDebounceRef.current = setTimeout(() => {
-            const prev = getPreviousMonth(visibleRange.startMonth.year, visibleRange.startMonth.month)
-            setVisibleRange({
-                startMonth: prev,
-                endMonth: visibleRange.endMonth
-            })
-        }, 1000)
-    }, [visibleRange, canGoLeft])
-    
-    const handleRightArrow = useCallback(() => {
-        if (!canGoRight() || !visibleRange) return
-        
-        if (rightArrowDebounceRef.current) {
-            clearTimeout(rightArrowDebounceRef.current)
-        }
-        
-        rightArrowDebounceRef.current = setTimeout(() => {
-            const nextEnd = getNextMonth(visibleRange.endMonth.year, visibleRange.endMonth.month)
-            const current = getCurrentMonth()
-            
-            if (nextEnd.year > current.year || (nextEnd.year === current.year && nextEnd.month > current.month)) {
-                return
-            }
-            
-            setVisibleRange({
-                startMonth: visibleRange.startMonth,
-                endMonth: nextEnd
-            })
-        }, 1000)
-    }, [visibleRange, canGoRight])
     
     
     
@@ -422,56 +324,14 @@ export default function PointsModePanel({
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line ref={chartRef} data={chartData} options={chartOptions} />
                     </div>
-                    <div style={{ position: "relative", marginTop: "10px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 10px" }}>
-                            <button 
-                                onClick={handleLeftArrow} 
-                                disabled={!canGoLeft()}
-                                style={{
-                                    padding: "8px 16px",
-                                    cursor: canGoLeft() ? "pointer" : "not-allowed",
-                                    opacity: canGoLeft() ? 1 : 0.5,
-                                    backgroundColor: "white",
-                                    color: "#333",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "8px",
-                                    fontWeight: "500"
-                                }}
-                            >
-                                ←
-                            </button>
-                            <button
-                                onClick={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
-                                style={{
-                                    padding: "8px 16px",
-                                    cursor: "pointer",
-                                    backgroundColor: "white",
-                                    color: "#333",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "8px",
-                                    fontWeight: "500"
-                                }}
-                            >
-                                {yAxisRange === "0-1" ? "↓" : "↑"}
-                            </button>
-                            <button 
-                                onClick={handleRightArrow} 
-                                disabled={!canGoRight()}
-                                style={{
-                                    padding: "8px 16px",
-                                    cursor: canGoRight() ? "pointer" : "not-allowed",
-                                    opacity: canGoRight() ? 1 : 0.5,
-                                    backgroundColor: "white",
-                                    color: "#333",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "8px",
-                                    fontWeight: "500"
-                                }}
-                            >
-                                →
-                            </button>
-                        </div>
-                    </div>
+                    <ChartNavigation
+                        canGoLeft={canGoLeft}
+                        canGoRight={canGoRight}
+                        onLeftClick={handleLeftArrow}
+                        onRightClick={handleRightArrow}
+                        yAxisRange={yAxisRange}
+                        onYAxisToggle={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
+                    />
                     <NdviLegend />
                 </>
             )}

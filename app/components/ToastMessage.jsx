@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { useStatusMessage } from "./StatusMessage"
 import { getColorForIndex } from "@/app/lib/colorUtils"
+import { MESSAGES } from "@/app/lib/messageConstants"
 
 const BASE_TOP = 20
 
@@ -110,7 +111,7 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
                             </div>
                         </div>
                     </span>
-                    .<br />Consider increasing cloud tolerance.
+                    .<br />{MESSAGES.NO_DATA_FOUND_SUFFIX}
                 </>
             )
         }

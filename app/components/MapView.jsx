@@ -215,7 +215,6 @@ function MapBoundsTracker({ onBoundsChange }) {
                     [sw.lat, sw.lng],
                     [ne.lat, ne.lng]
                 ]
-                console.log("[MapBoundsTracker] Updating bounds:", boundsArray)
                 onBoundsChange(boundsArray)
             } catch (e) {
                 console.error("[MapBoundsTracker] Error getting bounds:", e)
@@ -245,10 +244,7 @@ function FieldSelectionBoundsUpdater({ fieldSelectionMode, onBoundsChange }) {
     const map = useMap()
     
     useEffect(() => {
-        console.log("[FieldSelectionBoundsUpdater] useEffect triggered", { fieldSelectionMode, hasMap: !!map, hasCallback: !!onBoundsChange })
-        
         if (!fieldSelectionMode || !map || !onBoundsChange) {
-            console.log("[FieldSelectionBoundsUpdater] Early return", { fieldSelectionMode, hasMap: !!map, hasCallback: !!onBoundsChange })
             return
         }
         
@@ -256,7 +252,6 @@ function FieldSelectionBoundsUpdater({ fieldSelectionMode, onBoundsChange }) {
             try {
                 const bounds = map.getBounds()
                 if (!bounds) {
-                    console.log("[FieldSelectionBoundsUpdater] Map bounds not available yet")
                     return
                 }
                 const sw = bounds.getSouthWest()
@@ -265,7 +260,6 @@ function FieldSelectionBoundsUpdater({ fieldSelectionMode, onBoundsChange }) {
                     [sw.lat, sw.lng],
                     [ne.lat, ne.lng]
                 ]
-                console.log("[FieldSelectionBoundsUpdater] Updating bounds for field selection:", boundsArray)
                 onBoundsChange(boundsArray)
             } catch (e) {
                 console.error("[FieldSelectionBoundsUpdater] Error getting bounds:", e)
@@ -333,13 +327,10 @@ function PointClickHandler({ isActive, onPointClick }) {
     
     useEffect(() => {
         if (!map || !isActive || !onPointClick) {
-            console.log("PointClickHandler inactive:", { map: !!map, isActive, hasCallback: !!onPointClick })
             return
         }
         
-        console.log("PointClickHandler active, setting up listener")
         const handleClick = (e) => {
-            console.log("Map click detected:", e.latlng)
             const { lat, lng } = e.latlng
             onPointClick(lat, lng)
         }
@@ -347,7 +338,6 @@ function PointClickHandler({ isActive, onPointClick }) {
         map.on("click", handleClick)
         
         return () => {
-            console.log("Removing click listener")
             map.off("click", handleClick)
         }
     }, [map, isActive, onPointClick])

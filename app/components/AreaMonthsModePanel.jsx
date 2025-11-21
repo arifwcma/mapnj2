@@ -1,8 +1,5 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import {
-    Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend
-} from "chart.js"
 import { Line } from "react-chartjs-2"
 import MonthDropdown from "./MonthDropdown"
 import useAreaDataMap from "@/app/hooks/useAreaDataMap"
@@ -10,7 +7,9 @@ import useRequestTracker from "@/app/hooks/useRequestTracker"
 import useToast from "@/app/hooks/useToast"
 import useNullDataDetection from "@/app/hooks/useNullDataDetection"
 import { formatMonthLabel, monthKey } from "@/app/lib/dateUtils"
+import { registerChartJS } from "@/app/lib/chartUtils"
 import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
+import { MESSAGES } from "@/app/lib/messageConstants"
 import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getAreaCenter } from "@/app/lib/bboxUtils"
@@ -20,7 +19,7 @@ import CompareSnapshots from "./CompareSnapshots"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+registerChartJS()
 
 function AreaMonthsDataWrapper({ area, cloudTolerance, requestTracker, onDataMapReady }) {
     const rectangleBounds = area?.bounds || null
@@ -100,7 +99,7 @@ export default function AreaMonthsModePanel({
         
         if (exists) {
             const monthName = MONTH_NAMES_FULL[month - 1]
-            showToast(`${year} ${monthName} already present`)
+            showToast(`${year} ${monthName} ${MESSAGES.MONTH_ALREADY_PRESENT}`)
             return false
         } else {
             setSelectedMonths(prev => {

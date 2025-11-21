@@ -47,26 +47,3 @@ export function formatMonthDropdownLabel(year, month) {
     return `${year} ${MONTH_NAMES_FULL[month - 1]}`
 }
 
-export function getSixMonthsBackFrom(selectedYear, selectedMonth) {
-    const months = []
-    let year = selectedYear
-    let month = selectedMonth
-    
-    for (let i = 0; i < 6; i++) {
-        if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) {
-            break
-        }
-        
-        months.unshift({ year, month })
-        
-        if (month === 1) {
-            year--
-            month = 12
-        } else {
-            month--
-        }
-    }
-    
-    return months
-}
-

@@ -26,3 +26,9 @@ export const FIELD_SELECTION_MIN_ZOOM = 13
 
 export const TOAST_DURATION = 5000
 
+export const DEBOUNCE_DELAYS = {
+    CLOUD_TOLERANCE: 1000,
+    CHART_ARROWS: 1000,
+    FIELD_LOADING: 500
+}
+

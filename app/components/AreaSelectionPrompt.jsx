@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useLayoutEffect } from "react"
 import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
+import { MESSAGES } from "@/app/lib/messageConstants"
 import { useStatusMessage } from "./StatusMessage"
 
 export default function AreaSelectionPrompt({ 
@@ -15,27 +16,27 @@ export default function AreaSelectionPrompt({
 }) {
     const getMessage = () => {
         if (isDrawing) {
-            return "Click and drag to draw a rectangle"
+            return MESSAGES.AREA_DRAW_RECTANGLE
         }
         if (fieldSelectionMode) {
             if (currentZoom === null || currentZoom === undefined || currentZoom < FIELD_SELECTION_MIN_ZOOM) {
-                return "Zoom in further to see parcels"
+                return MESSAGES.AREA_ZOOM_INSUFFICIENT
             }
             if (!fieldsData || fieldsData.features?.length === 0) {
-                return "Loading parcel data..."
+                return MESSAGES.AREA_LOADING_PARCELS
             }
-            return "Click the desired parcel"
+            return MESSAGES.AREA_CLICK_PARCEL
         }
         return null
     }
 
     const message = getMessage()
-    const isLoadingMessage = message === "Loading parcel data..."
+    const isLoadingMessage = message === MESSAGES.AREA_LOADING_PARCELS
     const { setStatusMessage, setDirectionalMessage } = useStatusMessage()
 
     useEffect(() => {
         if (isLoadingMessage) {
-            setStatusMessage("Loading parcel data...")
+            setStatusMessage(MESSAGES.AREA_LOADING_PARCELS)
         } else {
             setStatusMessage(null)
         }
@@ -44,53 +45,63 @@ export default function AreaSelectionPrompt({
 
     useLayoutEffect(() => {
         if (!isSelectionMode) {
+            const parts = MESSAGES.AREA_SELECT_PROMPT.split(/(parcel|rectangle)/)
             setDirectionalMessage(
                 <>
-                    Select area by choosing a{" "}
-                    <button 
-                        onClick={onSelectParcel} 
-                        style={{
-                            background: "none",
-                            border: "none",
-                            padding: 0,
-                            margin: 0,
-                            cursor: "pointer",
-                            color: "#0066cc",
-                            textDecoration: "none",
-                            fontFamily: "inherit"
-                        }}
-                        onMouseEnter={(e) => {
-                            e.target.style.textDecoration = "underline"
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.textDecoration = "none"
-                        }}
-                    >
-                        parcel
-                    </button>
-                    {" "}or drawing a{" "}
-                    <button 
-                        onClick={onDrawRectangle} 
-                        style={{
-                            background: "none",
-                            border: "none",
-                            padding: 0,
-                            margin: 0,
-                            cursor: "pointer",
-                            color: "#0066cc",
-                            textDecoration: "none",
-                            fontFamily: "inherit"
-                        }}
-                        onMouseEnter={(e) => {
-                            e.target.style.textDecoration = "underline"
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.textDecoration = "none"
-                        }}
-                    >
-                        rectangle
-                    </button>
-                    .
+                    {parts.map((part, idx) => {
+                        if (part === "parcel") {
+                            return (
+                                <button 
+                                    key={idx}
+                                    onClick={onSelectParcel} 
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        padding: 0,
+                                        margin: 0,
+                                        cursor: "pointer",
+                                        color: "#0066cc",
+                                        textDecoration: "none",
+                                        fontFamily: "inherit"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.target.style.textDecoration = "underline"
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.target.style.textDecoration = "none"
+                                    }}
+                                >
+                                    {part}
+                                </button>
+                            )
+                        } else if (part === "rectangle") {
+                            return (
+                                <button 
+                                    key={idx}
+                                    onClick={onDrawRectangle} 
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        padding: 0,
+                                        margin: 0,
+                                        cursor: "pointer",
+                                        color: "#0066cc",
+                                        textDecoration: "none",
+                                        fontFamily: "inherit"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.target.style.textDecoration = "underline"
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.target.style.textDecoration = "none"
+                                    }}
+                                >
+                                    {part}
+                                </button>
+                            )
+                        }
+                        return <span key={idx}>{part}</span>
+                    })}
                 </>
             )
         } else if (message && !isLoadingMessage && isSelectionMode) {

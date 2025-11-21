@@ -13,11 +13,14 @@ import AreaMonthsModePanel from "@/app/components/AreaMonthsModePanel"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
-import { getMonthDateRange } from "@/app/lib/dateUtils"
-import { bboxToString, createPointBbox } from "@/app/lib/bboxUtils"
+import { bboxToString } from "@/app/lib/bboxUtils"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
+import useFields from "@/app/hooks/useFields"
+import useAreaNdvi from "@/app/hooks/useAreaNdvi"
 import { useStatusMessage } from "@/app/components/StatusMessage"
+import { MESSAGES } from "@/app/lib/messageConstants"
+import { DEBOUNCE_DELAYS } from "@/app/lib/config"
 
 export default function Page() {
     const [basemap, setBasemap] = useState("street")
@@ -28,11 +31,6 @@ export default function Page() {
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
     const [fieldSelectionMode, setFieldSelectionMode] = useState(false)
-    const [fieldsData, setFieldsData] = useState<any>(null)
-    const [fieldsLoading, setFieldsLoading] = useState(false)
-    const fieldsDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const previousFieldsBoundsRef = useRef<[[number, number], [number, number]] | null>(null)
-    const previousFieldsZoomRef = useRef<number | null>(null)
     const [boundsSource, setBoundsSource] = useState<'rectangle' | 'field' | null>(null)
     const [selectedFieldFeature, setSelectedFieldFeature] = useState<any>(null)
     const [currentZoom, setCurrentZoom] = useState<number | null>(null)
@@ -48,113 +46,21 @@ export default function Page() {
         }
     }, [selectedYear, selectedMonth])
     
-    const loadFieldsForBounds = useCallback((bounds: [[number, number], [number, number]], zoom: number) => {
-        if (zoom < 13) {
-            setFieldsData(null)
-            setFieldsLoading(false)
-            return
-        }
-        
-        previousFieldsBoundsRef.current = bounds
-        previousFieldsZoomRef.current = zoom
-        
-        if (fieldsDebounceTimeoutRef.current) {
-            clearTimeout(fieldsDebounceTimeoutRef.current)
-        }
-        
-        fieldsDebounceTimeoutRef.current = setTimeout(() => {
-            const bboxStr = bboxToString(bounds)
-            setFieldsLoading(true)
-            
-            fetch(`/api/fields/geojson?bbox=${bboxStr}&zoom=${zoom}`)
-                .then(async response => {
-                    console.log("[CLIENT] Fetch response received", { status: response.status, ok: response.ok })
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-                        throw new Error(errorData.error || errorData.details || "Failed to fetch fields data")
-                    }
-                    return response.json()
-                })
-                .then(data => {
-                    console.log("[CLIENT] Fields data received", { 
-                        type: data?.type, 
-                        featureCount: data?.features?.length || 0,
-                        firstFeature: data?.features?.[0] 
-                    })
-                    
-                    setFieldsData((prevData: any) => {
-                        if (!prevData || !prevData.features || prevData.features.length === 0) {
-                            console.log("[CLIENT] No previous data, using new data")
-                            return data
-                        }
-                        
-                        const existingFeatureIds = new Set()
-                        prevData.features.forEach((f: any) => {
-                            if (f.id) {
-                                existingFeatureIds.add(f.id)
-                            } else if (f.properties && f.properties.id) {
-                                existingFeatureIds.add(f.properties.id)
-                            } else {
-                                const geomStr = JSON.stringify(f.geometry)
-                                existingFeatureIds.add(geomStr)
-                            }
-                        })
-                        
-                        const newFeatures = data.features.filter((f: any) => {
-                            if (f.id && existingFeatureIds.has(f.id)) return false
-                            if (f.properties && f.properties.id && existingFeatureIds.has(f.properties.id)) return false
-                            const geomStr = JSON.stringify(f.geometry)
-                            if (existingFeatureIds.has(geomStr)) return false
-                            return true
-                        })
-                        
-                        const mergedFeatures = [...prevData.features, ...newFeatures]
-                        console.log("[CLIENT] Merging parcels", { 
-                            previous: prevData.features.length, 
-                            new: data.features.length, 
-                            added: newFeatures.length,
-                            total: mergedFeatures.length 
-                        })
-                        
-                        return {
-                            ...prevData,
-                            features: mergedFeatures
-                        }
-                    })
-                })
-                .catch(err => {
-                    console.error("[CLIENT] Error loading fields:", err.message || err)
-                    setFieldsData(null)
-                })
-                .finally(() => {
-                    console.log("[CLIENT] Fetch completed, setting loading to false")
-                    setFieldsLoading(false)
-                })
-        }, 500)
-    }, [])
+    const { fieldsData, fieldsLoading, loadFieldsForBounds } = useFields()
+    
+    const previousFieldsBoundsRef = useRef<[[number, number], [number, number]] | null>(null)
+    const previousFieldsZoomRef = useRef<number | null>(null)
     
     useEffect(() => {
-        console.log("[CLIENT] useEffect for field selection", { 
-            fieldSelectionMode, 
-            currentZoom, 
-            mapBounds,
-            previousBounds: previousFieldsBoundsRef.current,
-            previousZoom: previousFieldsZoomRef.current
-        })
-        
         if (!fieldSelectionMode) {
-            console.log("[CLIENT] Not in field selection mode, returning")
             return
         }
         
         if (currentZoom === null || currentZoom === undefined || currentZoom < 13) {
-            setFieldsData(null)
-            setFieldsLoading(false)
             return
         }
         
         if (!mapBounds) {
-            console.log("[CLIENT] No map bounds available")
             return
         }
         
@@ -167,17 +73,11 @@ export default function Page() {
         const zoomChanged = previousFieldsZoomRef.current !== currentZoom
         
         if (boundsChanged || zoomChanged) {
+            previousFieldsBoundsRef.current = mapBounds
+            previousFieldsZoomRef.current = currentZoom
             loadFieldsForBounds(mapBounds, currentZoom)
         }
     }, [fieldSelectionMode, mapBounds, currentZoom, loadFieldsForBounds])
-    
-    useEffect(() => {
-        return () => {
-            if (fieldsDebounceTimeoutRef.current) {
-                clearTimeout(fieldsDebounceTimeoutRef.current)
-            }
-        }
-    }, [])
     
     const {
         isDrawing,
@@ -202,66 +102,7 @@ export default function Page() {
         isImageAvailable
     } = useNdviData()
     
-    const loadAreaNdvi = useCallback(async (area: { id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }) => {
-        if (!selectedYear || !selectedMonth || !area.bounds) {
-            return
-        }
-        
-        try {
-            const bboxStr = bboxToString(area.bounds)
-            const dateRange = getMonthDateRange(selectedYear, selectedMonth)
-            
-            let tileResponse
-            if (area.geometry) {
-                const requestBody = {
-                    start: dateRange.start,
-                    end: dateRange.end,
-                    bbox: bboxStr,
-                    cloud: cloudTolerance.toString(),
-                    geometry: area.geometry
-                }
-                tileResponse = await fetch(`/api/ndvi/average`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(requestBody)
-                })
-            } else {
-                tileResponse = await fetch(`/api/ndvi/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`)
-            }
-            
-            if (!tileResponse.ok) {
-                const errorData = await tileResponse.json().catch(() => ({ error: `HTTP ${tileResponse.status}` }))
-                const errorMessage = errorData.error || `HTTP ${tileResponse.status}`
-                const isNoDataError = errorMessage.includes("No images found")
-                
-                if (isNoDataError) {
-                    console.log("No images found for area:", area.id, "- No overlay will be displayed")
-                } else {
-                    console.error("Failed to load NDVI for area:", area.id, errorMessage)
-                }
-                
-                setSelectedAreas(prev => prev.map(a => 
-                    a.id === area.id 
-                        ? { ...a, ndviTileUrl: null }
-                        : a
-                ))
-                return
-            }
-            
-            const tileData = await tileResponse.json()
-            const tileUrl = tileData.tileUrl || null
-            
-            setSelectedAreas(prev => prev.map(a => 
-                a.id === area.id 
-                    ? { ...a, ndviTileUrl: tileUrl }
-                    : a
-            ))
-        } catch (err) {
-            console.error("Error loading NDVI for area:", area.id, err)
-        }
-    }, [selectedYear, selectedMonth, cloudTolerance])
+    const { loadAreaNdvi } = useAreaNdvi(selectedYear, selectedMonth, cloudTolerance, setSelectedAreas)
     
     const cloudToleranceRef = useRef(cloudTolerance)
     const cloudDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -309,7 +150,7 @@ export default function Page() {
         
         cloudDebounceTimeoutRef.current = setTimeout(() => {
             updateCloudTolerance(newValue)
-        }, 1000)
+        }, DEBOUNCE_DELAYS.CLOUD_TOLERANCE)
     }
     
     
@@ -340,7 +181,6 @@ export default function Page() {
     }, [])
     
     const handleStartFieldSelection = useCallback(() => {
-        console.log("[CLIENT] handleStartFieldSelection called", { currentZoom, mapBounds })
         
         if (isDrawing) {
             stopDrawing()
@@ -514,11 +354,11 @@ export default function Page() {
 
     useEffect(() => {
         if (analysisMode === "point" && compareMode === "points") {
-            setDirectionalMessage("Click on the map to place a point")
+            setDirectionalMessage(MESSAGES.POINT_CLICK_TO_PLACE)
         } else if (analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null) {
-            setDirectionalMessage("Click to select a point")
+            setDirectionalMessage(MESSAGES.POINT_CLICK_TO_SELECT)
         } else if (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null) {
-            setDirectionalMessage("Add a calendar month")
+            setDirectionalMessage(MESSAGES.POINT_ADD_MONTH)
         } else if (analysisMode === "point") {
             setDirectionalMessage(null)
         }

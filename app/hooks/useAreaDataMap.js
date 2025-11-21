@@ -38,19 +38,9 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
 
         const bboxStr = bboxToString(rectangleBounds)
         const geometryStr = JSON.stringify(geometryToUse)
-        const geometrySize = new Blob([geometryStr]).size
-        console.log(`[HOOK] useAreaDataMap - Request details:`, {
-            year,
-            month,
-            geometrySize: `${geometrySize} bytes`,
-            geometryType: geometryToUse?.geometry?.type || geometryToUse?.type || "unknown",
-            bbox: bboxStr
-        })
 
         try {
             const url = `/api/ndvi/area/month`
-            const urlLength = url.length + geometryStr.length + bboxStr.length + 100
-            console.log(`[HOOK] useAreaDataMap - Estimated URL length: ${urlLength} bytes`)
             
             const requestBody = {
                 geometry: geometryToUse,
@@ -63,7 +53,6 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
             let bodyString
             try {
                 bodyString = JSON.stringify(requestBody)
-                console.log(`[HOOK] useAreaDataMap - Request body size: ${bodyString.length} bytes`)
             } catch (stringifyError) {
                 console.error(`[HOOK] useAreaDataMap - JSON.stringify error:`, stringifyError)
                 return { year, month, ndvi: null }
@@ -170,7 +159,6 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
             const requestKey = `${areaId}-${key}`
             
             if (requestTracker) {
-                console.log('Registering request:', requestKey)
                 requestTracker.registerRequest(requestKey)
             }
             
@@ -192,7 +180,6 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
                 return result
             } finally {
                 if (requestTracker) {
-                    console.log('Unregistering request:', requestKey)
                     requestTracker.unregisterRequest(requestKey)
                 }
             }

@@ -129,11 +129,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
             
             const dateRange = getMonthDateRange(year, month)
             const geometryStr = JSON.stringify(geometry)
-            const geometrySize = new Blob([geometryStr]).size
-            console.log(`[AreaSnapshot] Request details for ${year}-${month}:`, {
-                geometrySize: `${geometrySize} bytes`,
-                geometryType: geometry?.geometry?.type || geometry?.type || "unknown"
-            })
             
             const requestBody = {
                 start: dateRange.start,
@@ -148,7 +143,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
             let bodyString
             try {
                 bodyString = JSON.stringify(requestBody)
-                console.log(`[AreaSnapshot] Request body size for ${year}-${month}: ${bodyString.length} bytes`)
             } catch (stringifyError) {
                 console.error(`[AreaSnapshot] JSON.stringify error for ${year}-${month}:`, stringifyError)
                 setLoading(prev => ({ ...prev, [key]: false }))
@@ -197,7 +191,6 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                     if (data.imageUrl) {
                         setTileUrls(prev => ({ ...prev, [key]: data.imageUrl }))
                     } else if (data.imageUrl === null) {
-                        console.log(`[AreaSnapshot] No data for ${year}-${month}`)
                         setTileUrls(prev => ({ ...prev, [key]: null }))
                     } else if (data.error) {
                         console.error(`Error fetching snapshot for ${year}-${month}:`, data.error)
