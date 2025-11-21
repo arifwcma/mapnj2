@@ -114,7 +114,7 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
                             </div>
                         </div>
                     </span>
-                    .{messageSuffix && <><br />{messageSuffix}</>}
+                    .{messageSuffix ? <><br />{messageSuffix}</> : null}
                 </>
             )
         }
@@ -127,7 +127,7 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
                             width: "16px",
                             height: "16px",
                             border: `2px solid ${getColorForIndex(areaIdx)}`,
-                            borderRadius: "2px",
+                            borderRadius: "50%",
                             background: "white",
                             display: "flex",
                             alignItems: "center",
@@ -139,11 +139,11 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
                             {areaIdx + 1}
                         </div>
                     </span>
-                    .{messageSuffix && <><br />{messageSuffix}</>}
+                    .{messageSuffix ? <><br />{messageSuffix}</> : null}
                 </>
             )
         }
-        return <span>{displayMessage}{messageSuffix && <><br />{messageSuffix}</>}</span>
+        return <span>{displayMessage}{messageSuffix ? <><br />{messageSuffix}</> : null}</span>
     }
 
     return (
