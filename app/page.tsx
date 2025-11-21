@@ -188,18 +188,11 @@ export default function Page() {
             setBoundsSource(null)
         }
         setFieldSelectionMode(true)
-        setFieldsLoading(false)
         
         if (currentZoom !== null && currentZoom !== undefined && currentZoom >= 13) {
             if (mapBounds) {
                 loadFieldsForBounds(mapBounds, currentZoom)
-            } else {
-                setFieldsData(null)
-                setFieldsLoading(false)
             }
-        } else {
-            setFieldsData(null)
-            setFieldsLoading(false)
         }
     }, [isDrawing, stopDrawing, resetRectangle, currentZoom, mapBounds, loadFieldsForBounds])
     
