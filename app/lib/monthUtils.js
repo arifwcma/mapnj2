@@ -54,3 +54,7 @@ export function isMonthInFuture(year, month) {
     return false
 }
 
+export function shouldUseMODISForMonth(year, month) {
+    return year < 2019 || (year === 2019 && month < 1)
+}
+
