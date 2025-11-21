@@ -110,7 +110,7 @@ export default function ToastMessage({ message, duration = 3000, onClose, pointI
                             </div>
                         </div>
                     </span>
-                    .\nConsider increasing cloud tolerance.
+                    .<br />Consider increasing cloud tolerance.
                 </>
             )
         }
