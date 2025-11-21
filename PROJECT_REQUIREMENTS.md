@@ -46,7 +46,7 @@ Below the Analysis dropdown, a dropdown selector: "Compare: Points / Months"
 
 **Month Dropdown**
 - Label: "Select month"
-- Options: Calendar months from current month back to January 2019
+- Options: Calendar months from current month back to January 2001
 - Format: "2025 November", "2025 October", etc.
 - Default: Current calendar month
 
@@ -75,7 +75,7 @@ Below the Analysis dropdown, a dropdown selector: "Compare: Points / Months"
 - Default y-axis range: 0-1
 - Chart navigation arrows: Left/right arrows below chart
 - Arrow behavior: Adds months to visible range (expands), doesn't shift
-- Left limit: January 2019
+- Left limit: January 2001
 - Right limit: Current calendar month
 - Debouncing: 1 second delay for arrow clicks
 
@@ -209,7 +209,7 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Default y-axis range: 0-1
 - Chart navigation arrows: Left/right arrows below chart
 - Arrow behavior: Adds months to visible range (expands), doesn't shift
-- Left limit: January 2019
+- Left limit: January 2001
 - Right limit: Current calendar month
 - Debouncing: 1 second delay for arrow clicks
 
@@ -294,6 +294,7 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Changing dropdown value updates UI immediately
 - API calls triggered after 1 second of no changes
 - If multiple rapid changes occur, only the last value triggers API call after 1 second delay
+- **Note**: Cloud tolerance only applies to Sentinel-2 data (dates >= January 2019). MODIS data (dates < January 2019) uses SummaryQA=0 filtering and ignores cloud tolerance.
 
 ---
 
@@ -308,7 +309,7 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - **Arrow Style**: White background, border, rounded corners, specific padding/font size
 - **Behavior**: Add months to visible range (expand), not shift
 - **Debouncing**: 1 second delay for arrow clicks
-- **Limits**: Left = Jan 2019, Right = current calendar month
+- **Limits**: Left = Jan 2001, Right = current calendar month
 
 ### Y-Axis Range Toggle
 - **Button**: Shows ↓ when range is 0-1, shows ↑ when range is -1 to +1
@@ -342,10 +343,25 @@ Similar to Point Analysis: "Compare: Areas / Months"
 
 ### Data Calculation
 - NDVI averages exclude null values
-- Cloud tolerance applies to all image filtering
+- Cloud tolerance applies only to Sentinel-2 image filtering (dates >= January 2019)
 - Point NDVI fetching: Uses small bbox (0.01° buffer ≈ 1km) around point, not full viewport
 - Area NDVI fetching: Uses area bounds (with geometry clipping for parcels)
 - **Initial visible range**: For Point-Points and Area-Areas modes, the initial visible range spans the full calendar year (12 months) of the selected month, from January to December of that year
+
+### Dual Data Source Logic
+- **Date Range**: Earliest date is January 2001
+- **Sentinel-2**: Used for dates >= January 2019
+  - Collection: COPERNICUS/S2_SR_HARMONIZED
+  - NDVI calculation: normalizedDifference(["B8", "B4"])
+  - Cloud filtering: Uses CLOUDY_PIXEL_PERCENTAGE based on cloud tolerance setting
+  - Spatial resolution: 10m
+- **MODIS**: Used for dates < January 2019
+  - Collection: MODIS/061/MOD13Q1
+  - NDVI band: Pre-calculated NDVI band (multiply by 0.0001 for scaling)
+  - Quality filtering: SummaryQA = 0 (always, ignores cloud tolerance)
+  - Spatial resolution: 250m (16-day composite)
+- **Automatic Routing**: System automatically selects data source based on query start date
+- **RGB Tiles**: Only available for Sentinel-2 (no MODIS RGB equivalent)
 
 ### State Management
 - Mode changes (Point/Area) reset all state except cloud tolerance
@@ -362,8 +378,14 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - `/api/find_month`: Find most recent month with available images
 
 ### Earth Engine Processing
-- Image collection: COPERNICUS/S2_SR_HARMONIZED
-- NDVI calculation: normalizedDifference(["B8", "B4"])
+- **Sentinel-2 (dates >= January 2019)**:
+  - Image collection: COPERNICUS/S2_SR_HARMONIZED
+  - NDVI calculation: normalizedDifference(["B8", "B4"])
+  - Cloud filtering: CLOUDY_PIXEL_PERCENTAGE based on cloud tolerance
+- **MODIS (dates < January 2019)**:
+  - Image collection: MODIS/061/MOD13Q1
+  - NDVI: Pre-calculated NDVI band multiplied by 0.0001
+  - Quality filtering: SummaryQA = 0 (ignores cloud tolerance)
 - For rectangle overlays: 20% buffer for filtering, clipped to original bounds
 - For parcel overlays: Filtered by bounds, clipped to exact parcel geometry
 - Empty collection check: Throws "No images found" error if no images available

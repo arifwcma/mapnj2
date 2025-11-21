@@ -42,9 +42,12 @@ export async function GET(request) {
         }
 
         const dateRange = getMonthDateRange(yearNum, monthNum)
+        console.log(`[API] /api/ndvi/point/month - Date range:`, { start: dateRange.start, end: dateRange.end, year: yearNum, month: monthNum })
         
         try {
+            console.log(`[API] /api/ndvi/point/month - Calling getNdviAtPoint with:`, { lat: latNum, lon: lonNum, start: dateRange.start, end: dateRange.end, cloud: cloudNum })
             const ndvi = await getNdviAtPoint(latNum, lonNum, dateRange.start, dateRange.end, null, cloudNum)
+            console.log(`[API] /api/ndvi/point/month - NDVI result:`, ndvi)
             return NextResponse.json({
                 year: yearNum,
                 month: monthNum,
