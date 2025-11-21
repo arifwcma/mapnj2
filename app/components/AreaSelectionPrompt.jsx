@@ -127,7 +127,7 @@ export default function AreaSelectionPrompt({
                             e.target.style.textDecoration = "none"
                         }}
                     >
-                        Cancel
+                        Done
                     </button>
                 </div>
             )

@@ -6,10 +6,15 @@ export default function RectangleDrawHandler({ isDrawing, onStart, onUpdate, onE
     const map = useMap()
     const isDraggingRef = useRef(false)
     const callbacksRef = useRef({ onStart, onUpdate, onEnd })
+    const isDrawingRef = useRef(isDrawing)
 
     useEffect(() => {
         callbacksRef.current = { onStart, onUpdate, onEnd }
     }, [onStart, onUpdate, onEnd])
+
+    useEffect(() => {
+        isDrawingRef.current = isDrawing
+    }, [isDrawing])
 
     useEffect(() => {
         if (!map) return
@@ -64,16 +69,18 @@ export default function RectangleDrawHandler({ isDrawing, onStart, onUpdate, onE
                     e.stopPropagation()
                     e.stopImmediatePropagation()
                     isDraggingRef.current = false
-                    container.style.cursor = ""
-                    container.classList.remove("leaflet-drawing")
-                    const styleEl = document.getElementById("leaflet-drawing-cursor")
-                    if (styleEl) {
-                        styleEl.remove()
-                    }
-                    map.dragging.enable()
-                    map.doubleClickZoom.enable()
-                    map.scrollWheelZoom.enable()
                     callbacksRef.current.onEnd()
+                    if (!isDrawingRef.current) {
+                        container.style.cursor = ""
+                        container.classList.remove("leaflet-drawing")
+                        const styleEl = document.getElementById("leaflet-drawing-cursor")
+                        if (styleEl) {
+                            styleEl.remove()
+                        }
+                        map.dragging.enable()
+                        map.doubleClickZoom.enable()
+                        map.scrollWheelZoom.enable()
+                    }
                 }
             }
 
