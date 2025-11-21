@@ -11,7 +11,7 @@ import { TOAST_DURATION, MONTH_NAMES_FULL } from "@/app/lib/config"
 import { getAllMonthsInRange } from "@/app/lib/rangeUtils"
 import { buildDisplayDataItem, registerChartJS } from "@/app/lib/chartUtils"
 import { MESSAGES } from "@/app/lib/messageConstants"
-import { isMonthInFuture } from "@/app/lib/monthUtils"
+import { isMonthInFuture, shouldUseMODISForMonth } from "@/app/lib/monthUtils"
 import useVisibleRange from "@/app/hooks/useVisibleRange"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import ChartNavigation from "./ChartNavigation"
@@ -136,7 +136,8 @@ export default function AreasModePanel({
                         if (previousValue === undefined && currentValue === null) {
                             const monthName = MONTH_NAMES_FULL[month - 1]
                             const isFuture = isMonthInFuture(year, month)
-                            const suffix = isFuture ? "" : MESSAGES.NO_DATA_FOUND_SUFFIX
+                            const usesMODIS = shouldUseMODISForMonth(year, month)
+                            const suffix = (isFuture || usesMODIS) ? "" : MESSAGES.NO_DATA_FOUND_SUFFIX
                             showToast(`${MESSAGES.NO_DATA_FOUND_PREFIX} ${year} ${monthName} for `, null, index, suffix)
                         }
                     })

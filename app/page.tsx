@@ -242,6 +242,7 @@ export default function Page() {
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
+            setFieldSelectionMode(false)
         }
     }, [analysisMode, compareMode, selectedAreas.length, setBounds, selectedYear, selectedMonth, loadAreaNdvi])
     
