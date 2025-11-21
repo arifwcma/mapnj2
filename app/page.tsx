@@ -354,10 +354,12 @@ export default function Page() {
             setDirectionalMessage(MESSAGES.POINT_CLICK_TO_SELECT)
         } else if (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null) {
             setDirectionalMessage(MESSAGES.POINT_ADD_MONTH)
+        } else if (analysisMode === "area" && compareMode === "months" && selectedAreas.length > 0) {
+            setDirectionalMessage(MESSAGES.POINT_ADD_MONTH)
         } else if (analysisMode === "point") {
             setDirectionalMessage(null)
         }
-    }, [analysisMode, compareMode, selectedPoint.lat, selectedPoint.lon, setDirectionalMessage])
+    }, [analysisMode, compareMode, selectedPoint.lat, selectedPoint.lon, selectedAreas.length, setDirectionalMessage])
     
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
