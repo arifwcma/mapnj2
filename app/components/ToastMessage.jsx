@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useStatusMessage } from "./StatusMessage"
+import { getColorForIndex } from "@/app/lib/colorUtils"
 
 const BASE_TOP = 20
 
@@ -30,7 +31,7 @@ const timerBarStyle = {
     transition: "width linear"
 }
 
-export default function ToastMessage({ message, duration = 3000, onClose }) {
+export default function ToastMessage({ message, duration = 3000, onClose, pointIndex = null }) {
     const [width, setWidth] = useState(100)
     const { registerToast, unregisterToast } = useStatusMessage()
 
@@ -68,11 +69,49 @@ export default function ToastMessage({ message, duration = 3000, onClose }) {
         }
     }, [message, duration, onClose])
 
-    if (!message) return null
+    const displayMessage = typeof message === "string" ? message : (message?.message || message)
+    const pointIdx = pointIndex !== null ? pointIndex : (typeof message === "object" && message !== null ? message.pointIndex : null)
+
+    if (!displayMessage) return null
 
     return (
         <div style={toastStyle}>
-            <div style={{ whiteSpace: "pre-line" }}>{message}</div>
+            <div style={{ whiteSpace: "pre-line", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                {pointIdx !== null && (
+                    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{
+                            width: 0,
+                            height: 0,
+                            borderLeft: "6px solid transparent",
+                            borderRight: "6px solid transparent",
+                            borderTop: "9px solid",
+                            borderTopColor: getColorForIndex(pointIdx),
+                            position: "relative"
+                        }}>
+                            <div style={{
+                                position: "absolute",
+                                top: "-16px",
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                background: "white",
+                                border: `1px solid ${getColorForIndex(pointIdx)}`,
+                                borderRadius: "50%",
+                                width: "14px",
+                                height: "14px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "10px",
+                                fontWeight: "bold",
+                                color: getColorForIndex(pointIdx)
+                            }}>
+                                {pointIdx + 1}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                <span>{displayMessage}</span>
+            </div>
             <div style={{ ...timerBarStyle, width: `${width}%` }}></div>
         </div>
     )

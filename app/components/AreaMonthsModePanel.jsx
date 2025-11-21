@@ -389,7 +389,8 @@ export default function AreaMonthsModePanel({
             {toastMessage && (
                 <ToastMessage 
                     key={toastKey}
-                    message={toastMessage} 
+                    message={toastMessage.message || toastMessage} 
+                    pointIndex={toastMessage.pointIndex !== undefined ? toastMessage.pointIndex : null}
                     duration={TOAST_DURATION} 
                     onClose={hideToast} 
                 />

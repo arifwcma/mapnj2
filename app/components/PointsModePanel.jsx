@@ -161,7 +161,7 @@ export default function PointsModePanel({
                         
                         if (previousValue === undefined && currentValue === null) {
                             const monthName = MONTH_NAMES_FULL[month - 1]
-                            showToast(`No data found for ${year} ${monthName} at this point.\nConsider increasing cloud tolerance.`)
+                            showToast(`No data found for ${year} ${monthName} at this point.\nConsider increasing cloud tolerance.`, index)
                         }
                     })
                 }
@@ -481,7 +481,8 @@ export default function PointsModePanel({
             {toastMessage && (
                 <ToastMessage 
                     key={toastKey}
-                    message={toastMessage} 
+                    message={toastMessage.message || toastMessage} 
+                    pointIndex={toastMessage.pointIndex !== undefined ? toastMessage.pointIndex : null}
                     duration={TOAST_DURATION} 
                     onClose={hideToast} 
                 />
