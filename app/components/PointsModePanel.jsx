@@ -270,8 +270,6 @@ export default function PointsModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Latitude</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Longitude</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
@@ -296,8 +294,6 @@ export default function PointsModePanel({
                                         {index + 1}
                                     </div>
                                 </td>
-                                <td style={{ padding: "8px" }}>{point.lat.toFixed(6)}</td>
-                                <td style={{ padding: "8px" }}>{point.lon.toFixed(6)}</td>
                                 <td style={{ padding: "8px" }}>
                                     {averageNdvi !== null ? averageNdvi.toFixed(2) : "N/A"}
                                 </td>

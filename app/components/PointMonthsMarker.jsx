@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
-import { Marker } from "react-leaflet"
+import { Marker, Tooltip } from "react-leaflet"
 import L from "leaflet"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { validatePointInBounds } from "@/app/lib/bboxUtils"
@@ -54,6 +54,9 @@ export default function PointMonthsMarker({ position, draggable = false, onDragE
     
     if (!icon || !position) return null
     
+    const posLat = Array.isArray(position) ? position[0] : position.lat
+    const posLng = Array.isArray(position) ? position[1] : position.lng
+    
     return (
         <Marker 
             ref={(ref) => {
@@ -99,7 +102,11 @@ export default function PointMonthsMarker({ position, draggable = false, onDragE
                     }
                 } : {})
             }}
-        />
+        >
+            <Tooltip>
+                {posLat.toFixed(6)}, {posLng.toFixed(6)}
+            </Tooltip>
+        </Marker>
     )
 }
 

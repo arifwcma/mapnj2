@@ -17,6 +17,7 @@ const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContai
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
 const Rectangle = dynamic(() => import("react-leaflet").then(m => m.Rectangle), { ssr: false })
 const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false })
+const Tooltip = dynamic(() => import("react-leaflet").then(m => m.Tooltip), { ssr: false })
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 const TriangleMarker = dynamic(() => import("./TriangleMarker"), { ssr: false })
 const PointMonthsMarker = dynamic(() => import("./PointMonthsMarker"), { ssr: false })
@@ -53,6 +54,9 @@ function DraggableMarker({ position, children, draggable = false, onDragEnd, rec
             }
         }
     }, [position])
+    
+    const posLat = Array.isArray(position) ? position[0] : position.lat
+    const posLng = Array.isArray(position) ? position[1] : position.lng
     
     return (
         <Marker 
@@ -97,6 +101,9 @@ function DraggableMarker({ position, children, draggable = false, onDragEnd, rec
                 } : {})
             }}
         >
+            <Tooltip>
+                {posLat.toFixed(6)}, {posLng.toFixed(6)}
+            </Tooltip>
             {children}
         </Marker>
     )
@@ -138,6 +145,9 @@ function SecondPointMarker({ position, children, draggable = false, onDragEnd, r
     }, [position])
     
     if (!icon || !position) return null
+    
+    const posLat = Array.isArray(position) ? position[0] : position.lat
+    const posLng = Array.isArray(position) ? position[1] : position.lng
     
     return (
         <Marker 
@@ -183,6 +193,9 @@ function SecondPointMarker({ position, children, draggable = false, onDragEnd, r
                 } : {})
             }}
         >
+            <Tooltip>
+                {posLat.toFixed(6)}, {posLng.toFixed(6)}
+            </Tooltip>
             {children}
         </Marker>
     )

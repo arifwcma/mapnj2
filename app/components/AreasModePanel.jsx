@@ -165,15 +165,11 @@ export default function AreasModePanel({
     const tableData = useMemo(() => {
         if (!selectedYear || !selectedMonth) {
             return selectedAreas.map((area, index) => {
-                const centerLat = area.bounds ? (area.bounds[0][0] + area.bounds[1][0]) / 2 : null
-                const centerLon = area.bounds ? (area.bounds[0][1] + area.bounds[1][1]) / 2 : null
                 return {
                     area,
                     index,
                     averageNdvi: null,
-                    currentNdvi: null,
-                    centerLat,
-                    centerLon
+                    currentNdvi: null
                 }
             })
         }
@@ -183,16 +179,11 @@ export default function AreasModePanel({
             const currentMonthKey = monthKey(selectedYear, selectedMonth)
             const currentNdvi = dataMap.get(currentMonthKey)
             
-            const centerLat = area.bounds ? (area.bounds[0][0] + area.bounds[1][0]) / 2 : null
-            const centerLon = area.bounds ? (area.bounds[0][1] + area.bounds[1][1]) / 2 : null
-            
             return {
                 area,
                 index,
                 averageNdvi: currentNdvi !== null && currentNdvi !== undefined ? parseFloat(currentNdvi.toFixed(2)) : null,
-                currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null,
-                centerLat,
-                centerLon
+                currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null
             }
         })
     }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps])
@@ -284,15 +275,13 @@ export default function AreasModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Latitude</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Longitude</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {tableData.map(({ area, index, averageNdvi, currentNdvi, centerLat, centerLon }) => (
+                        {tableData.map(({ area, index, averageNdvi, currentNdvi }) => (
                             <tr key={area.id} style={{ borderBottom: "1px solid #eee" }}>
                                 <td style={{ padding: "8px" }}>
                                     <div style={{
@@ -309,12 +298,6 @@ export default function AreasModePanel({
                                     }}>
                                         {index + 1}
                                     </div>
-                                </td>
-                                <td style={{ padding: "8px" }}>
-                                    {centerLat !== null ? centerLat.toFixed(6) : "N/A"}
-                                </td>
-                                <td style={{ padding: "8px" }}>
-                                    {centerLon !== null ? centerLon.toFixed(6) : "N/A"}
                                 </td>
                                 <td style={{ padding: "8px" }}>
                                     {averageNdvi !== null ? averageNdvi.toFixed(2) : "N/A"}

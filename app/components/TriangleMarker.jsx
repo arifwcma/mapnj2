@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { Marker } from "react-leaflet"
+import { Marker, Tooltip } from "react-leaflet"
 import L from "leaflet"
 
 export default function TriangleMarker({ position, color, index }) {
@@ -48,11 +48,18 @@ export default function TriangleMarker({ position, color, index }) {
     
     if (!icon || !position) return null
     
+    const lat = Array.isArray(position) ? position[0] : position.lat
+    const lon = Array.isArray(position) ? position[1] : position.lng
+    
     return (
         <Marker
             position={position}
             icon={icon}
-        />
+        >
+            <Tooltip>
+                {lat.toFixed(6)}, {lon.toFixed(6)}
+            </Tooltip>
+        </Marker>
     )
 }
 

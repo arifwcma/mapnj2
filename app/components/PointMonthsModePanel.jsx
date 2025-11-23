@@ -262,26 +262,6 @@ export default function PointMonthsModePanel({
                 </a>
             </div>
             
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", color: "#333" }}>
-                <div style={{
-                    width: "20px",
-                    height: "20px",
-                    border: `2px solid ${getColorForIndex(0)}`,
-                    borderRadius: "50%",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: "bold",
-                    color: getColorForIndex(0),
-                    backgroundColor: "white"
-                }}>
-                    1
-                </div>
-                <span>
-                    {selectedPoint.lat.toFixed(6)}, {selectedPoint.lon.toFixed(6)}
-                </span>
-            </div>
-            
             {tableData.length > 0 && (
                 <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
                     <thead>
