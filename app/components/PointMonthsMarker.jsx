@@ -1,15 +1,11 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
 import { Marker, Tooltip } from "react-leaflet"
-import L from "leaflet"
 import { getColorForIndex } from "@/app/lib/colorUtils"
-import { validatePointInBounds } from "@/app/lib/bboxUtils"
 
-export default function PointMonthsMarker({ position, draggable = false, onDragEnd, rectangleBounds }) {
+export default function PointMonthsMarker({ position }) {
     const [icon, setIcon] = useState(null)
     const markerRef = useRef(null)
-    const previousPositionRef = useRef(null)
-    const isDraggingRef = useRef(false)
     const color = getColorForIndex(0)
     
     useEffect(() => {
@@ -41,7 +37,7 @@ export default function PointMonthsMarker({ position, draggable = false, onDragE
     }, [color])
     
     useEffect(() => {
-        if (markerRef.current && !isDraggingRef.current) {
+        if (markerRef.current && position) {
             const currentPos = markerRef.current.getLatLng()
             const posLat = Array.isArray(position) ? position[0] : position.lat
             const posLng = Array.isArray(position) ? position[1] : position.lng
@@ -66,41 +62,10 @@ export default function PointMonthsMarker({ position, draggable = false, onDragE
             }}
             position={position}
             icon={icon}
-            draggable={draggable}
             eventHandlers={{
                 click: (e) => {
                     e.originalEvent.stopPropagation()
-                },
-                ...(draggable && onDragEnd ? {
-                    dragstart: (e) => {
-                        isDraggingRef.current = true
-                        const marker = e.target
-                        const currentPos = marker.getLatLng()
-                        previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
-                    },
-                    dragend: (e) => {
-                        const marker = e.target
-                        const newPosition = marker.getLatLng()
-                        
-                        if (rectangleBounds && !validatePointInBounds(newPosition.lat, newPosition.lng, rectangleBounds)) {
-                            if (previousPositionRef.current) {
-                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
-                            }
-                            isDraggingRef.current = false
-                            return
-                        }
-                        
-                        const finalLat = newPosition.lat
-                        const finalLng = newPosition.lng
-                        
-                        setTimeout(() => {
-                            isDraggingRef.current = false
-                            if (onDragEnd) {
-                                onDragEnd(finalLat, finalLng)
-                            }
-                        }, 100)
-                    }
-                } : {})
+                }
             }}
         >
             <Tooltip>
