@@ -104,7 +104,9 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
     
     const handleShare = async () => {
         if (!onShare || shareLoading) return
+        setShowShareModal(true)
         setShareLoading(true)
+        setShareUrl("")
         try {
             const token = await onShare(true)
             if (token) {
@@ -112,11 +114,11 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                 url.searchParams.set('share', token)
                 const urlString = url.toString()
                 setShareUrl(urlString)
-                setShowShareModal(true)
             }
         } catch (error) {
             console.error('Error sharing:', error)
             alert('Error creating share link. Please try again.')
+            setShowShareModal(false)
         } finally {
             setShareLoading(false)
         }
@@ -225,45 +227,21 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             </div>
                             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                                 {onShare && (
-                                    <div style={{ minWidth: "60px", textAlign: "left", display: "flex", alignItems: "center" }}>
-                                        {shareLoading ? (
-                                            <>
-                                                <div
-                                                    style={{
-                                                        width: "14px",
-                                                        height: "14px",
-                                                        border: "2px solid #f3f3f3",
-                                                        borderTop: "2px solid #0066cc",
-                                                        borderRadius: "50%",
-                                                        animation: "spin 1s linear infinite",
-                                                        display: "inline-block"
-                                                    }}
-                                                />
-                                                <style>{`
-                                                    @keyframes spin {
-                                                        0% { transform: rotate(0deg); }
-                                                        100% { transform: rotate(360deg); }
-                                                    }
-                                                `}</style>
-                                            </>
-                                        ) : (
-                                            <a
-                                                href="#"
-                                                onClick={(e) => {
-                                                    e.preventDefault()
-                                                    handleShare()
-                                                }}
-                                                style={{
-                                                    color: "#0066cc",
-                                                    textDecoration: "underline",
-                                                    cursor: "pointer",
-                                                    fontSize: "14px"
-                                                }}
-                                            >
-                                                Share
-                                            </a>
-                                        )}
-                                    </div>
+                                    <a
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            handleShare()
+                                        }}
+                                        style={{
+                                            color: "#0066cc",
+                                            textDecoration: "underline",
+                                            cursor: "pointer",
+                                            fontSize: "14px"
+                                        }}
+                                    >
+                                        Share
+                                    </a>
                                 )}
                                 <button
                                     onClick={handleClose}
@@ -431,38 +409,62 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                                 ×
                             </button>
                         </div>
-                        <div style={{ marginBottom: "15px" }}>
-                            <input
-                                ref={shareUrlInputRef}
-                                type="text"
-                                value={shareUrl}
-                                readOnly
-                                style={{
-                                    width: "100%",
-                                    padding: "8px",
-                                    border: "1px solid #ccc",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    fontFamily: "monospace"
-                                }}
-                            />
-                        </div>
-                        <button
-                            onClick={handleCopyFromModal}
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                backgroundColor: "#0066cc",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "bold"
-                            }}
-                        >
-                            Copy URL
-                        </button>
+                        {shareLoading ? (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px" }}>
+                                <div
+                                    style={{
+                                        width: "40px",
+                                        height: "40px",
+                                        border: "4px solid #f3f3f3",
+                                        borderTop: "4px solid #0066cc",
+                                        borderRadius: "50%",
+                                        animation: "spin 1s linear infinite"
+                                    }}
+                                />
+                                <p style={{ marginTop: "15px", color: "#666", fontSize: "14px" }}>Creating share link...</p>
+                                <style>{`
+                                    @keyframes spin {
+                                        0% { transform: rotate(0deg); }
+                                        100% { transform: rotate(360deg); }
+                                    }
+                                `}</style>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ marginBottom: "15px" }}>
+                                    <input
+                                        ref={shareUrlInputRef}
+                                        type="text"
+                                        value={shareUrl}
+                                        readOnly
+                                        style={{
+                                            width: "100%",
+                                            padding: "8px",
+                                            border: "1px solid #ccc",
+                                            borderRadius: "4px",
+                                            fontSize: "14px",
+                                            fontFamily: "monospace"
+                                        }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleCopyFromModal}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px",
+                                        backgroundColor: "#0066cc",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: "bold"
+                                    }}
+                                >
+                                    Copy URL
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
