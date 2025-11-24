@@ -1,38 +1,38 @@
 "use client"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { Marker, Tooltip } from "react-leaflet"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 
 export default function PointMonthsMarker({ position }) {
-    const [icon, setIcon] = useState(null)
     const markerRef = useRef(null)
     const color = getColorForIndex(0)
     
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            import('leaflet').then((L) => {
-                const circleIcon = L.default.divIcon({
-                    className: "point-months-marker",
-                    html: `
-                        <div style="
-                            width: 20px;
-                            height: 20px;
-                            border: 2px solid ${color};
-                            border-radius: 50%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-weight: bold;
-                            color: ${color};
-                            background-color: white;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                        ">1</div>
-                    `,
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
-                })
-                setIcon(circleIcon)
+    const icon = useMemo(() => {
+        if (typeof window === 'undefined') return null
+        try {
+            const L = require('leaflet')
+            return L.default.divIcon({
+                className: "point-months-marker",
+                html: `
+                    <div style="
+                        width: 20px;
+                        height: 20px;
+                        border: 2px solid ${color};
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        color: ${color};
+                        background-color: white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    ">1</div>
+                `,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
             })
+        } catch (e) {
+            return null
         }
     }, [color])
     
@@ -48,7 +48,7 @@ export default function PointMonthsMarker({ position }) {
         }
     }, [position])
     
-    if (!icon || !position) return null
+    if (!position) return null
     
     const posLat = Array.isArray(position) ? position[0] : position.lat
     const posLng = Array.isArray(position) ? position[1] : position.lng
@@ -61,7 +61,7 @@ export default function PointMonthsMarker({ position }) {
                 }
             }}
             position={position}
-            icon={icon}
+            {...(icon ? { icon } : {})}
             eventHandlers={{
                 click: (e) => {
                     e.originalEvent.stopPropagation()
