@@ -46,11 +46,12 @@ export default function AreaMonthsModePanel({
     selectedArea,
     rectangleBounds,
     cloudTolerance,
-    onMonthChange
+    onMonthChange,
+    selectedMonths,
+    setSelectedMonths
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
-    const [selectedMonths, setSelectedMonths] = useState([])
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
     const { toastMessage, toastKey, showToast, hideToast } = useToast()

@@ -93,6 +93,43 @@ function MapResize({ ndviTileUrl, rgbTileUrl }) {
     return null
 }
 
+function MapRestore({ initialZoom, initialBounds, onZoomChange, onMapBoundsChange }) {
+    const map = useMap()
+    const hasRestoredRef = useRef(false)
+    
+    useEffect(() => {
+        if (!map || hasRestoredRef.current) return
+        
+        if (initialZoom !== null && initialZoom !== undefined) {
+            map.setZoom(initialZoom)
+            if (onZoomChange) {
+                onZoomChange(initialZoom)
+            }
+        }
+        
+        if (initialBounds) {
+            const [[swLat, swLng], [neLat, neLng]] = initialBounds
+            const bounds = [[swLat, swLng], [neLat, neLng]]
+            map.fitBounds(bounds)
+            if (onMapBoundsChange) {
+                setTimeout(() => {
+                    const mapBounds = map.getBounds()
+                    const sw = mapBounds.getSouthWest()
+                    const ne = mapBounds.getNorthEast()
+                    onMapBoundsChange([
+                        [sw.lat, sw.lng],
+                        [ne.lat, ne.lng]
+                    ])
+                }, 300)
+            }
+        }
+        
+        hasRestoredRef.current = true
+    }, [map, initialZoom, initialBounds, onZoomChange, onMapBoundsChange])
+    
+    return null
+}
+
 function MapBoundsTracker({ onBoundsChange }) {
     const map = useMap()
     
@@ -234,7 +271,7 @@ function PointClickHandler({ isActive, onPointClick }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = null, initialBounds = null }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     
@@ -267,10 +304,17 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     
     const attribution = getAttribution()
 
+    const mapCenter = initialBounds ? [
+        (initialBounds[0][0] + initialBounds[1][0]) / 2,
+        (initialBounds[0][1] + initialBounds[1][1]) / 2
+    ] : MAP_CENTER
+    const mapZoom = initialZoom !== null && initialZoom !== undefined ? initialZoom : MAP_ZOOM
+    
     return (
-        <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
+        <MapContainer center={mapCenter} zoom={mapZoom} style={MAP_STYLE}>
             <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
+            {(initialZoom !== null || initialBounds) && <MapRestore initialZoom={initialZoom} initialBounds={initialBounds} onZoomChange={onZoomChange} onMapBoundsChange={onMapBoundsChange} />}
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
             {onMapBoundsChange && <MapBoundsTracker onBoundsChange={onMapBoundsChange} />}
             {onMapBoundsChange && <FieldSelectionBoundsUpdater fieldSelectionMode={fieldSelectionMode} onBoundsChange={onMapBoundsChange} />}

@@ -53,7 +53,9 @@ export default function AreasModePanel({
     rectangleBounds, 
     cloudTolerance,
     onMonthChange,
-    onRemoveArea 
+    onRemoveArea,
+    visibleRange,
+    setVisibleRange
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -63,14 +65,14 @@ export default function AreasModePanel({
     const chartRef = useRef(null)
     
     const {
-        visibleRange,
-        setVisibleRange,
+        visibleRange: effectiveVisibleRange,
+        setVisibleRange: effectiveSetVisibleRange,
         updateRangeForMonth,
         canGoLeft,
         canGoRight,
         handleLeftArrow,
         handleRightArrow
-    } = useVisibleRange(selectedYear, selectedMonth)
+    } = useVisibleRange(selectedYear, selectedMonth, visibleRange, setVisibleRange)
     
     const handleDataMapReady = useCallback((index, dataMap) => {
         setAreaDataMaps(prev => {
@@ -81,15 +83,17 @@ export default function AreasModePanel({
     }, [])
     
     useEffect(() => {
-        updateRangeForMonth(selectedYear, selectedMonth)
-    }, [selectedYear, selectedMonth, updateRangeForMonth])
+        if (!effectiveVisibleRange) {
+            updateRangeForMonth(selectedYear, selectedMonth)
+        }
+    }, [selectedYear, selectedMonth, updateRangeForMonth, effectiveVisibleRange])
     
     useEffect(() => {
-        if (!visibleRange || selectedAreas.length === 0) {
+        if (!effectiveVisibleRange || selectedAreas.length === 0) {
             return
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
         
         selectedAreas.forEach((area, index) => {
@@ -97,15 +101,15 @@ export default function AreasModePanel({
                 areaDataMaps[index].fetchMissingMonths(monthKeys)
             }
         })
-    }, [visibleRange, selectedAreas, areaDataMaps])
+    }, [effectiveVisibleRange, selectedAreas, areaDataMaps])
     
     useEffect(() => {
-        if (!selectedYear || !selectedMonth || selectedAreas.length === 0 || !visibleRange) {
+        if (!selectedYear || !selectedMonth || selectedAreas.length === 0 || !effectiveVisibleRange) {
             return
         }
         
         const currentMonthKey = monthKey(selectedYear, selectedMonth)
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
         
         if (!monthKeys.includes(currentMonthKey)) {
@@ -117,11 +121,11 @@ export default function AreasModePanel({
                 areaDataMaps[index].fetchMissingMonths(monthKeys)
             }
         })
-    }, [selectedYear, selectedMonth, selectedAreas, visibleRange, areaDataMaps])
+    }, [selectedYear, selectedMonth, selectedAreas, effectiveVisibleRange, areaDataMaps])
     
     useEffect(() => {
-        if (visibleRange && selectedAreas.length > 0 && previousDataMapsRef.current.length > 0) {
-            const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        if (effectiveVisibleRange && selectedAreas.length > 0 && previousDataMapsRef.current.length > 0) {
+            const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
             
             selectedAreas.forEach((area, index) => {
                 const currentDataMap = areaDataMaps[index]?.dataMap
@@ -148,22 +152,22 @@ export default function AreasModePanel({
         previousDataMapsRef.current = areaDataMaps.map(obj => ({
             dataMap: obj?.dataMap ? new Map(obj.dataMap) : null
         }))
-    }, [areaDataMaps, visibleRange, selectedAreas, showToast])
+    }, [areaDataMaps, effectiveVisibleRange, selectedAreas, showToast])
     
     const displayData = useMemo(() => {
-        if (!visibleRange) {
+        if (!effectiveVisibleRange) {
             return selectedAreas.map(() => [])
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         return selectedAreas.map((area, index) => {
             const dataMap = areaDataMaps[index]?.dataMap || new Map()
             return months.map(m => buildDisplayDataItem(m, dataMap))
         })
-    }, [visibleRange, selectedAreas, areaDataMaps])
+    }, [effectiveVisibleRange, selectedAreas, areaDataMaps])
     
     const tableData = useMemo(() => {
-        if (!selectedYear || !selectedMonth || !visibleRange) {
+        if (!selectedYear || !selectedMonth || !effectiveVisibleRange) {
             return selectedAreas.map((area, index) => ({
                 area,
                 index,
@@ -172,7 +176,7 @@ export default function AreasModePanel({
             }))
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         return selectedAreas.map((area, index) => {
             const dataMap = areaDataMaps[index]?.dataMap || new Map()
             const monthValues = months.map(m => {
@@ -195,7 +199,7 @@ export default function AreasModePanel({
                 currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null
             }
         })
-    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps, visibleRange])
+    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps, effectiveVisibleRange])
     
     const chartData = useMemo(() => {
         if (displayData.length === 0 || displayData[0].length === 0) {
@@ -275,7 +279,7 @@ export default function AreasModePanel({
                 <CompareSnapshots
                     selectedAreas={selectedAreas}
                     cloudTolerance={cloudTolerance}
-                    visibleRange={visibleRange}
+                    visibleRange={effectiveVisibleRange}
                 />
             )}
             
@@ -315,7 +319,7 @@ export default function AreasModePanel({
                                     <AreaSnapshot 
                                         area={area}
                                         cloudTolerance={cloudTolerance}
-                                        visibleRange={visibleRange}
+                                        visibleRange={effectiveVisibleRange}
                                     />
                                 </td>
                                 <td style={{ padding: "8px" }}>
@@ -337,7 +341,7 @@ export default function AreasModePanel({
                 </table>
             )}
             
-            {visibleRange && displayData.length > 0 && displayData[0].length > 0 && (
+            {effectiveVisibleRange && displayData.length > 0 && displayData[0].length > 0 && (
                 <>
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line ref={chartRef} data={chartData} options={chartOptions} />
