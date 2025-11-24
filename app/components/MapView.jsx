@@ -310,7 +310,10 @@ function PointClickHandler({ isActive, onPointClick }) {
     return null
 }
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = null, initialBounds = null }) {
+const EMPTY_POINTS_ARRAY = /** @type {Array<{ id: string, lat: number, lon: number }>} */ ([])
+const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field' }>} */ ([])
+
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = null, initialBounds = null }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     
