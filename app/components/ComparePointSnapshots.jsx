@@ -128,12 +128,10 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
             try {
                 if (navigator.clipboard && window.isSecureContext) {
                     await navigator.clipboard.writeText(shareUrl)
-                    alert('Share link copied to clipboard!')
                     setShowShareModal(false)
                 } else {
                     const successful = document.execCommand('copy')
                     if (successful) {
-                        alert('Share link copied to clipboard!')
                         setShowShareModal(false)
                     }
                 }
