@@ -306,13 +306,101 @@ trackEvent('point_added', {
 3. **User Identification**: Anonymous sessions only
 4. **Data Retention**: Configurable (default: keep all data)
 
-## Future Enhancements (Out of Scope)
+## Admin Dashboard
 
-- Admin dashboard for viewing analytics
-- Export functionality (CSV, JSON)
-- Real-time analytics monitoring
-- User segmentation
-- A/B testing support
+### Authentication
+- **Route**: `/admin` (protected)
+- **Login Required**: All `/admin/*` routes require authentication
+- **Credentials**: Hardcoded for now
+  - Username: `admin`
+  - Password: `admin`
+- **Session**: Use session cookies or localStorage to maintain login state
+- **Logout**: Logout button in dashboard header
+
+### Dashboard Features
+
+#### Admin Landing Page (`/admin`)
+Single page showing all analytics options and data:
+
+**Summary Statistics Cards** (top section):
+- Total events tracked
+- Events in last 24 hours
+- Events in last 7 days
+- Events in last 30 days
+- Total sessions
+- Average session duration
+
+**Most Common Events** (middle section):
+- Top 10 event types with counts
+- Display as table or bar chart
+
+**Recent Events Table** (middle section):
+- Columns: Timestamp, Event Type, Data (formatted JSON)
+- Show last 20-50 events
+- Link to view all events
+
+**Charts & Visualizations** (middle section):
+- Event counts over time (line chart)
+- Event type distribution (pie/bar chart)
+- Most active hours of day (bar chart)
+- Time range selector: Last 24h, 7d, 30d, custom range
+
+**Filters & Actions** (top or sidebar):
+- Event type filter dropdown
+- Date range picker (start date, end date)
+- Export buttons:
+  - Export to CSV
+  - Export to JSON
+- Refresh button: Manual data refresh
+- View All Events link: Navigate to full events list
+
+**Full Events View** (expandable or separate section):
+- Complete event list table
+- Pagination: 50 events per page
+- Sorting: By timestamp (newest first, default)
+- All filters apply to this view
+
+#### API Endpoints for Dashboard
+
+##### `/api/admin/login`
+- **Method**: POST
+- **Body**: `{ username: string, password: string }`
+- **Response**: `{ success: boolean, token?: string }`
+- **Validation**: Check against hardcoded credentials
+
+##### `/api/admin/analytics/summary`
+- **Method**: GET
+- **Query Params**: `?startDate=timestamp&endDate=timestamp` (optional)
+- **Response**: `{ totalEvents, events24h, events7d, events30d, topEvents: Array, totalSessions, avgSessionDuration }`
+- **Auth**: Requires admin session
+
+##### `/api/admin/analytics/events`
+- **Method**: GET
+- **Query Params**: 
+  - `?page=number` (default: 1)
+  - `?limit=number` (default: 50)
+  - `?eventType=string` (optional filter)
+  - `?startDate=timestamp` (optional)
+  - `?endDate=timestamp` (optional)
+- **Response**: `{ events: Array, total: number, page: number, limit: number }`
+- **Auth**: Requires admin session
+
+##### `/api/admin/analytics/export`
+- **Method**: GET
+- **Query Params**: Same filters as events endpoint
+  - `?format=csv|json`
+  - `?eventType=string` (optional)
+  - `?startDate=timestamp` (optional)
+  - `?endDate=timestamp` (optional)
+- **Response**: CSV file or JSON download
+- **Auth**: Requires admin session
+
+### Dashboard UI Requirements
+- **Layout**: Clean, modern admin interface
+- **Navigation**: Sidebar or top nav with links to Overview, Events, Analytics
+- **Responsive**: Works on desktop and tablet
+- **Loading States**: Show loading indicators during data fetch
+- **Error Handling**: Display error messages gracefully
 
 ## Success Criteria
 
