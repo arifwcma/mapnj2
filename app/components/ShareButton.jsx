@@ -1,13 +1,16 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import useAnalytics from "@/app/hooks/useAnalytics"
 
 export default function ShareButton({ onShare }) {
+    const { trackEvent } = useAnalytics()
     const [isOpen, setIsOpen] = useState(false)
     const [shareUrl, setShareUrl] = useState("")
     const [copied, setCopied] = useState(false)
     const [loading, setLoading] = useState(false)
     const urlInputRef = useRef(null)
+    const shareTokenRef = useRef(null)
 
     const handleShareClick = async () => {
         setIsOpen(true)
@@ -18,6 +21,7 @@ export default function ShareButton({ onShare }) {
         try {
             const token = await onShare()
             if (token) {
+                shareTokenRef.current = token
                 const url = new URL(window.location.href)
                 url.searchParams.set('share', token)
                 setShareUrl(url.toString())
@@ -37,11 +41,17 @@ export default function ShareButton({ onShare }) {
                     await navigator.clipboard.writeText(shareUrl)
                     setCopied(true)
                     setTimeout(() => setCopied(false), 2000)
+                    trackEvent("share_url_copied", {
+                        token: shareTokenRef.current || null
+                    })
                 } else {
                     const successful = document.execCommand('copy')
                     if (successful) {
                         setCopied(true)
                         setTimeout(() => setCopied(false), 2000)
+                        trackEvent("share_url_copied", {
+                            token: shareTokenRef.current || null
+                        })
                     } else {
                         alert('Failed to copy. Please select and copy manually.')
                     }
@@ -51,6 +61,9 @@ export default function ShareButton({ onShare }) {
                 if (successful) {
                     setCopied(true)
                     setTimeout(() => setCopied(false), 2000)
+                    trackEvent("share_url_copied", {
+                        token: shareTokenRef.current || null
+                    })
                 } else {
                     alert('Failed to copy. Please select and copy manually.')
                 }

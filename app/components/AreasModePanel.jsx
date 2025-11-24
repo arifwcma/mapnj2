@@ -13,6 +13,7 @@ import { buildDisplayDataItem, registerChartJS } from "@/app/lib/chartUtils"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { isMonthInFuture, shouldUseMODISForMonth } from "@/app/lib/monthUtils"
 import useVisibleRange from "@/app/hooks/useVisibleRange"
+import useAnalytics from "@/app/hooks/useAnalytics"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import ChartNavigation from "./ChartNavigation"
 import AreaSnapshot from "./AreaSnapshot"
@@ -64,10 +65,12 @@ export default function AreasModePanel({
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
+    const { trackEvent } = useAnalytics()
     const [areaDataMaps, setAreaDataMaps] = useState([])
     const areaDataMapsRef = useRef([])
     const previousDataMapsRef = useRef([])
     const chartRef = useRef(null)
+    const previousYAxisRangeRef = useRef(yAxisRange)
     
     const {
         visibleRange: effectiveVisibleRange,
@@ -75,9 +78,33 @@ export default function AreasModePanel({
         updateRangeForMonth,
         canGoLeft,
         canGoRight,
-        handleLeftArrow,
-        handleRightArrow
+        handleLeftArrow: originalHandleLeftArrow,
+        handleRightArrow: originalHandleRightArrow
     } = useVisibleRange(selectedYear, selectedMonth, visibleRange, setVisibleRange)
+    
+    const handleLeftArrow = useCallback(() => {
+        originalHandleLeftArrow()
+        if (effectiveVisibleRange) {
+            trackEvent("chart_navigation_left", {
+                visible_range_start: effectiveVisibleRange.startMonth,
+                visible_range_end: effectiveVisibleRange.endMonth,
+                analysis_mode: "area",
+                compare_mode: "areas"
+            })
+        }
+    }, [originalHandleLeftArrow, effectiveVisibleRange, trackEvent])
+    
+    const handleRightArrow = useCallback(() => {
+        originalHandleRightArrow()
+        if (effectiveVisibleRange) {
+            trackEvent("chart_navigation_right", {
+                visible_range_start: effectiveVisibleRange.startMonth,
+                visible_range_end: effectiveVisibleRange.endMonth,
+                analysis_mode: "area",
+                compare_mode: "areas"
+            })
+        }
+    }, [originalHandleRightArrow, effectiveVisibleRange, trackEvent])
     
     const handleDataMapReady = useCallback((index, dataMap) => {
         setAreaDataMaps(prev => {
@@ -299,7 +326,19 @@ export default function AreasModePanel({
                     visibleRange={effectiveVisibleRange}
                     onShare={onShareAreaSnapshots}
                     isOpen={areaSnapshotsOpen}
-                    setIsOpen={setAreaSnapshotsOpen}
+                    setIsOpen={(open) => {
+                        setAreaSnapshotsOpen(open)
+                        if (open) {
+                            trackEvent("snapshot_modal_opened", {
+                                snapshot_type: "area",
+                                item_count: selectedAreas.length
+                            })
+                        } else {
+                            trackEvent("snapshot_modal_closed", {
+                                snapshot_type: "area"
+                            })
+                        }
+                    }}
                 />
             )}
             
@@ -372,7 +411,18 @@ export default function AreasModePanel({
                         onLeftClick={handleLeftArrow}
                         onRightClick={handleRightArrow}
                         yAxisRange={yAxisRange}
-                        onYAxisToggle={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
+                        onYAxisToggle={() => {
+                            const previousRange = previousYAxisRangeRef.current
+                            const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                            previousYAxisRangeRef.current = newRange
+                            setYAxisRange(newRange)
+                            trackEvent("y_axis_range_toggle", {
+                                previous_range: previousRange,
+                                new_range: newRange,
+                                analysis_mode: "area",
+                                compare_mode: "areas"
+                            })
+                        }}
                     />
                     <NdviLegend />
                 </>
