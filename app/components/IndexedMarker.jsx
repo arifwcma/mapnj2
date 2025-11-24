@@ -9,7 +9,7 @@ export default function IndexedMarker({ position, color, index }) {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             import('leaflet').then((L) => {
-                const triangleIcon = L.default.divIcon({
+                const indexedIcon = L.default.divIcon({
                     className: "indexed-marker",
                     html: `
                         <div style="
@@ -41,7 +41,7 @@ export default function IndexedMarker({ position, color, index }) {
                     iconSize: [16, 16],
                     iconAnchor: [8, 12]
                 })
-                setIcon(triangleIcon)
+                setIcon(indexedIcon)
             })
         }
     }, [color, index])

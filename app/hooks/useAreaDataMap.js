@@ -10,7 +10,8 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
     const previousCloudToleranceRef = useRef(cloudTolerance)
 
     const fetchSingleMonth = useCallback(async (year, month, areaGeometry, areaId = "") => {
-        if (!rectangleBounds) {
+        const boundsToUse = rectangleBounds || (area.bounds ? area.bounds : null)
+        if (!boundsToUse) {
             return null
         }
         
@@ -36,7 +37,7 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
             return null
         }
 
-        const bboxStr = bboxToString(rectangleBounds)
+        const bboxStr = bboxToString(boundsToUse)
         const geometryStr = JSON.stringify(geometryToUse)
 
         try {
@@ -90,7 +91,7 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
             console.error(`Error fetching area NDVI for ${year}-${month}:`, error)
             return { year, month, ndvi: null }
         }
-    }, [rectangleBounds, cloudTolerance])
+    }, [area.bounds, rectangleBounds, cloudTolerance])
 
     const reset = useCallback(() => {
         const emptyMap = new Map()
@@ -130,7 +131,12 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
     }, [area?.id, area?.geometry, area?.bounds, cloudTolerance, reset])
 
     const fetchMissingMonths = useCallback(async (monthKeys) => {
-        if (!area || (!area.geometry && !area.bounds) || !rectangleBounds) {
+        if (!area || (!area.geometry && !area.bounds)) {
+            return
+        }
+        
+        const boundsToUse = rectangleBounds || area.bounds
+        if (!boundsToUse) {
             return
         }
 

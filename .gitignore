@@ -43,3 +43,7 @@ next-env.d.ts
 .idea
 
 sensitive_resources
+
+# database
+app/data/database.db
+*.db

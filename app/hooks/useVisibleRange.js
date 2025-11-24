@@ -4,15 +4,17 @@ import { getPreviousMonth, getNextMonth } from "@/app/lib/dateUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { MIN_YEAR, MIN_MONTH, DEBOUNCE_DELAYS } from "@/app/lib/config"
 
-export default function useVisibleRange(selectedYear, selectedMonth) {
-    const [visibleRange, setVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
+export default function useVisibleRange(selectedYear, selectedMonth, externalVisibleRange = null, externalSetVisibleRange = null) {
+    const [internalVisibleRange, setInternalVisibleRange] = useState(() => getInitialVisibleRange(selectedYear, selectedMonth))
+    const visibleRange = externalVisibleRange !== null ? externalVisibleRange : internalVisibleRange
+    const setVisibleRange = externalSetVisibleRange || setInternalVisibleRange
     const leftArrowDebounceRef = useRef(null)
     const rightArrowDebounceRef = useRef(null)
     
     const updateRangeForMonth = useCallback((year, month) => {
         const newRange = getInitialVisibleRange(year, month)
         setVisibleRange(newRange)
-    }, [])
+    }, [setVisibleRange])
     
     const canGoLeft = useCallback(() => {
         if (!visibleRange) return false
@@ -41,7 +43,7 @@ export default function useVisibleRange(selectedYear, selectedMonth) {
                 endMonth: visibleRange.endMonth
             })
         }, DEBOUNCE_DELAYS.CHART_ARROWS)
-    }, [visibleRange, canGoLeft])
+    }, [visibleRange, canGoLeft, setVisibleRange])
     
     const handleRightArrow = useCallback(() => {
         if (!canGoRight() || !visibleRange) return
@@ -63,7 +65,7 @@ export default function useVisibleRange(selectedYear, selectedMonth) {
                 endMonth: nextEnd
             })
         }, DEBOUNCE_DELAYS.CHART_ARROWS)
-    }, [visibleRange, canGoRight])
+    }, [visibleRange, canGoRight, setVisibleRange])
     
     return {
         visibleRange,

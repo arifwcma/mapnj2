@@ -1,6 +1,6 @@
 "use client"
 import dynamic from "next/dynamic"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useRef } from "react"
 import { useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import BoundaryLayer from "./BoundaryLayer"
@@ -8,18 +8,22 @@ import RectangleDrawHandler from "./RectangleDrawHandler"
 import NdviOverlay from "./NdviOverlay"
 import FieldsLayer from "./FieldsLayer"
 import useBoundary from "@/app/hooks/useBoundary"
-import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, TILE_LAYER_TOPOGRAPHIC, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE, DEBUG_CONFIG, FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
-import { validatePointInBounds, getAreaCenter } from "@/app/lib/bboxUtils"
+import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLITE, TILE_LAYER_TOPOGRAPHIC, RECTANGLE_STYLE, RECTANGLE_BORDER_STYLE } from "@/app/lib/config"
+import { getAreaCenter } from "@/app/lib/bboxUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { useStatusMessage } from "./StatusMessage"
+import { preloadLeaflet } from "@/app/lib/leafletCache"
+
+preloadLeaflet()
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
 const Rectangle = dynamic(() => import("react-leaflet").then(m => m.Rectangle), { ssr: false })
 const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false })
+const Tooltip = dynamic(() => import("react-leaflet").then(m => m.Tooltip), { ssr: false })
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
-const TriangleMarker = dynamic(() => import("./TriangleMarker"), { ssr: false })
-const PointMonthsMarker = dynamic(() => import("./PointMonthsMarker"), { ssr: false })
+const IndexedMarker = dynamic(() => import("./IndexedMarker"), { ssr: false })
+
 
 function FixMarkerIcon() {
     useEffect(() => {
@@ -37,13 +41,11 @@ function FixMarkerIcon() {
     return null
 }
 
-function DraggableMarker({ position, children, draggable = false, onDragEnd, rectangleBounds }) {
-    const previousPositionRef = useRef(null)
-    const isDraggingRef = useRef(false)
+function StaticMarker({ position, children }) {
     const markerRef = useRef(null)
     
     useEffect(() => {
-        if (markerRef.current && !isDraggingRef.current) {
+        if (markerRef.current && position) {
             const currentPos = markerRef.current.getLatLng()
             const posLat = Array.isArray(position) ? position[0] : position.lat
             const posLng = Array.isArray(position) ? position[1] : position.lng
@@ -53,6 +55,9 @@ function DraggableMarker({ position, children, draggable = false, onDragEnd, rec
             }
         }
     }, [position])
+    
+    const posLat = Array.isArray(position) ? position[0] : position.lat
+    const posLng = Array.isArray(position) ? position[1] : position.lng
     
     return (
         <Marker 
@@ -62,127 +67,15 @@ function DraggableMarker({ position, children, draggable = false, onDragEnd, rec
                 }
             }}
             position={position}
-            draggable={draggable}
             eventHandlers={{
                 click: (e) => {
                     e.originalEvent.stopPropagation()
-                },
-                ...(draggable && onDragEnd ? {
-                    dragstart: (e) => {
-                        isDraggingRef.current = true
-                        const marker = e.target
-                        const currentPos = marker.getLatLng()
-                        previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
-                    },
-                    dragend: (e) => {
-                        const marker = e.target
-                        const newPosition = marker.getLatLng()
-                        
-                        if (rectangleBounds && !validatePointInBounds(newPosition.lat, newPosition.lng, rectangleBounds)) {
-                            if (previousPositionRef.current) {
-                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
-                            }
-                            isDraggingRef.current = false
-                            return
-                        }
-                        
-                        const finalLat = newPosition.lat
-                        const finalLng = newPosition.lng
-                        
-                        setTimeout(() => {
-                            isDraggingRef.current = false
-                            onDragEnd(finalLat, finalLng, false)
-                        }, 10)
-                    }
-                } : {})
-            }}
-        >
-            {children}
-        </Marker>
-    )
-}
-
-function SecondPointMarker({ position, children, draggable = false, onDragEnd, rectangleBounds }) {
-    const [icon, setIcon] = useState(null)
-    const previousPositionRef = useRef(null)
-    const isDraggingRef = useRef(false)
-    const markerRef = useRef(null)
-    
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            import('leaflet').then((L) => {
-                const redIcon = L.default.icon({
-                    iconUrl: 'images/marker-icon-red.png',
-                    iconRetinaUrl: 'images/marker-icon-2x-red.png',
-                    shadowUrl: 'images/marker-shadow.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41],
-                    popupAnchor: [1, -34],
-                    shadowSize: [41, 41]
-                })
-                setIcon(redIcon)
-            })
-        }
-    }, [])
-    
-    useEffect(() => {
-        if (markerRef.current && !isDraggingRef.current) {
-            const currentPos = markerRef.current.getLatLng()
-            const posLat = Array.isArray(position) ? position[0] : position.lat
-            const posLng = Array.isArray(position) ? position[1] : position.lng
-            
-            if (Math.abs(currentPos.lat - posLat) > 0.000001 || Math.abs(currentPos.lng - posLng) > 0.000001) {
-                markerRef.current.setLatLng([posLat, posLng])
-            }
-        }
-    }, [position])
-    
-    if (!icon || !position) return null
-    
-    return (
-        <Marker 
-            ref={(ref) => {
-                if (ref) {
-                    markerRef.current = ref.leafletElement || ref
                 }
             }}
-            position={position} 
-            icon={icon}
-            draggable={draggable}
-            eventHandlers={{
-                click: (e) => {
-                    e.originalEvent.stopPropagation()
-                },
-                ...(draggable && onDragEnd ? {
-                    dragstart: (e) => {
-                        isDraggingRef.current = true
-                        const marker = e.target
-                        const currentPos = marker.getLatLng()
-                        previousPositionRef.current = { lat: currentPos.lat, lng: currentPos.lng }
-                    },
-                    dragend: (e) => {
-                        const marker = e.target
-                        const newPosition = marker.getLatLng()
-                        
-                        if (rectangleBounds && !validatePointInBounds(newPosition.lat, newPosition.lng, rectangleBounds)) {
-                            if (previousPositionRef.current) {
-                                marker.setLatLng([previousPositionRef.current.lat, previousPositionRef.current.lng])
-                            }
-                            isDraggingRef.current = false
-                            return
-                        }
-                        
-                        const finalLat = newPosition.lat
-                        const finalLng = newPosition.lng
-                        
-                        setTimeout(() => {
-                            isDraggingRef.current = false
-                            onDragEnd(finalLat, finalLng, true)
-                        }, 10)
-                    }
-                } : {})
-            }}
         >
+            <Tooltip>
+                {posLat.toFixed(6)}, {posLng.toFixed(6)}
+            </Tooltip>
             {children}
         </Marker>
     )
@@ -197,6 +90,82 @@ function MapResize({ ndviTileUrl, rgbTileUrl }) {
             }, 100)
         }
     }, [map, ndviTileUrl, rgbTileUrl])
+    return null
+}
+
+function MapRestore({ initialZoom, initialBounds, onZoomChange, onMapBoundsChange }) {
+    const map = useMap()
+    const restoredRef = useRef(false)
+    const lastValuesRef = useRef({ zoom: null, bounds: null })
+    
+    useEffect(() => {
+        if (!map) return
+        
+        const hasValues = (initialZoom !== null && initialZoom !== undefined) || initialBounds !== null
+        const valuesChanged = 
+            lastValuesRef.current.zoom !== initialZoom || 
+            JSON.stringify(lastValuesRef.current.bounds) !== JSON.stringify(initialBounds)
+        
+        if (!hasValues) {
+            lastValuesRef.current = { zoom: initialZoom, bounds: initialBounds }
+            return
+        }
+        
+        if (!valuesChanged && restoredRef.current) {
+            return
+        }
+        
+        if (valuesChanged) {
+            restoredRef.current = false
+            lastValuesRef.current = { zoom: initialZoom, bounds: initialBounds }
+        }
+        
+        const restore = () => {
+            const shouldRestoreZoom = initialZoom !== null && initialZoom !== undefined
+            const shouldRestoreBounds = initialBounds !== null
+            
+            if (shouldRestoreZoom) {
+                map.setZoom(initialZoom, { animate: false })
+                if (onZoomChange) {
+                    onZoomChange(initialZoom)
+                }
+            }
+            
+            if (shouldRestoreBounds) {
+                const [[swLat, swLng], [neLat, neLng]] = initialBounds
+                const bounds = [[swLat, swLng], [neLat, neLng]]
+                map.fitBounds(bounds, { animate: false })
+                if (onMapBoundsChange) {
+                    setTimeout(() => {
+                        const mapBounds = map.getBounds()
+                        const sw = mapBounds.getSouthWest()
+                        const ne = mapBounds.getNorthEast()
+                        onMapBoundsChange([
+                            [sw.lat, sw.lng],
+                            [ne.lat, ne.lng]
+                        ])
+                    }, 100)
+                }
+            }
+            
+            if (shouldRestoreZoom || shouldRestoreBounds) {
+                restoredRef.current = true
+            }
+        }
+        
+        const tryRestore = () => {
+            if (map._loaded) {
+                setTimeout(() => restore(), 100)
+            } else {
+                map.whenReady(() => {
+                    setTimeout(() => restore(), 100)
+                })
+            }
+        }
+        
+        tryRestore()
+    }, [map, initialZoom, initialBounds, onZoomChange, onMapBoundsChange])
+    
     return null
 }
 
@@ -290,10 +259,6 @@ function ZoomToRectangle({ bounds }) {
     return null
 }
 
-function ZoomLogger() {
-    return null
-}
-
 function ZoomTracker({ onZoomChange }) {
     const map = useMap()
     
@@ -345,99 +310,10 @@ function PointClickHandler({ isActive, onPointClick }) {
     return null
 }
 
-function MoveModeHandler({ isActive, onMarkerDragEnd }) {
-    const map = useMap()
-    
-    useEffect(() => {
-        if (!map) return
-        
-        if (isActive) {
-            const container = map.getContainer()
-            container.style.cursor = "move"
-            container.style.setProperty("cursor", "move", "important")
-            map.dragging.disable()
-            map.doubleClickZoom.disable()
-            map.scrollWheelZoom.disable()
-            
-            const styleId = "leaflet-move-cursor"
-            let styleEl = document.getElementById(styleId)
-            if (!styleEl) {
-                styleEl = document.createElement("style")
-                styleEl.id = styleId
-                styleEl.textContent = `
-                    .leaflet-container.leaflet-move-mode,
-                    .leaflet-container.leaflet-move-mode *,
-                    .leaflet-container.leaflet-move-mode svg,
-                    .leaflet-container.leaflet-move-mode svg * {
-                        cursor: move !important;
-                    }
-                    .leaflet-container.leaflet-move-mode .leaflet-marker-icon {
-                        cursor: move !important;
-                    }
-                `
-                document.head.appendChild(styleEl)
-            }
-            container.classList.add("leaflet-move-mode")
-        } else {
-            const container = map.getContainer()
-            container.style.cursor = ""
-            container.style.removeProperty("cursor")
-            map.dragging.enable()
-            map.doubleClickZoom.enable()
-            map.scrollWheelZoom.enable()
-            container.classList.remove("leaflet-move-mode")
-        }
-        
-        return () => {
-            if (isActive) {
-                const container = map.getContainer()
-                container.style.cursor = ""
-                container.style.removeProperty("cursor")
-                map.dragging.enable()
-                map.doubleClickZoom.enable()
-                map.scrollWheelZoom.enable()
-                container.classList.remove("leaflet-move-mode")
-            }
-        }
-    }, [map, isActive])
-    
-    return null
-}
+const EMPTY_POINTS_ARRAY = /** @type {Array<{ id: string, lat: number, lon: number }>} */ ([])
+const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field' }>} */ ([])
 
-/**
- * @param {Object} props
- * @param {boolean} [props.isDrawing]
- * @param {any} [props.rectangleBounds]
- * @param {any} [props.currentBounds]
- * @param {any} [props.onStart]
- * @param {any} [props.onUpdate]
- * @param {any} [props.onEnd]
- * @param {any} [props.onReset]
- * @param {string|null} [props.ndviTileUrl]
- * @param {string|null} [props.rgbTileUrl]
- * @param {string} [props.overlayType]
- * @param {string} [props.basemap]
- * @param {boolean} [props.isPointClickMode]
- * @param {boolean} [props.isPointSelectMode]
- * @param {any} [props.onPointClick]
- * @param {any} [props.selectedPoint]
- * @param {Array} [props.selectedPoints]
- * @param {any} [props.secondPoint]
- * @param {boolean} [props.isMoveMode]
- * @param {any} [props.onMarkerDragEnd]
- * @param {boolean} [props.fieldSelectionMode]
- * @param {any} [props.fieldsData]
- * @param {'rectangle'|'field'|null} [props.boundsSource]
- * @param {any} [props.selectedFieldFeature]
- * @param {any} [props.onFieldClick]
- * @param {number|null} [props.currentZoom]
- * @param {any} [props.onZoomChange]
- * @param {Array} [props.selectedAreas]
- * @param {string} [props.analysisMode]
- * @param {string} [props.compareMode]
- * @param {Function} [props.onMapBoundsChange]
- */
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], secondPoint = null, isMoveMode = false, onMarkerDragEnd, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null) }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     
@@ -470,11 +346,17 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     
     const attribution = getAttribution()
 
+    const mapCenter = initialBounds ? [
+        (initialBounds[0][0] + initialBounds[1][0]) / 2,
+        (initialBounds[0][1] + initialBounds[1][1]) / 2
+    ] : MAP_CENTER
+    const mapZoom = initialZoom !== null && initialZoom !== undefined ? initialZoom : MAP_ZOOM
+    
     return (
-        <MapContainer center={MAP_CENTER} zoom={MAP_ZOOM} style={MAP_STYLE}>
+        <MapContainer center={mapCenter} zoom={mapZoom} style={MAP_STYLE}>
             <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
-            <ZoomLogger />
+            <MapRestore initialZoom={initialZoom} initialBounds={initialBounds} onZoomChange={onZoomChange} onMapBoundsChange={onMapBoundsChange} />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
             {onMapBoundsChange && <MapBoundsTracker onBoundsChange={onMapBoundsChange} />}
             {onMapBoundsChange && <FieldSelectionBoundsUpdater fieldSelectionMode={fieldSelectionMode} onBoundsChange={onMapBoundsChange} />}
@@ -485,8 +367,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     attribution={attribution}
                 />
             )}
-            {!isDrawing && !isMoveMode && !fieldSelectionMode && <PointClickHandler isActive={isPointClickMode || isPointSelectMode} onPointClick={onPointClick || (() => {})} />}
-            {isMoveMode && <MoveModeHandler isActive={isMoveMode} onMarkerDragEnd={onMarkerDragEnd} />}
+            {!isDrawing && !fieldSelectionMode && <PointClickHandler isActive={isPointClickMode || isPointSelectMode} onPointClick={onPointClick || (() => {})} />}
             {boundary && <BoundaryLayer data={boundary} />}
             {isDrawing && (
                 <RectangleDrawHandler
@@ -566,7 +447,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
             )}
             {selectedPoints && selectedPoints.length > 0 && selectedPoints.map((point, index) => (
-                <TriangleMarker
+                <IndexedMarker
                     key={point.id}
                     position={[point.lat, point.lon]}
                     color={getColorForIndex(index)}
@@ -575,34 +456,22 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             ))}
             {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
                 compareMode === "months" && analysisMode === "point" ? (
-                    <PointMonthsMarker 
+                    <IndexedMarker 
                         position={[selectedPoint.lat, selectedPoint.lon]}
-                        draggable={isMoveMode}
-                        onDragEnd={onMarkerDragEnd}
-                        rectangleBounds={rectangleBounds}
+                        color={getColorForIndex(0)}
+                        index={0}
                     />
                 ) : !selectedPoints?.length ? (
-                    <DraggableMarker 
+                    <StaticMarker 
                         position={[selectedPoint.lat, selectedPoint.lon]}
-                        draggable={isMoveMode}
-                        onDragEnd={onMarkerDragEnd}
-                        rectangleBounds={rectangleBounds}
                     />
                 ) : null
-            )}
-            {secondPoint && secondPoint.lat !== null && secondPoint.lon !== null && (
-                <SecondPointMarker 
-                    position={[secondPoint.lat, secondPoint.lon]}
-                    draggable={isMoveMode}
-                    onDragEnd={onMarkerDragEnd}
-                    rectangleBounds={rectangleBounds}
-                />
             )}
             {analysisMode === "area" && (compareMode === "areas" || compareMode === "months") && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area, index) => {
                 const center = getAreaCenter(area)
                 if (!center) return null
                 return (
-                    <TriangleMarker
+                    <IndexedMarker
                         key={area.id}
                         position={[center.lat, center.lon]}
                         color={getColorForIndex(index)}

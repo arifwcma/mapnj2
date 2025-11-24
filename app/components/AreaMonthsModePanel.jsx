@@ -46,11 +46,17 @@ export default function AreaMonthsModePanel({
     selectedArea,
     rectangleBounds,
     cloudTolerance,
-    onMonthChange
+    onMonthChange,
+    selectedMonths,
+    setSelectedMonths,
+    yAxisRange,
+    setYAxisRange,
+    onShareAreaSnapshots,
+    areaSnapshotsOpen,
+    setAreaSnapshotsOpen
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
-    const [selectedMonths, setSelectedMonths] = useState([])
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -210,7 +216,6 @@ export default function AreaMonthsModePanel({
         }
     }, [tableData])
     
-    const [yAxisRange, setYAxisRange] = useState("0-1")
     
     const chartOptions = useMemo(() => ({
         responsive: true,
@@ -283,29 +288,10 @@ export default function AreaMonthsModePanel({
                         cloudTolerance={cloudTolerance}
                         visibleRange={visibleRange}
                         selectedMonths={sortedMonths}
+                        onShare={onShareAreaSnapshots}
+                        isOpen={areaSnapshotsOpen}
+                        setIsOpen={setAreaSnapshotsOpen}
                     />
-                </div>
-            )}
-            
-            {areaCenter && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", color: "#333" }}>
-                    <div style={{
-                        width: "20px",
-                        height: "20px",
-                        border: `2px solid ${getColorForIndex(0)}`,
-                        borderRadius: "50%",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: "bold",
-                        color: getColorForIndex(0),
-                        backgroundColor: "white"
-                    }}>
-                        1
-                    </div>
-                    <span>
-                        {areaCenter.lat.toFixed(6)}, {areaCenter.lon.toFixed(6)}
-                    </span>
                 </div>
             )}
             

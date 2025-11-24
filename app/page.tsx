@@ -1,11 +1,13 @@
 "use client"
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import MapView from "@/app/components/MapView"
 import BasemapSelector from "@/app/components/BasemapSelector"
 import AnalysisModeSelector from "@/app/components/AnalysisModeSelector"
 import CompareModeSelector from "@/app/components/CompareModeSelector"
 import AreaSelectionPrompt from "@/app/components/AreaSelectionPrompt"
 import CloudToleranceDropdown from "@/app/components/CloudToleranceDropdown"
+import ShareButton from "@/app/components/ShareButton"
 import PointsModePanel from "@/app/components/PointsModePanel"
 import PointMonthsModePanel from "@/app/components/PointMonthsModePanel"
 import AreasModePanel from "@/app/components/AreasModePanel"
@@ -13,7 +15,9 @@ import AreaMonthsModePanel from "@/app/components/AreaMonthsModePanel"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { getInitialVisibleRange } from "@/app/lib/rangeUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
+import { serializeState, deserializeState } from "@/app/lib/shareUtils"
 import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
 import useFields from "@/app/hooks/useFields"
@@ -22,7 +26,7 @@ import { useStatusMessage } from "@/app/components/StatusMessage"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { DEBOUNCE_DELAYS } from "@/app/lib/config"
 
-export default function Page() {
+function PageContent() {
     const [basemap, setBasemap] = useState("street")
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
@@ -37,6 +41,22 @@ export default function Page() {
     const [selectedYear, setSelectedYear] = useState<number | null>(null)
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
     const [mapBounds, setMapBounds] = useState<[[number, number], [number, number]] | null>(null)
+    const [pointMonthsSelectedMonths, setPointMonthsSelectedMonths] = useState<Array<{ year: number, month: number }>>([])
+    const [areaMonthsSelectedMonths, setAreaMonthsSelectedMonths] = useState<Array<{ year: number, month: number }>>([])
+    const [pointsVisibleRange, setPointsVisibleRange] = useState<{ startMonth: { year: number, month: number }, endMonth: { year: number, month: number } } | null>(null)
+    const [areasVisibleRange, setAreasVisibleRange] = useState<{ startMonth: { year: number, month: number }, endMonth: { year: number, month: number } } | null>(null)
+    const [pointsYAxisRange, setPointsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [areasYAxisRange, setAreasYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [pointMonthsYAxisRange, setPointMonthsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [areaMonthsYAxisRange, setAreaMonthsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [restoredZoom, setRestoredZoom] = useState<number | null>(null)
+    const [restoredBounds, setRestoredBounds] = useState<[[number, number], [number, number]] | null>(null)
+    const [pointSnapshotsOpen, setPointSnapshotsOpen] = useState(false)
+    const [areaSnapshotsOpen, setAreaSnapshotsOpen] = useState(false)
+    
+    const searchParams = useSearchParams()
+    const router = useRouter()
+    const hasRestoredStateRef = useRef(false)
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -45,6 +65,139 @@ export default function Page() {
             setSelectedMonth(current.month)
         }
     }, [selectedYear, selectedMonth])
+    
+    useEffect(() => {
+        if (selectedYear && selectedMonth) {
+            const newRange = getInitialVisibleRange(selectedYear, selectedMonth)
+            if (analysisMode === "point" && compareMode === "points") {
+                if (!pointsVisibleRange) {
+                    setPointsVisibleRange(newRange)
+                }
+            } else if (analysisMode === "area" && compareMode === "areas") {
+                if (!areasVisibleRange) {
+                    setAreasVisibleRange(newRange)
+                }
+            }
+        }
+    }, [selectedYear, selectedMonth, analysisMode, compareMode])
+    
+    useEffect(() => {
+        const shareToken = searchParams.get('share')
+        if (shareToken && !hasRestoredStateRef.current) {
+            hasRestoredStateRef.current = true
+            fetch(`/api/share/${shareToken}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.state) {
+                        const state = deserializeState(data.state)
+                        if (state) {
+                            if (state.basemap) setBasemap(state.basemap)
+                            if (state.analysisMode) setAnalysisMode(state.analysisMode)
+                            if (state.compareMode) setCompareMode(state.compareMode)
+                            if (state.cloudTolerance !== undefined) setCloudTolerance(state.cloudTolerance)
+                            if (state.selectedPoints) setSelectedPoints(state.selectedPoints)
+                            if (state.selectedPoint) setSelectedPoint(state.selectedPoint)
+                            if (state.selectedAreas) setSelectedAreas(state.selectedAreas)
+                            if (state.selectedYear !== undefined) setSelectedYear(state.selectedYear)
+                            if (state.selectedMonth !== undefined) setSelectedMonth(state.selectedMonth)
+                            if (state.pointMonthsSelectedMonths) setPointMonthsSelectedMonths(state.pointMonthsSelectedMonths)
+                            if (state.areaMonthsSelectedMonths) setAreaMonthsSelectedMonths(state.areaMonthsSelectedMonths)
+                            if (state.pointsVisibleRange) setPointsVisibleRange(state.pointsVisibleRange)
+                            if (state.areasVisibleRange) setAreasVisibleRange(state.areasVisibleRange)
+                            if (state.pointsYAxisRange !== undefined) setPointsYAxisRange(state.pointsYAxisRange)
+                            if (state.areasYAxisRange !== undefined) setAreasYAxisRange(state.areasYAxisRange)
+                            if (state.pointMonthsYAxisRange !== undefined) setPointMonthsYAxisRange(state.pointMonthsYAxisRange)
+                            if (state.areaMonthsYAxisRange !== undefined) setAreaMonthsYAxisRange(state.areaMonthsYAxisRange)
+                            if (state.currentZoom !== undefined && state.currentZoom !== null) {
+                                setCurrentZoom(state.currentZoom)
+                                setRestoredZoom(state.currentZoom)
+                            }
+                            if (state.mapBounds) {
+                                setMapBounds(state.mapBounds)
+                                setRestoredBounds(state.mapBounds)
+                            }
+                            if (state.pointSnapshotsOpen) {
+                                setPointSnapshotsOpen(true)
+                            }
+                            if (state.areaSnapshotsOpen) {
+                                setAreaSnapshotsOpen(true)
+                            }
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading share state:', err)
+                })
+        }
+    }, [searchParams])
+    
+    useEffect(() => {
+        if (!selectedPoint || selectedPoint.lat === null || selectedPoint.lon === null) {
+            setPointMonthsSelectedMonths([])
+        }
+    }, [selectedPoint])
+    
+    useEffect(() => {
+        if (!selectedAreas || selectedAreas.length === 0) {
+            setAreaMonthsSelectedMonths([])
+        }
+    }, [selectedAreas])
+    
+    const handleShare = useCallback(async (openPointSnapshots = false, openAreaSnapshots = false) => {
+        const state = {
+            basemap,
+            analysisMode,
+            compareMode,
+            cloudTolerance,
+            selectedPoints,
+            selectedPoint,
+            selectedAreas: selectedAreas.map(area => ({
+                id: area.id,
+                geometry: area.geometry,
+                bounds: area.bounds,
+                color: area.color,
+                label: area.label,
+                boundsSource: area.boundsSource
+            })),
+            selectedYear,
+            selectedMonth,
+            pointMonthsSelectedMonths,
+            areaMonthsSelectedMonths,
+            pointsVisibleRange,
+            areasVisibleRange,
+            pointsYAxisRange,
+            areasYAxisRange,
+            pointMonthsYAxisRange,
+            areaMonthsYAxisRange,
+            currentZoom,
+            mapBounds,
+            pointSnapshotsOpen: openPointSnapshots || pointSnapshotsOpen,
+            areaSnapshotsOpen: openAreaSnapshots || areaSnapshotsOpen
+        }
+        
+        try {
+            const response = await fetch('/api/share/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: serializeState(state)
+            })
+            const data = await response.json()
+            return data.token
+        } catch (error) {
+            console.error('Error saving share:', error)
+            return null
+        }
+    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange, pointsYAxisRange, areasYAxisRange, pointMonthsYAxisRange, areaMonthsYAxisRange, currentZoom, mapBounds, pointSnapshotsOpen, areaSnapshotsOpen])
+    
+    const handleSharePointSnapshots = useCallback(async () => {
+        return handleShare(true, false)
+    }, [handleShare])
+    
+    const handleShareAreaSnapshots = useCallback(async () => {
+        return handleShare(false, true)
+    }, [handleShare])
     
     const { fieldsData, fieldsLoading, loadFieldsForBounds } = useFields()
     
@@ -364,6 +517,7 @@ export default function Page() {
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
             <div style={{ width: "10%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
+                <ShareButton onShare={handleShare} />
                 <BasemapSelector basemap={basemap} onBasemapChange={handleBasemapChange} />
                 <AnalysisModeSelector analysisMode={analysisMode} onAnalysisModeChange={handleAnalysisModeChange} />
                 <CompareModeSelector 
@@ -442,6 +596,8 @@ export default function Page() {
                     currentZoom={currentZoom}
                     onZoomChange={setCurrentZoom}
                     onMapBoundsChange={setMapBounds}
+                    initialZoom={restoredZoom}
+                    initialBounds={restoredBounds}
                 />
             </div>
             
@@ -455,6 +611,13 @@ export default function Page() {
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onRemovePoint={handleRemovePoint}
+                        visibleRange={pointsVisibleRange}
+                        setVisibleRange={setPointsVisibleRange}
+                        yAxisRange={pointsYAxisRange}
+                        setYAxisRange={setPointsYAxisRange}
+                        onSharePointSnapshots={handleSharePointSnapshots}
+                        pointSnapshotsOpen={pointSnapshotsOpen}
+                        setPointSnapshotsOpen={setPointSnapshotsOpen}
                     />
                 )}
                 
@@ -464,6 +627,10 @@ export default function Page() {
                         rectangleBounds={rectangleBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
+                        selectedMonths={pointMonthsSelectedMonths}
+                        setSelectedMonths={setPointMonthsSelectedMonths}
+                        yAxisRange={pointMonthsYAxisRange}
+                        setYAxisRange={setPointMonthsYAxisRange}
                     />
                 )}
                 
@@ -476,6 +643,13 @@ export default function Page() {
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onRemoveArea={(index: number) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
+                        visibleRange={areasVisibleRange}
+                        setVisibleRange={setAreasVisibleRange}
+                        yAxisRange={areasYAxisRange}
+                        setYAxisRange={setAreasYAxisRange}
+                        onShareAreaSnapshots={handleShareAreaSnapshots}
+                        areaSnapshotsOpen={areaSnapshotsOpen}
+                        setAreaSnapshotsOpen={setAreaSnapshotsOpen}
                     />
                 )}
                 
@@ -485,6 +659,13 @@ export default function Page() {
                         rectangleBounds={selectedAreas[0].bounds || mapBounds}
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
+                        selectedMonths={areaMonthsSelectedMonths}
+                        setSelectedMonths={setAreaMonthsSelectedMonths}
+                        yAxisRange={areaMonthsYAxisRange}
+                        setYAxisRange={setAreaMonthsYAxisRange}
+                        onShareAreaSnapshots={handleShareAreaSnapshots}
+                        areaSnapshotsOpen={areaSnapshotsOpen}
+                        setAreaSnapshotsOpen={setAreaSnapshotsOpen}
                     />
                 )}
             </div>
@@ -492,3 +673,10 @@ export default function Page() {
     )
 }
 
+export default function Page() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <PageContent />
+        </Suspense>
+    )
+}

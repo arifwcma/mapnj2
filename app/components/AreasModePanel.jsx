@@ -53,7 +53,14 @@ export default function AreasModePanel({
     rectangleBounds, 
     cloudTolerance,
     onMonthChange,
-    onRemoveArea 
+    onRemoveArea,
+    visibleRange,
+    setVisibleRange,
+    yAxisRange,
+    setYAxisRange,
+    onShareAreaSnapshots,
+    areaSnapshotsOpen,
+    setAreaSnapshotsOpen
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -63,14 +70,14 @@ export default function AreasModePanel({
     const chartRef = useRef(null)
     
     const {
-        visibleRange,
-        setVisibleRange,
+        visibleRange: effectiveVisibleRange,
+        setVisibleRange: effectiveSetVisibleRange,
         updateRangeForMonth,
         canGoLeft,
         canGoRight,
         handleLeftArrow,
         handleRightArrow
-    } = useVisibleRange(selectedYear, selectedMonth)
+    } = useVisibleRange(selectedYear, selectedMonth, visibleRange, setVisibleRange)
     
     const handleDataMapReady = useCallback((index, dataMap) => {
         setAreaDataMaps(prev => {
@@ -81,15 +88,25 @@ export default function AreasModePanel({
     }, [])
     
     useEffect(() => {
-        updateRangeForMonth(selectedYear, selectedMonth)
-    }, [selectedYear, selectedMonth, updateRangeForMonth])
+        if (!effectiveVisibleRange) {
+            updateRangeForMonth(selectedYear, selectedMonth)
+        } else {
+            const startYear = effectiveVisibleRange.startMonth.year
+            const endYear = effectiveVisibleRange.endMonth.year
+            
+            if (selectedYear !== startYear && selectedYear !== endYear && 
+                !(startYear < selectedYear && selectedYear < endYear)) {
+                updateRangeForMonth(selectedYear, selectedMonth)
+            }
+        }
+    }, [selectedYear, selectedMonth, updateRangeForMonth, effectiveVisibleRange])
     
     useEffect(() => {
-        if (!visibleRange || selectedAreas.length === 0) {
+        if (!effectiveVisibleRange || selectedAreas.length === 0) {
             return
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
         
         selectedAreas.forEach((area, index) => {
@@ -97,19 +114,24 @@ export default function AreasModePanel({
                 areaDataMaps[index].fetchMissingMonths(monthKeys)
             }
         })
-    }, [visibleRange, selectedAreas, areaDataMaps])
+    }, [effectiveVisibleRange, selectedAreas, areaDataMaps])
     
     useEffect(() => {
-        if (!selectedYear || !selectedMonth || selectedAreas.length === 0 || !visibleRange) {
+        if (!selectedYear || !selectedMonth || selectedAreas.length === 0) {
             return
         }
         
         const currentMonthKey = monthKey(selectedYear, selectedMonth)
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
-        const monthKeys = months.map(m => monthKey(m.year, m.month))
+        const monthKeys = [currentMonthKey]
         
-        if (!monthKeys.includes(currentMonthKey)) {
-            monthKeys.push(currentMonthKey)
+        if (effectiveVisibleRange) {
+            const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
+            const visibleMonthKeys = months.map(m => monthKey(m.year, m.month))
+            visibleMonthKeys.forEach(key => {
+                if (!monthKeys.includes(key)) {
+                    monthKeys.push(key)
+                }
+            })
         }
         
         selectedAreas.forEach((area, index) => {
@@ -117,11 +139,11 @@ export default function AreasModePanel({
                 areaDataMaps[index].fetchMissingMonths(monthKeys)
             }
         })
-    }, [selectedYear, selectedMonth, selectedAreas, visibleRange, areaDataMaps])
+    }, [selectedYear, selectedMonth, selectedAreas, effectiveVisibleRange, areaDataMaps])
     
     useEffect(() => {
-        if (visibleRange && selectedAreas.length > 0 && previousDataMapsRef.current.length > 0) {
-            const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        if (effectiveVisibleRange && selectedAreas.length > 0 && previousDataMapsRef.current.length > 0) {
+            const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
             
             selectedAreas.forEach((area, index) => {
                 const currentDataMap = areaDataMaps[index]?.dataMap
@@ -148,54 +170,54 @@ export default function AreasModePanel({
         previousDataMapsRef.current = areaDataMaps.map(obj => ({
             dataMap: obj?.dataMap ? new Map(obj.dataMap) : null
         }))
-    }, [areaDataMaps, visibleRange, selectedAreas, showToast])
+    }, [areaDataMaps, effectiveVisibleRange, selectedAreas, showToast])
     
     const displayData = useMemo(() => {
-        if (!visibleRange) {
+        if (!effectiveVisibleRange) {
             return selectedAreas.map(() => [])
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         return selectedAreas.map((area, index) => {
             const dataMap = areaDataMaps[index]?.dataMap || new Map()
             return months.map(m => buildDisplayDataItem(m, dataMap))
         })
-    }, [visibleRange, selectedAreas, areaDataMaps])
+    }, [effectiveVisibleRange, selectedAreas, areaDataMaps])
     
     const tableData = useMemo(() => {
-        if (!selectedYear || !selectedMonth) {
-            return selectedAreas.map((area, index) => {
-                const centerLat = area.bounds ? (area.bounds[0][0] + area.bounds[1][0]) / 2 : null
-                const centerLon = area.bounds ? (area.bounds[0][1] + area.bounds[1][1]) / 2 : null
-                return {
-                    area,
-                    index,
-                    averageNdvi: null,
-                    currentNdvi: null,
-                    centerLat,
-                    centerLon
-                }
-            })
+        if (!selectedYear || !selectedMonth || !effectiveVisibleRange) {
+            return selectedAreas.map((area, index) => ({
+                area,
+                index,
+                averageNdvi: null,
+                currentNdvi: null
+            }))
         }
         
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         return selectedAreas.map((area, index) => {
             const dataMap = areaDataMaps[index]?.dataMap || new Map()
+            const monthValues = months.map(m => {
+                const key = monthKey(m.year, m.month)
+                const value = dataMap.get(key)
+                return value
+            }).filter(v => v !== null && v !== undefined)
+            
+            const avg = monthValues.length > 0 
+                ? monthValues.reduce((sum, val) => sum + val, 0) / monthValues.length 
+                : null
+            
             const currentMonthKey = monthKey(selectedYear, selectedMonth)
             const currentNdvi = dataMap.get(currentMonthKey)
-            
-            const centerLat = area.bounds ? (area.bounds[0][0] + area.bounds[1][0]) / 2 : null
-            const centerLon = area.bounds ? (area.bounds[0][1] + area.bounds[1][1]) / 2 : null
             
             return {
                 area,
                 index,
-                averageNdvi: currentNdvi !== null && currentNdvi !== undefined ? parseFloat(currentNdvi.toFixed(2)) : null,
-                currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null,
-                centerLat,
-                centerLon
+                averageNdvi: avg !== null ? parseFloat(avg.toFixed(2)) : null,
+                currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null
             }
         })
-    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps])
+    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps, effectiveVisibleRange])
     
     const chartData = useMemo(() => {
         if (displayData.length === 0 || displayData[0].length === 0) {
@@ -225,7 +247,6 @@ export default function AreasModePanel({
         return { labels, datasets }
     }, [displayData, selectedAreas])
     
-    const [yAxisRange, setYAxisRange] = useState("0-1")
     
     const chartOptions = useMemo(() => ({
         responsive: true,
@@ -275,7 +296,10 @@ export default function AreasModePanel({
                 <CompareSnapshots
                     selectedAreas={selectedAreas}
                     cloudTolerance={cloudTolerance}
-                    visibleRange={visibleRange}
+                    visibleRange={effectiveVisibleRange}
+                    onShare={onShareAreaSnapshots}
+                    isOpen={areaSnapshotsOpen}
+                    setIsOpen={setAreaSnapshotsOpen}
                 />
             )}
             
@@ -284,15 +308,13 @@ export default function AreasModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Latitude</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Longitude</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {tableData.map(({ area, index, averageNdvi, currentNdvi, centerLat, centerLon }) => (
+                        {tableData.map(({ area, index, averageNdvi, currentNdvi }) => (
                             <tr key={area.id} style={{ borderBottom: "1px solid #eee" }}>
                                 <td style={{ padding: "8px" }}>
                                     <div style={{
@@ -311,19 +333,13 @@ export default function AreasModePanel({
                                     </div>
                                 </td>
                                 <td style={{ padding: "8px" }}>
-                                    {centerLat !== null ? centerLat.toFixed(6) : "N/A"}
-                                </td>
-                                <td style={{ padding: "8px" }}>
-                                    {centerLon !== null ? centerLon.toFixed(6) : "N/A"}
-                                </td>
-                                <td style={{ padding: "8px" }}>
                                     {averageNdvi !== null ? averageNdvi.toFixed(2) : "N/A"}
                                 </td>
                                 <td style={{ padding: "8px", verticalAlign: "middle", textAlign: "center" }}>
                                     <AreaSnapshot 
                                         area={area}
                                         cloudTolerance={cloudTolerance}
-                                        visibleRange={visibleRange}
+                                        visibleRange={effectiveVisibleRange}
                                     />
                                 </td>
                                 <td style={{ padding: "8px" }}>
@@ -345,7 +361,7 @@ export default function AreasModePanel({
                 </table>
             )}
             
-            {visibleRange && displayData.length > 0 && displayData[0].length > 0 && (
+            {effectiveVisibleRange && displayData.length > 0 && displayData[0].length > 0 && (
                 <>
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line ref={chartRef} data={chartData} options={chartOptions} />

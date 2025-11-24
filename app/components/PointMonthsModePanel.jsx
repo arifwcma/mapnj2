@@ -43,11 +43,14 @@ export default function PointMonthsModePanel({
     selectedPoint,
     rectangleBounds,
     cloudTolerance,
-    onMonthChange
+    onMonthChange,
+    selectedMonths,
+    setSelectedMonths,
+    yAxisRange,
+    setYAxisRange
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
-    const [selectedMonths, setSelectedMonths] = useState([])
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -197,7 +200,6 @@ export default function PointMonthsModePanel({
         }
     }, [tableData])
     
-    const [yAxisRange, setYAxisRange] = useState("0-1")
     
     const chartOptions = useMemo(() => ({
         responsive: true,
@@ -260,26 +262,6 @@ export default function PointMonthsModePanel({
                 >
                     Add
                 </a>
-            </div>
-            
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", color: "#333" }}>
-                <div style={{
-                    width: "20px",
-                    height: "20px",
-                    border: `2px solid ${getColorForIndex(0)}`,
-                    borderRadius: "50%",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: "bold",
-                    color: getColorForIndex(0),
-                    backgroundColor: "white"
-                }}>
-                    1
-                </div>
-                <span>
-                    {selectedPoint.lat.toFixed(6)}, {selectedPoint.lon.toFixed(6)}
-                </span>
             </div>
             
             {tableData.length > 0 && (

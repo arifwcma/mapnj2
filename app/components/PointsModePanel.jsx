@@ -53,7 +53,14 @@ export default function PointsModePanel({
     rectangleBounds, 
     cloudTolerance,
     onMonthChange,
-    onRemovePoint 
+    onRemovePoint,
+    visibleRange,
+    setVisibleRange,
+    yAxisRange,
+    setYAxisRange,
+    onSharePointSnapshots,
+    pointSnapshotsOpen,
+    setPointSnapshotsOpen
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -63,14 +70,14 @@ export default function PointsModePanel({
     const chartRef = useRef(null)
     
     const {
-        visibleRange,
-        setVisibleRange,
+        visibleRange: effectiveVisibleRange,
+        setVisibleRange: effectiveSetVisibleRange,
         updateRangeForMonth,
         canGoLeft,
         canGoRight,
         handleLeftArrow,
         handleRightArrow
-    } = useVisibleRange(selectedYear, selectedMonth)
+    } = useVisibleRange(selectedYear, selectedMonth, visibleRange, setVisibleRange)
     
     useEffect(() => {
         pointDataMapsRef.current = pointDataMaps
@@ -85,15 +92,25 @@ export default function PointsModePanel({
     }, [])
     
     useEffect(() => {
-        updateRangeForMonth(selectedYear, selectedMonth)
-    }, [selectedYear, selectedMonth, updateRangeForMonth])
+        if (!effectiveVisibleRange) {
+            updateRangeForMonth(selectedYear, selectedMonth)
+        } else {
+            const startYear = effectiveVisibleRange.startMonth.year
+            const endYear = effectiveVisibleRange.endMonth.year
+            
+            if (selectedYear !== startYear && selectedYear !== endYear && 
+                !(startYear < selectedYear && selectedYear < endYear)) {
+                updateRangeForMonth(selectedYear, selectedMonth)
+            }
+        }
+    }, [selectedYear, selectedMonth, updateRangeForMonth, effectiveVisibleRange])
     
     useEffect(() => {
-        if (!visibleRange || selectedPoints.length === 0) {
+        if (!effectiveVisibleRange || selectedPoints.length === 0) {
             return
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         const monthKeys = months.map(m => monthKey(m.year, m.month))
         
         selectedPoints.forEach((point, index) => {
@@ -101,11 +118,36 @@ export default function PointsModePanel({
                 pointDataMaps[index].fetchMissingMonths(monthKeys)
             }
         })
-    }, [visibleRange, selectedPoints, pointDataMaps])
+    }, [effectiveVisibleRange, selectedPoints, pointDataMaps])
     
     useEffect(() => {
-        if (visibleRange && selectedPoints.length > 0 && previousDataMapsRef.current.length > 0) {
-            const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        if (!selectedYear || !selectedMonth || selectedPoints.length === 0) {
+            return
+        }
+        
+        const currentMonthKey = monthKey(selectedYear, selectedMonth)
+        const monthKeys = [currentMonthKey]
+        
+        if (effectiveVisibleRange) {
+            const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
+            const visibleMonthKeys = months.map(m => monthKey(m.year, m.month))
+            visibleMonthKeys.forEach(key => {
+                if (!monthKeys.includes(key)) {
+                    monthKeys.push(key)
+                }
+            })
+        }
+        
+        selectedPoints.forEach((point, index) => {
+            if (pointDataMaps[index]?.fetchMissingMonths) {
+                pointDataMaps[index].fetchMissingMonths(monthKeys)
+            }
+        })
+    }, [selectedYear, selectedMonth, selectedPoints, effectiveVisibleRange, pointDataMaps])
+    
+    useEffect(() => {
+        if (effectiveVisibleRange && selectedPoints.length > 0 && previousDataMapsRef.current.length > 0) {
+            const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
             
             selectedPoints.forEach((point, index) => {
                 const currentDataMap = pointDataMaps[index]?.dataMap
@@ -132,22 +174,22 @@ export default function PointsModePanel({
         previousDataMapsRef.current = pointDataMaps.map(obj => ({
             dataMap: obj?.dataMap ? new Map(obj.dataMap) : null
         }))
-    }, [pointDataMaps, visibleRange, selectedPoints, showToast])
+    }, [pointDataMaps, effectiveVisibleRange, selectedPoints, showToast])
     
     const displayData = useMemo(() => {
-        if (!visibleRange) {
+        if (!effectiveVisibleRange) {
             return selectedPoints.map(() => [])
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         return selectedPoints.map((point, index) => {
             const dataMap = pointDataMaps[index]?.dataMap || new Map()
             return months.map(m => buildDisplayDataItem(m, dataMap))
         })
-    }, [visibleRange, selectedPoints, pointDataMaps])
+    }, [effectiveVisibleRange, selectedPoints, pointDataMaps])
     
     const tableData = useMemo(() => {
-        if (!selectedYear || !selectedMonth || !visibleRange) {
+        if (!selectedYear || !selectedMonth || !effectiveVisibleRange) {
             return selectedPoints.map((point, index) => ({
                 point,
                 index,
@@ -156,7 +198,7 @@ export default function PointsModePanel({
             }))
         }
         
-        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
         return selectedPoints.map((point, index) => {
             const dataMap = pointDataMaps[index]?.dataMap || new Map()
             const monthValues = months.map(m => {
@@ -179,7 +221,7 @@ export default function PointsModePanel({
                 currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null
             }
         })
-    }, [selectedPoints, selectedYear, selectedMonth, pointDataMaps, visibleRange])
+    }, [selectedPoints, selectedYear, selectedMonth, pointDataMaps, effectiveVisibleRange])
     
     const chartData = useMemo(() => {
         if (displayData.length === 0 || displayData[0].length === 0) {
@@ -209,7 +251,6 @@ export default function PointsModePanel({
         return { labels, datasets }
     }, [displayData, selectedPoints])
     
-    const [yAxisRange, setYAxisRange] = useState("0-1")
     
     const chartOptions = useMemo(() => ({
         responsive: true,
@@ -261,7 +302,10 @@ export default function PointsModePanel({
                 <ComparePointSnapshots
                     selectedPoints={selectedPoints}
                     cloudTolerance={cloudTolerance}
-                    visibleRange={visibleRange}
+                    visibleRange={effectiveVisibleRange}
+                    onShare={onSharePointSnapshots}
+                    isOpen={pointSnapshotsOpen}
+                    setIsOpen={setPointSnapshotsOpen}
                 />
             )}
             
@@ -270,8 +314,6 @@ export default function PointsModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Latitude</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>Longitude</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
@@ -296,8 +338,6 @@ export default function PointsModePanel({
                                         {index + 1}
                                     </div>
                                 </td>
-                                <td style={{ padding: "8px" }}>{point.lat.toFixed(6)}</td>
-                                <td style={{ padding: "8px" }}>{point.lon.toFixed(6)}</td>
                                 <td style={{ padding: "8px" }}>
                                     {averageNdvi !== null ? averageNdvi.toFixed(2) : "N/A"}
                                 </td>
@@ -323,7 +363,7 @@ export default function PointsModePanel({
                 </table>
             )}
             
-            {visibleRange && displayData.length > 0 && displayData[0].length > 0 && (
+            {effectiveVisibleRange && displayData.length > 0 && displayData[0].length > 0 && (
                 <>
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line ref={chartRef} data={chartData} options={chartOptions} />

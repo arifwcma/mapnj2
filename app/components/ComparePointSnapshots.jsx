@@ -27,17 +27,28 @@ function getAllMonthsInRange(startMonth, endMonth) {
     return months
 }
 
-export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange }) {
+export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen }) {
     const [showPopup, setShowPopup] = useState(false)
+    const [shareLoading, setShareLoading] = useState(false)
+    const [shareUrl, setShareUrl] = useState("")
+    const [showShareModal, setShowShareModal] = useState(false)
+    const shareUrlInputRef = useRef(null)
+    
+    const isControlled = externalIsOpen !== undefined
+    const isOpen = isControlled ? externalIsOpen : showPopup
+    const setIsOpen = isControlled ? setExternalIsOpen : setShowPopup
+    
+    useEffect(() => {
+        if (isControlled && externalIsOpen !== undefined) {
+            setShowPopup(externalIsOpen)
+        }
+    }, [externalIsOpen, isControlled])
     const [ndviData, setNdviData] = useState({})
     const [loading, setLoading] = useState({})
-    const [isDragging, setIsDragging] = useState(false)
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-    const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
     const fetchedRef = useRef(new Set())
     
     useEffect(() => {
-        if (!showPopup || !visibleRange || selectedPoints.length === 0) {
+        if (!isOpen || !visibleRange || selectedPoints.length === 0) {
             fetchedRef.current.clear()
             return
         }
@@ -82,50 +93,61 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                     })
             })
         })
-    }, [showPopup, visibleRange, cloudTolerance, selectedPoints])
+    }, [isOpen, visibleRange, cloudTolerance, selectedPoints])
     
     const handleClose = () => {
-        setShowPopup(false)
+        setIsOpen(false)
         setNdviData({})
         setLoading({})
-        setPopupPosition({ x: 0, y: 0 })
         fetchedRef.current.clear()
     }
     
-    const handleMouseDown = (e) => {
-        if (e.target.closest('button') || e.target.closest('table')) {
-            return
+    const handleShare = async () => {
+        if (!onShare || shareLoading) return
+        setShowShareModal(true)
+        setShareLoading(true)
+        setShareUrl("")
+        try {
+            const token = await onShare(true)
+            if (token) {
+                const url = new URL(window.location.href)
+                url.searchParams.set('share', token)
+                const urlString = url.toString()
+                setShareUrl(urlString)
+            }
+        } catch (error) {
+            console.error('Error sharing:', error)
+            alert('Error creating share link. Please try again.')
+            setShowShareModal(false)
+        } finally {
+            setShareLoading(false)
         }
-        setIsDragging(true)
-        const rect = e.currentTarget.getBoundingClientRect()
-        setDragOffset({
-            x: e.clientX - rect.left - rect.width / 2,
-            y: e.clientY - rect.top - rect.height / 2
-        })
+    }
+    
+    const handleCopyFromModal = async () => {
+        if (shareUrlInputRef.current) {
+            shareUrlInputRef.current.select()
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(shareUrl)
+                    setShowShareModal(false)
+                } else {
+                    const successful = document.execCommand('copy')
+                    if (successful) {
+                        setShowShareModal(false)
+                    }
+                }
+            } catch (error) {
+                console.error('Copy failed:', error)
+            }
+        }
     }
     
     useEffect(() => {
-        if (!isDragging) return
-        
-        const handleMouseMove = (e) => {
-            setPopupPosition({
-                x: e.clientX - window.innerWidth / 2 - dragOffset.x,
-                y: e.clientY - window.innerHeight / 2 - dragOffset.y
-            })
+        if (showShareModal && shareUrl && shareUrlInputRef.current) {
+            shareUrlInputRef.current.select()
         }
-        
-        const handleMouseUp = () => {
-            setIsDragging(false)
-        }
-        
-        window.addEventListener('mousemove', handleMouseMove)
-        window.addEventListener('mouseup', handleMouseUp)
-        
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove)
-            window.removeEventListener('mouseup', handleMouseUp)
-        }
-    }, [isDragging, dragOffset])
+    }, [showShareModal, shareUrl])
     
     const months = visibleRange ? getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth) : []
     
@@ -137,7 +159,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
         <>
             <div style={{ marginBottom: "15px" }}>
                 <button
-                    onClick={() => setShowPopup(true)}
+                    onClick={() => setIsOpen(true)}
                     style={{
                         background: "none",
                         border: "none",
@@ -159,7 +181,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                 </button>
             </div>
             
-            {showPopup && (
+            {isOpen && (
                 <>
                     <div
                         style={{
@@ -178,7 +200,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             position: "fixed",
                             top: "50%",
                             left: "50%",
-                            transform: `translate(calc(-50% + ${popupPosition.x}px), calc(-50% + ${popupPosition.y}px))`,
+                            transform: "translate(-50%, -50%)",
                             backgroundColor: "white",
                             borderRadius: "8px",
                             padding: "20px",
@@ -189,7 +211,6 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             maxHeight: "95vh",
                             display: "flex",
                             flexDirection: "column",
-                            cursor: isDragging ? "grabbing" : "default"
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -199,27 +220,43 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                                 justifyContent: "space-between", 
                                 alignItems: "center", 
                                 marginBottom: "20px",
-                                cursor: "grab",
-                                userSelect: "none"
                             }}
-                            onMouseDown={handleMouseDown}
                         >
                             <div style={{ fontWeight: "bold" }}>
                                 Compare Snapshots
                             </div>
-                            <button
-                                onClick={handleClose}
-                                style={{
-                                    padding: "6px 12px",
-                                    cursor: "pointer",
-                                    backgroundColor: "#dc3545",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "4px"
-                                }}
-                            >
-                                Close
-                            </button>
+                            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                                {onShare && (
+                                    <a
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            handleShare()
+                                        }}
+                                        style={{
+                                            color: "#0066cc",
+                                            textDecoration: "underline",
+                                            cursor: "pointer",
+                                            fontSize: "14px"
+                                        }}
+                                    >
+                                        Share
+                                    </a>
+                                )}
+                                <button
+                                    onClick={handleClose}
+                                    style={{
+                                        padding: "6px 12px",
+                                        cursor: "pointer",
+                                        backgroundColor: "#dc3545",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "4px"
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                         
                         <div
@@ -321,7 +358,115 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             </table>
                         </div>
                     </div>
-                </>
+                </> 
+            )}
+            
+            {showShareModal && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 20000
+                    }}
+                    onClick={() => setShowShareModal(false)}
+                >
+                    <div
+                        style={{
+                            backgroundColor: "white",
+                            padding: "20px",
+                            borderRadius: "8px",
+                            maxWidth: "600px",
+                            width: "90%",
+                            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                            <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>Share Link</h3>
+                            <button
+                                onClick={() => setShowShareModal(false)}
+                                style={{
+                                    background: "none",
+                                    border: "none",
+                                    fontSize: "24px",
+                                    cursor: "pointer",
+                                    color: "#666",
+                                    padding: 0,
+                                    width: "30px",
+                                    height: "30px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        {shareLoading ? (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px" }}>
+                                <div
+                                    style={{
+                                        width: "40px",
+                                        height: "40px",
+                                        border: "4px solid #f3f3f3",
+                                        borderTop: "4px solid #0066cc",
+                                        borderRadius: "50%",
+                                        animation: "spin 1s linear infinite"
+                                    }}
+                                />
+                                <p style={{ marginTop: "15px", color: "#666", fontSize: "14px" }}>Creating share link...</p>
+                                <style>{`
+                                    @keyframes spin {
+                                        0% { transform: rotate(0deg); }
+                                        100% { transform: rotate(360deg); }
+                                    }
+                                `}</style>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ marginBottom: "15px" }}>
+                                    <input
+                                        ref={shareUrlInputRef}
+                                        type="text"
+                                        value={shareUrl}
+                                        readOnly
+                                        style={{
+                                            width: "100%",
+                                            padding: "8px",
+                                            border: "1px solid #ccc",
+                                            borderRadius: "4px",
+                                            fontSize: "14px",
+                                            fontFamily: "monospace"
+                                        }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleCopyFromModal}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px",
+                                        backgroundColor: "#0066cc",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: "bold"
+                                    }}
+                                >
+                                    Copy URL
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
             )}
         </>
     )
