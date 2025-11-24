@@ -101,7 +101,35 @@ export function getAnalyticsSummary(startDate = null, endDate = null) {
     }))
     
     const sessionsStmt = db.prepare('SELECT COUNT(*) as count FROM analytics WHERE event_type = ?')
-    const totalSessions = sessionsStmt.get('session_started').count
+    const sessionResult = sessionsStmt.get('session_started')
+    const totalSessions = sessionResult ? sessionResult.count : 0
+    
+    let topUsers = []
+    try {
+        const topUsersStmt = db.prepare(`
+            SELECT data FROM analytics 
+            WHERE event_type = 'session_started' 
+            AND data IS NOT NULL
+        `)
+        const sessionStartedEvents = topUsersStmt.all()
+        const ipCounts = {}
+        
+        sessionStartedEvents.forEach(row => {
+            try {
+                const data = JSON.parse(row.data)
+                const ip = data.ip || 'Unknown'
+                ipCounts[ip] = (ipCounts[ip] || 0) + 1
+            } catch {
+            }
+        })
+        
+        topUsers = Object.entries(ipCounts)
+            .map(([ip, count]) => ({ ip, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10)
+    } catch {
+        topUsers = []
+    }
     
     const sessionDurationsStmt = db.prepare(`
         SELECT data FROM analytics 
@@ -127,6 +155,7 @@ export function getAnalyticsSummary(startDate = null, endDate = null) {
         events7d,
         events30d,
         topEvents,
+        topUsers,
         totalSessions,
         avgSessionDuration
     }
@@ -235,6 +264,11 @@ export function getAnalyticsForExport(options = {}) {
         })() : null,
         timestamp: row.timestamp
     }))
+}
+
+export function clearAllAnalytics() {
+    const stmt = db.prepare('DELETE FROM analytics')
+    stmt.run()
 }
 
 export default db

@@ -85,6 +85,21 @@ export default function AdminDashboard() {
         setRefreshing(false)
     }, [loadSummary, loadEvents, currentPage])
     
+    const handleClear = useCallback(async () => {
+        if (!window.confirm("Are you sure you want to clear all analytics data? This action cannot be undone.")) {
+            return
+        }
+        
+        try {
+            const response = await fetch("/api/admin/analytics/clear", { method: "POST" })
+            if (response.ok) {
+                await Promise.all([loadSummary(), loadEvents(1)])
+            }
+        } catch (error) {
+            console.error("Clear failed:", error)
+        }
+    }, [loadSummary, loadEvents])
+    
     const handleLogout = useCallback(async () => {
         try {
             await fetch("/api/admin/logout", { method: "POST" })
@@ -93,6 +108,34 @@ export default function AdminDashboard() {
             console.error("Logout failed:", error)
         }
     }, [router])
+    
+    const formatEventType = useCallback((eventType) => {
+        return eventType
+            .split("_")
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ")
+    }, [])
+    
+    const handleCopyData = useCallback(async (data) => {
+        try {
+            const jsonString = JSON.stringify(data, null, 2)
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(jsonString)
+            } else {
+                const textArea = document.createElement("textarea")
+                textArea.value = jsonString
+                textArea.style.position = "fixed"
+                textArea.style.opacity = "0"
+                document.body.appendChild(textArea)
+                textArea.select()
+                document.execCommand("copy")
+                document.body.removeChild(textArea)
+            }
+            alert("Data copied to clipboard")
+        } catch (error) {
+            console.error("Copy failed:", error)
+        }
+    }, [])
     
     const handleExport = useCallback(async (format) => {
         try {
@@ -177,6 +220,19 @@ export default function AdminDashboard() {
                 <h1 style={{ fontSize: "28px", margin: 0 }}>Analytics Dashboard</h1>
                 <div style={{ display: "flex", gap: "10px" }}>
                     <button
+                        onClick={handleClear}
+                        style={{
+                            padding: "8px 16px",
+                            backgroundColor: "#ffc107",
+                            color: "#000",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer"
+                        }}
+                    >
+                        Clear
+                    </button>
+                    <button
                         onClick={handleRefresh}
                         disabled={refreshing}
                         style={{
@@ -237,6 +293,28 @@ export default function AdminDashboard() {
                 </div>
             )}
             
+            {summary?.topUsers && summary.topUsers.length > 0 && (
+                <div style={{ backgroundColor: "white", padding: "20px", borderRadius: "8px", border: "1px solid #dee2e6", marginBottom: "30px" }}>
+                    <h2 style={{ fontSize: "20px", marginBottom: "15px" }}>Top Users</h2>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                            <tr style={{ borderBottom: "2px solid #dee2e6" }}>
+                                <th style={{ padding: "10px", textAlign: "left" }}>IP Address</th>
+                                <th style={{ padding: "10px", textAlign: "right" }}>Sessions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {summary.topUsers.map((user, index) => (
+                                <tr key={index} style={{ borderBottom: "1px solid #dee2e6" }}>
+                                    <td style={{ padding: "10px" }}>{user.ip}</td>
+                                    <td style={{ padding: "10px", textAlign: "right" }}>{user.count.toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            
             {summary?.topEvents && summary.topEvents.length > 0 && (
                 <div style={{ backgroundColor: "white", padding: "20px", borderRadius: "8px", border: "1px solid #dee2e6", marginBottom: "30px" }}>
                     <h2 style={{ fontSize: "20px", marginBottom: "15px" }}>Top 10 Event Types</h2>
@@ -250,7 +328,7 @@ export default function AdminDashboard() {
                         <tbody>
                             {summary.topEvents.map((event, index) => (
                                 <tr key={index} style={{ borderBottom: "1px solid #dee2e6" }}>
-                                    <td style={{ padding: "10px" }}>{event.event_type}</td>
+                                    <td style={{ padding: "10px" }}>{formatEventType(event.event_type)}</td>
                                     <td style={{ padding: "10px", textAlign: "right" }}>{event.count.toLocaleString()}</td>
                                 </tr>
                             ))}
@@ -312,7 +390,7 @@ export default function AdminDashboard() {
                         >
                             <option value="">All Events</option>
                             {eventTypes.map(type => (
-                                <option key={type} value={type}>{type}</option>
+                                <option key={type} value={type}>{formatEventType(type)}</option>
                             ))}
                         </select>
                     </div>
@@ -355,25 +433,57 @@ export default function AdminDashboard() {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                         <tr style={{ borderBottom: "2px solid #dee2e6" }}>
-                            <th style={{ padding: "10px", textAlign: "left" }}>ID</th>
+                            <th style={{ padding: "10px", textAlign: "left" }}>IP</th>
                             <th style={{ padding: "10px", textAlign: "left" }}>Event Type</th>
                             <th style={{ padding: "10px", textAlign: "left" }}>Timestamp</th>
                             <th style={{ padding: "10px", textAlign: "left" }}>Data</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {events.map((event) => (
-                            <tr key={event.id} style={{ borderBottom: "1px solid #dee2e6" }}>
-                                <td style={{ padding: "10px" }}>{event.id}</td>
-                                <td style={{ padding: "10px" }}>{event.event_type}</td>
-                                <td style={{ padding: "10px" }}>
-                                    {new Date(event.timestamp).toLocaleString()}
-                                </td>
-                                <td style={{ padding: "10px", fontSize: "12px", maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {event.data ? JSON.stringify(event.data).substring(0, 100) : "-"}
-                                </td>
-                            </tr>
-                        ))}
+                        {events.map((event) => {
+                            let ip = "-"
+                            if (event.data) {
+                                if (typeof event.data === "object" && event.data.ip) {
+                                    ip = event.data.ip
+                                } else if (typeof event.data === "string") {
+                                    try {
+                                        const parsed = JSON.parse(event.data)
+                                        ip = parsed.ip || "-"
+                                    } catch {
+                                        ip = "-"
+                                    }
+                                }
+                            }
+                            return (
+                                <tr key={event.id} style={{ borderBottom: "1px solid #dee2e6" }}>
+                                    <td style={{ padding: "10px" }}>{ip === "Unknown" || ip === "-" ? ip : ip}</td>
+                                    <td style={{ padding: "10px" }}>{formatEventType(event.event_type)}</td>
+                                    <td style={{ padding: "10px" }}>
+                                        {new Date(event.timestamp).toLocaleString()}
+                                    </td>
+                                    <td style={{ padding: "10px" }}>
+                                        {event.data ? (
+                                            <a
+                                                href="#"
+                                                onClick={(e) => {
+                                                    e.preventDefault()
+                                                    handleCopyData(event.data)
+                                                }}
+                                                style={{
+                                                    color: "#0066cc",
+                                                    textDecoration: "underline",
+                                                    cursor: "pointer"
+                                                }}
+                                            >
+                                                Copy data
+                                            </a>
+                                        ) : (
+                                            "-"
+                                        )}
+                                    </td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                 </table>
                 
