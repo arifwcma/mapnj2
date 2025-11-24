@@ -280,8 +280,7 @@ export default function AreasModePanel({
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: true,
-                position: "top"
+                display: false
             },
             tooltip: {
                 mode: "index",
@@ -402,6 +401,46 @@ export default function AreasModePanel({
             
             {effectiveVisibleRange && displayData.length > 0 && displayData[0].length > 0 && (
                 <>
+                    <div style={{ 
+                        display: "flex", 
+                        justifyContent: "center", 
+                        alignItems: "center", 
+                        gap: "15px", 
+                        marginTop: "20px",
+                        marginBottom: "10px",
+                        flexWrap: "wrap"
+                    }}>
+                        {selectedAreas.map((area, index) => {
+                            const color = getColorForIndex(index)
+                            return (
+                                <div key={area.id} style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px"
+                                }}>
+                                    <div style={{
+                                        width: "20px",
+                                        height: "20px",
+                                        border: `2px solid ${color}`,
+                                        borderRadius: "50%",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: "bold",
+                                        color: color,
+                                        backgroundColor: "white"
+                                    }}>
+                                        {index + 1}
+                                    </div>
+                                    <div style={{
+                                        width: "40px",
+                                        height: "3px",
+                                        backgroundColor: color
+                                    }}></div>
+                                </div>
+                            )
+                        })}
+                    </div>
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line ref={chartRef} data={chartData} options={chartOptions} />
                     </div>
