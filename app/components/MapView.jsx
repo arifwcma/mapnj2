@@ -22,16 +22,8 @@ const Rectangle = dynamic(() => import("react-leaflet").then(m => m.Rectangle), 
 const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false })
 const Tooltip = dynamic(() => import("react-leaflet").then(m => m.Tooltip), { ssr: false })
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
-const TriangleMarker = dynamic(() => import("./TriangleMarker"), { ssr: false })
-const PointMonthsMarker = dynamic(() => import("./PointMonthsMarker"), { ssr: false })
+const IndexedMarker = dynamic(() => import("./IndexedMarker"), { ssr: false })
 
-let pointMonthsMarkerPreloaded = false
-function preloadPointMonthsMarker() {
-    if (!pointMonthsMarkerPreloaded && typeof window !== 'undefined') {
-        pointMonthsMarkerPreloaded = true
-        import("./PointMonthsMarker")
-    }
-}
 
 function FixMarkerIcon() {
     useEffect(() => {
@@ -243,11 +235,6 @@ function PointClickHandler({ isActive, onPointClick }) {
 }
 
 export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
-    useEffect(() => {
-        if (compareMode === "months" && analysisMode === "point") {
-            preloadPointMonthsMarker()
-        }
-    }, [compareMode, analysisMode])
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     
@@ -374,7 +361,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
             )}
             {selectedPoints && selectedPoints.length > 0 && selectedPoints.map((point, index) => (
-                <TriangleMarker
+                <IndexedMarker
                     key={point.id}
                     position={[point.lat, point.lon]}
                     color={getColorForIndex(index)}
@@ -383,8 +370,10 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             ))}
             {selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null && (
                 compareMode === "months" && analysisMode === "point" ? (
-                    <PointMonthsMarker 
+                    <IndexedMarker 
                         position={[selectedPoint.lat, selectedPoint.lon]}
+                        color={getColorForIndex(0)}
+                        index={0}
                     />
                 ) : !selectedPoints?.length ? (
                     <StaticMarker 
@@ -396,7 +385,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 const center = getAreaCenter(area)
                 if (!center) return null
                 return (
-                    <TriangleMarker
+                    <IndexedMarker
                         key={area.id}
                         position={[center.lat, center.lon]}
                         color={getColorForIndex(index)}
