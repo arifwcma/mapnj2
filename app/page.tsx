@@ -101,10 +101,10 @@ export default function Page() {
                             if (state.areaMonthsSelectedMonths) setAreaMonthsSelectedMonths(state.areaMonthsSelectedMonths)
                             if (state.pointsVisibleRange) setPointsVisibleRange(state.pointsVisibleRange)
                             if (state.areasVisibleRange) setAreasVisibleRange(state.areasVisibleRange)
-                            if (state.pointsYAxisRange) setPointsYAxisRange(state.pointsYAxisRange)
-                            if (state.areasYAxisRange) setAreasYAxisRange(state.areasYAxisRange)
-                            if (state.pointMonthsYAxisRange) setPointMonthsYAxisRange(state.pointMonthsYAxisRange)
-                            if (state.areaMonthsYAxisRange) setAreaMonthsYAxisRange(state.areaMonthsYAxisRange)
+                            if (state.pointsYAxisRange !== undefined) setPointsYAxisRange(state.pointsYAxisRange)
+                            if (state.areasYAxisRange !== undefined) setAreasYAxisRange(state.areasYAxisRange)
+                            if (state.pointMonthsYAxisRange !== undefined) setPointMonthsYAxisRange(state.pointMonthsYAxisRange)
+                            if (state.areaMonthsYAxisRange !== undefined) setAreaMonthsYAxisRange(state.areaMonthsYAxisRange)
                             if (state.currentZoom !== undefined && state.currentZoom !== null) {
                                 setCurrentZoom(state.currentZoom)
                             }

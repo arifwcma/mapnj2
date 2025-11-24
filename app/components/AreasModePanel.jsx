@@ -87,6 +87,14 @@ export default function AreasModePanel({
     useEffect(() => {
         if (!effectiveVisibleRange) {
             updateRangeForMonth(selectedYear, selectedMonth)
+        } else {
+            const startYear = effectiveVisibleRange.startMonth.year
+            const endYear = effectiveVisibleRange.endMonth.year
+            
+            if (selectedYear !== startYear && selectedYear !== endYear && 
+                !(startYear < selectedYear && selectedYear < endYear)) {
+                updateRangeForMonth(selectedYear, selectedMonth)
+            }
         }
     }, [selectedYear, selectedMonth, updateRangeForMonth, effectiveVisibleRange])
     
@@ -106,16 +114,21 @@ export default function AreasModePanel({
     }, [effectiveVisibleRange, selectedAreas, areaDataMaps])
     
     useEffect(() => {
-        if (!selectedYear || !selectedMonth || selectedAreas.length === 0 || !effectiveVisibleRange) {
+        if (!selectedYear || !selectedMonth || selectedAreas.length === 0) {
             return
         }
         
         const currentMonthKey = monthKey(selectedYear, selectedMonth)
-        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
-        const monthKeys = months.map(m => monthKey(m.year, m.month))
+        const monthKeys = [currentMonthKey]
         
-        if (!monthKeys.includes(currentMonthKey)) {
-            monthKeys.push(currentMonthKey)
+        if (effectiveVisibleRange) {
+            const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
+            const visibleMonthKeys = months.map(m => monthKey(m.year, m.month))
+            visibleMonthKeys.forEach(key => {
+                if (!monthKeys.includes(key)) {
+                    monthKeys.push(key)
+                }
+            })
         }
         
         selectedAreas.forEach((area, index) => {
