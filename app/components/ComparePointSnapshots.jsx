@@ -29,6 +29,7 @@ function getAllMonthsInRange(startMonth, endMonth) {
 
 export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen }) {
     const [showPopup, setShowPopup] = useState(false)
+    const [shareLoading, setShareLoading] = useState(false)
     
     const isControlled = externalIsOpen !== undefined
     const isOpen = isControlled ? externalIsOpen : showPopup
@@ -103,14 +104,20 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
     }
     
     const handleShare = async () => {
-        if (!onShare) return
-        const token = await onShare(true)
-        if (token) {
-            const url = new URL(window.location.href)
-            url.searchParams.set('share', token)
-            navigator.clipboard.writeText(url.toString()).then(() => {
+        if (!onShare || shareLoading) return
+        setShareLoading(true)
+        try {
+            const token = await onShare(true)
+            if (token) {
+                const url = new URL(window.location.href)
+                url.searchParams.set('share', token)
+                await navigator.clipboard.writeText(url.toString())
                 alert('Share link copied to clipboard!')
-            })
+            }
+        } catch (error) {
+            console.error('Error sharing:', error)
+        } finally {
+            setShareLoading(false)
         }
     }
     
@@ -229,21 +236,27 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             <div style={{ fontWeight: "bold" }}>
                                 Compare Snapshots
                             </div>
-                            <div style={{ display: "flex", gap: "10px" }}>
+                            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                                 {onShare && (
-                                    <button
-                                        onClick={handleShare}
-                                        style={{
-                                            padding: "6px 12px",
-                                            cursor: "pointer",
-                                            backgroundColor: "#0066cc",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: "4px"
-                                        }}
-                                    >
-                                        Share
-                                    </button>
+                                    shareLoading ? (
+                                        <span>Loading...</span>
+                                    ) : (
+                                        <a
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                handleShare()
+                                            }}
+                                            style={{
+                                                color: "#0066cc",
+                                                textDecoration: "underline",
+                                                cursor: "pointer",
+                                                fontSize: "14px"
+                                            }}
+                                        >
+                                            Share
+                                        </a>
+                                    )
                                 )}
                                 <button
                                     onClick={handleClose}
