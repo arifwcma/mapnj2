@@ -12,6 +12,9 @@ import { MAP_CENTER, MAP_ZOOM, MAP_STYLE, TILE_LAYER_STREET, TILE_LAYER_SATELLIT
 import { getAreaCenter } from "@/app/lib/bboxUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { useStatusMessage } from "./StatusMessage"
+import { preloadLeaflet } from "@/app/lib/leafletCache"
+
+preloadLeaflet()
 
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false })
@@ -21,6 +24,14 @@ const Tooltip = dynamic(() => import("react-leaflet").then(m => m.Tooltip), { ss
 const GeoJSON = dynamic(() => import("react-leaflet").then(m => m.GeoJSON), { ssr: false })
 const TriangleMarker = dynamic(() => import("./TriangleMarker"), { ssr: false })
 const PointMonthsMarker = dynamic(() => import("./PointMonthsMarker"), { ssr: false })
+
+let pointMonthsMarkerPreloaded = false
+function preloadPointMonthsMarker() {
+    if (!pointMonthsMarkerPreloaded && typeof window !== 'undefined') {
+        pointMonthsMarkerPreloaded = true
+        import("./PointMonthsMarker")
+    }
+}
 
 function FixMarkerIcon() {
     useEffect(() => {
@@ -232,6 +243,11 @@ function PointClickHandler({ isActive, onPointClick }) {
 }
 
 export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = null, selectedPoints = [], fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = null, selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = [], analysisMode = "point", compareMode = "points", onMapBoundsChange }) {
+    useEffect(() => {
+        if (compareMode === "months" && analysisMode === "point") {
+            preloadPointMonthsMarker()
+        }
+    }, [compareMode, analysisMode])
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     

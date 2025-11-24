@@ -1,17 +1,18 @@
 "use client"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Marker, Tooltip } from "react-leaflet"
 import { getColorForIndex } from "@/app/lib/colorUtils"
+import { getLeaflet } from "@/app/lib/leafletCache"
 
 export default function PointMonthsMarker({ position }) {
+    const [icon, setIcon] = useState(null)
     const markerRef = useRef(null)
     const color = getColorForIndex(0)
     
-    const icon = useMemo(() => {
-        if (typeof window === 'undefined') return null
-        try {
-            const L = require('leaflet')
-            return L.default.divIcon({
+    useEffect(() => {
+        getLeaflet().then((L) => {
+            if (!L) return
+            const circleIcon = L.divIcon({
                 className: "point-months-marker",
                 html: `
                     <div style="
@@ -31,10 +32,18 @@ export default function PointMonthsMarker({ position }) {
                 iconSize: [20, 20],
                 iconAnchor: [10, 10]
             })
-        } catch (e) {
-            return null
-        }
+            setIcon(circleIcon)
+            if (markerRef.current) {
+                markerRef.current.setIcon(circleIcon)
+            }
+        })
     }, [color])
+    
+    useEffect(() => {
+        if (markerRef.current && icon) {
+            markerRef.current.setIcon(icon)
+        }
+    }, [icon])
     
     useEffect(() => {
         if (markerRef.current && position) {

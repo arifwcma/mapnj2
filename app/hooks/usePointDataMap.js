@@ -7,8 +7,9 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
     const fetchingMonthsRef = useRef(new Set())
     const previousPointRef = useRef(null)
     const previousCloudToleranceRef = useRef(cloudTolerance)
+    const abortControllerRef = useRef(null)
 
-    const fetchSingleMonth = useCallback(async (year, month, pointLat, pointLon, pointType = "") => {
+    const fetchSingleMonth = useCallback(async (year, month, pointLat, pointLon, pointType = "", signal) => {
         if (!pointLat || !pointLon) {
             return null
         }
@@ -23,7 +24,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
 
         try {
             const url = `/api/ndvi/point/month?${params.toString()}`
-            const response = await fetch(url)
+            const response = await fetch(url, { signal })
 
             if (!response.ok) {
                 throw new Error("Failed to fetch month data")
@@ -32,12 +33,19 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             const data = await response.json()
             return data
         } catch (error) {
+            if (error.name === 'AbortError') {
+                return null
+            }
             console.error(`[HOOK] usePointDataMap - Error fetching NDVI for ${year}-${month}:`, error)
             return { year, month, ndvi: null }
         }
     }, [cloudTolerance])
 
     const reset = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+            abortControllerRef.current = null
+        }
         const emptyMap = new Map()
         setDataMap(emptyMap)
         dataMapRef.current = emptyMap
@@ -79,6 +87,12 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             return
         }
 
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
+        abortControllerRef.current = new AbortController()
+        const signal = abortControllerRef.current.signal
+
         const monthsToFetch = monthKeys
             .filter(key => {
                 if (fetchingMonthsRef.current.has(key)) {
@@ -108,7 +122,12 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             }
             
             try {
-                const result = await fetchSingleMonth(m.year, m.month, point.lat, point.lon, pointType)
+                const result = await fetchSingleMonth(m.year, m.month, point.lat, point.lon, pointType, signal)
+                
+                if (signal.aborted) {
+                    return null
+                }
+                
                 fetchingMonthsRef.current.delete(key)
                 
                 setDataMap(prev => {
@@ -123,8 +142,14 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
                 })
                 
                 return result
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return null
+                }
+                fetchingMonthsRef.current.delete(key)
+                throw error
             } finally {
-                if (requestTracker) {
+                if (requestTracker && !signal.aborted) {
                     requestTracker.unregisterRequest(requestKey)
                 }
             }
@@ -132,6 +157,14 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
 
         await Promise.allSettled(fetchPromises)
     }, [point, fetchSingleMonth, requestTracker])
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+            }
+        }
+    }, [])
 
     const isLoading = fetchingMonthsRef.current.size > 0
 
