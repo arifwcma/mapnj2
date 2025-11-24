@@ -12,6 +12,7 @@ import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
+import useAnalytics from "@/app/hooks/useAnalytics"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
 import NdviLegend from "./NdviLegend"
@@ -50,10 +51,12 @@ export default function PointMonthsModePanel({
     setYAxisRange
 }) {
     const requestTracker = useRequestTracker()
+    const { trackEvent } = useAnalytics()
     const [dataMap, setDataMap] = useState(null)
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
+    const previousYAxisRangeRef = useRef(yAxisRange)
     
     const currentMonth = getCurrentMonth()
     
@@ -90,8 +93,17 @@ export default function PointMonthsModePanel({
     }, [])
     
     const handleRemoveMonth = useCallback((year, month) => {
-        setSelectedMonths(prev => prev.filter(m => !(m.year === year && m.month === month)))
-    }, [])
+        setSelectedMonths(prev => {
+            const updated = prev.filter(m => !(m.year === year && m.month === month))
+            trackEvent("month_removed", {
+                year,
+                month,
+                analysis_mode: "point",
+                total_months: updated.length
+            })
+            return updated
+        })
+    }, [trackEvent])
     
     const addMonth = useCallback((year, month) => {
         const key = monthKey(year, month)
@@ -132,6 +144,13 @@ export default function PointMonthsModePanel({
         const success = addMonth(selectedYear, selectedMonth)
         
         if (success) {
+            trackEvent("month_added", {
+                year: selectedYear,
+                month: selectedMonth,
+                analysis_mode: "point",
+                total_months: selectedMonths.length + 1
+            })
+            
             const allMonths = getAllAvailableMonths()
             const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
             excludedKeys.add(addedKey)
@@ -144,7 +163,7 @@ export default function PointMonthsModePanel({
                 onMonthChange(nextAvailable.year, nextAvailable.month)
             }
         }
-    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange])
+    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange, trackEvent])
     
     const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)
@@ -311,7 +330,18 @@ export default function PointMonthsModePanel({
                     <div style={{ position: "relative", marginTop: "10px" }}>
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "0 10px" }}>
                             <button
-                                onClick={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
+                                onClick={() => {
+                                    const previousRange = previousYAxisRangeRef.current
+                                    const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                                    previousYAxisRangeRef.current = newRange
+                                    setYAxisRange(newRange)
+                                    trackEvent("y_axis_range_toggle", {
+                                        previous_range: previousRange,
+                                        new_range: newRange,
+                                        analysis_mode: "point",
+                                        compare_mode: "months"
+                                    })
+                                }}
                                 style={{
                                     padding: "8px 16px",
                                     cursor: "pointer",

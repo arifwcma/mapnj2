@@ -45,5 +45,197 @@ export function logAnalytics(eventType, data = null) {
     stmt.run(eventType, data ? JSON.stringify(data) : null, Date.now())
 }
 
+export function getAnalyticsSummary(startDate = null, endDate = null) {
+    let query = 'SELECT COUNT(*) as total FROM analytics'
+    let params = []
+    
+    if (startDate || endDate) {
+        const conditions = []
+        if (startDate) {
+            conditions.push('timestamp >= ?')
+            params.push(startDate)
+        }
+        if (endDate) {
+            conditions.push('timestamp <= ?')
+            params.push(endDate)
+        }
+        query += ' WHERE ' + conditions.join(' AND ')
+    }
+    
+    const totalStmt = db.prepare(query)
+    const total = totalStmt.get(...params).total
+    
+    const now = Date.now()
+    const day24h = now - 24 * 60 * 60 * 1000
+    const day7d = now - 7 * 24 * 60 * 60 * 1000
+    const day30d = now - 30 * 24 * 60 * 60 * 1000
+    
+    const events24hStmt = db.prepare('SELECT COUNT(*) as count FROM analytics WHERE timestamp >= ?')
+    const events7dStmt = db.prepare('SELECT COUNT(*) as count FROM analytics WHERE timestamp >= ?')
+    const events30dStmt = db.prepare('SELECT COUNT(*) as count FROM analytics WHERE timestamp >= ?')
+    
+    const events24h = events24hStmt.get(day24h).count
+    const events7d = events7dStmt.get(day7d).count
+    const events30d = events30dStmt.get(day30d).count
+    
+    let topEventsQuery = 'SELECT event_type, COUNT(*) as count FROM analytics'
+    const topEventsParams = []
+    if (startDate || endDate) {
+        const topEventsConditions = []
+        if (startDate) {
+            topEventsConditions.push('timestamp >= ?')
+            topEventsParams.push(startDate)
+        }
+        if (endDate) {
+            topEventsConditions.push('timestamp <= ?')
+            topEventsParams.push(endDate)
+        }
+        topEventsQuery += ' WHERE ' + topEventsConditions.join(' AND ')
+    }
+    topEventsQuery += ' GROUP BY event_type ORDER BY count DESC LIMIT 10'
+    
+    const topEventsStmt = db.prepare(topEventsQuery)
+    const topEvents = topEventsStmt.all(...topEventsParams).map(row => ({
+        event_type: row.event_type,
+        count: row.count
+    }))
+    
+    const sessionsStmt = db.prepare('SELECT COUNT(*) as count FROM analytics WHERE event_type = ?')
+    const totalSessions = sessionsStmt.get('session_started').count
+    
+    const sessionDurationsStmt = db.prepare(`
+        SELECT data FROM analytics 
+        WHERE event_type = 'session_ended' 
+        AND data IS NOT NULL
+    `)
+    const sessionDurations = sessionDurationsStmt.all().map(row => {
+        try {
+            const data = JSON.parse(row.data)
+            return data.session_duration || 0
+        } catch {
+            return 0
+        }
+    })
+    
+    const avgSessionDuration = sessionDurations.length > 0
+        ? Math.round(sessionDurations.reduce((a, b) => a + b, 0) / sessionDurations.length)
+        : 0
+    
+    return {
+        totalEvents: total,
+        events24h,
+        events7d,
+        events30d,
+        topEvents,
+        totalSessions,
+        avgSessionDuration
+    }
+}
+
+export function getAnalyticsEvents(options = {}) {
+    const {
+        page = 1,
+        limit = 50,
+        eventType = null,
+        startDate = null,
+        endDate = null
+    } = options
+    
+    const offset = (page - 1) * limit
+    const conditions = []
+    const params = []
+    
+    if (eventType) {
+        conditions.push('event_type = ?')
+        params.push(eventType)
+    }
+    if (startDate) {
+        conditions.push('timestamp >= ?')
+        params.push(startDate)
+    }
+    if (endDate) {
+        conditions.push('timestamp <= ?')
+        params.push(endDate)
+    }
+    
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
+    
+    const countStmt = db.prepare(`SELECT COUNT(*) as total FROM analytics ${whereClause}`)
+    const total = countStmt.get(...params).total
+    
+    const eventsStmt = db.prepare(`
+        SELECT id, event_type, data, timestamp 
+        FROM analytics 
+        ${whereClause}
+        ORDER BY timestamp DESC 
+        LIMIT ? OFFSET ?
+    `)
+    const events = eventsStmt.all(...params, limit, offset).map(row => ({
+        id: row.id,
+        event_type: row.event_type,
+        data: row.data ? (() => {
+            try {
+                return JSON.parse(row.data)
+            } catch {
+                return row.data
+            }
+        })() : null,
+        timestamp: row.timestamp
+    }))
+    
+    return {
+        events,
+        total,
+        page,
+        limit
+    }
+}
+
+export function getAnalyticsForExport(options = {}) {
+    const {
+        eventType = null,
+        startDate = null,
+        endDate = null
+    } = options
+    
+    const conditions = []
+    const params = []
+    
+    if (eventType) {
+        conditions.push('event_type = ?')
+        params.push(eventType)
+    }
+    if (startDate) {
+        conditions.push('timestamp >= ?')
+        params.push(startDate)
+    }
+    if (endDate) {
+        conditions.push('timestamp <= ?')
+        params.push(endDate)
+    }
+    
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
+    
+    const stmt = db.prepare(`
+        SELECT id, event_type, data, timestamp 
+        FROM analytics 
+        ${whereClause}
+        ORDER BY timestamp DESC
+    `)
+    
+    return stmt.all(...params).map(row => ({
+        id: row.id,
+        event_type: row.event_type,
+        data: row.data ? (() => {
+            try {
+                return JSON.parse(row.data)
+            } catch {
+                return row.data
+            }
+        })() : null,
+        timestamp: row.timestamp
+    }))
+}
+
 export default db
 

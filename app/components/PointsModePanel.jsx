@@ -13,6 +13,7 @@ import { buildDisplayDataItem, registerChartJS } from "@/app/lib/chartUtils"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { isMonthInFuture, shouldUseMODISForMonth } from "@/app/lib/monthUtils"
 import useVisibleRange from "@/app/hooks/useVisibleRange"
+import useAnalytics from "@/app/hooks/useAnalytics"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import ChartNavigation from "./ChartNavigation"
 import PointSnapshot from "./PointSnapshot"
@@ -65,11 +66,14 @@ export default function PointsModePanel({
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
+    const { trackEvent } = useAnalytics()
     const [pointDataMaps, setPointDataMaps] = useState([])
     const pointDataMapsRef = useRef([])
     const previousDataMapsRef = useRef([])
     const chartRef = useRef(null)
     const [hiddenDatasets, setHiddenDatasets] = useState(new Set())
+    const previousYAxisRangeRef = useRef(yAxisRange)
+    const chartNavDebounceRef = useRef(null)
     
     const {
         visibleRange: effectiveVisibleRange,
@@ -77,9 +81,43 @@ export default function PointsModePanel({
         updateRangeForMonth,
         canGoLeft,
         canGoRight,
-        handleLeftArrow,
-        handleRightArrow
+        handleLeftArrow: originalHandleLeftArrow,
+        handleRightArrow: originalHandleRightArrow
     } = useVisibleRange(selectedYear, selectedMonth, visibleRange, setVisibleRange)
+    
+    const handleLeftArrow = useCallback(() => {
+        originalHandleLeftArrow()
+        if (chartNavDebounceRef.current) {
+            clearTimeout(chartNavDebounceRef.current)
+        }
+        chartNavDebounceRef.current = setTimeout(() => {
+            if (effectiveVisibleRange) {
+                trackEvent("chart_navigation_left", {
+                    visible_range_start: effectiveVisibleRange.startMonth,
+                    visible_range_end: effectiveVisibleRange.endMonth,
+                    analysis_mode: "point",
+                    compare_mode: "points"
+                })
+            }
+        }, 1000)
+    }, [originalHandleLeftArrow, effectiveVisibleRange, trackEvent])
+    
+    const handleRightArrow = useCallback(() => {
+        originalHandleRightArrow()
+        if (chartNavDebounceRef.current) {
+            clearTimeout(chartNavDebounceRef.current)
+        }
+        chartNavDebounceRef.current = setTimeout(() => {
+            if (effectiveVisibleRange) {
+                trackEvent("chart_navigation_right", {
+                    visible_range_start: effectiveVisibleRange.startMonth,
+                    visible_range_end: effectiveVisibleRange.endMonth,
+                    analysis_mode: "point",
+                    compare_mode: "points"
+                })
+            }
+        }, 1000)
+    }, [originalHandleRightArrow, effectiveVisibleRange, trackEvent])
     
     useEffect(() => {
         pointDataMapsRef.current = pointDataMaps
@@ -310,7 +348,19 @@ export default function PointsModePanel({
                     visibleRange={effectiveVisibleRange}
                     onShare={onSharePointSnapshots}
                     isOpen={pointSnapshotsOpen}
-                    setIsOpen={setPointSnapshotsOpen}
+                    setIsOpen={(open) => {
+                        setPointSnapshotsOpen(open)
+                        if (open) {
+                            trackEvent("snapshot_modal_opened", {
+                                snapshot_type: "point",
+                                item_count: selectedPoints.length
+                            })
+                        } else {
+                            trackEvent("snapshot_modal_closed", {
+                                snapshot_type: "point"
+                            })
+                        }
+                    }}
                 />
             )}
             
@@ -440,7 +490,18 @@ export default function PointsModePanel({
                         onLeftClick={handleLeftArrow}
                         onRightClick={handleRightArrow}
                         yAxisRange={yAxisRange}
-                        onYAxisToggle={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
+                        onYAxisToggle={() => {
+                            const previousRange = previousYAxisRangeRef.current
+                            const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                            previousYAxisRangeRef.current = newRange
+                            setYAxisRange(newRange)
+                            trackEvent("y_axis_range_toggle", {
+                                previous_range: previousRange,
+                                new_range: newRange,
+                                analysis_mode: "point",
+                                compare_mode: "points"
+                            })
+                        }}
                     />
                     <NdviLegend />
                 </>
