@@ -163,30 +163,39 @@ export default function AreasModePanel({
     }, [visibleRange, selectedAreas, areaDataMaps])
     
     const tableData = useMemo(() => {
-        if (!selectedYear || !selectedMonth) {
-            return selectedAreas.map((area, index) => {
-                return {
-                    area,
-                    index,
-                    averageNdvi: null,
-                    currentNdvi: null
-                }
-            })
+        if (!selectedYear || !selectedMonth || !visibleRange) {
+            return selectedAreas.map((area, index) => ({
+                area,
+                index,
+                averageNdvi: null,
+                currentNdvi: null
+            }))
         }
         
+        const months = getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth)
         return selectedAreas.map((area, index) => {
             const dataMap = areaDataMaps[index]?.dataMap || new Map()
+            const monthValues = months.map(m => {
+                const key = monthKey(m.year, m.month)
+                const value = dataMap.get(key)
+                return value
+            }).filter(v => v !== null && v !== undefined)
+            
+            const avg = monthValues.length > 0 
+                ? monthValues.reduce((sum, val) => sum + val, 0) / monthValues.length 
+                : null
+            
             const currentMonthKey = monthKey(selectedYear, selectedMonth)
             const currentNdvi = dataMap.get(currentMonthKey)
             
             return {
                 area,
                 index,
-                averageNdvi: currentNdvi !== null && currentNdvi !== undefined ? parseFloat(currentNdvi.toFixed(2)) : null,
+                averageNdvi: avg !== null ? parseFloat(avg.toFixed(2)) : null,
                 currentNdvi: currentNdvi !== null && currentNdvi !== undefined ? currentNdvi : null
             }
         })
-    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps])
+    }, [selectedAreas, selectedYear, selectedMonth, areaDataMaps, visibleRange])
     
     const chartData = useMemo(() => {
         if (displayData.length === 0 || displayData[0].length === 0) {
