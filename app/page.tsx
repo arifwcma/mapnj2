@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import MapView from "@/app/components/MapView"
 import BasemapSelector from "@/app/components/BasemapSelector"
@@ -26,7 +26,7 @@ import { useStatusMessage } from "@/app/components/StatusMessage"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { DEBOUNCE_DELAYS } from "@/app/lib/config"
 
-export default function Page() {
+function PageContent() {
     const [basemap, setBasemap] = useState("street")
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
@@ -673,3 +673,10 @@ export default function Page() {
     )
 }
 
+export default function Page() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <PageContent />
+        </Suspense>
+    )
+}
