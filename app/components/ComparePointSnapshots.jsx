@@ -107,8 +107,41 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
             if (token) {
                 const url = new URL(window.location.href)
                 url.searchParams.set('share', token)
-                await navigator.clipboard.writeText(url.toString())
-                alert('Share link copied to clipboard!')
+                const urlString = url.toString()
+                try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(urlString)
+                        alert('Share link copied to clipboard!')
+                    } else {
+                        const textArea = document.createElement('textarea')
+                        textArea.value = urlString
+                        textArea.style.position = 'fixed'
+                        textArea.style.left = '-999999px'
+                        document.body.appendChild(textArea)
+                        textArea.select()
+                        const successful = document.execCommand('copy')
+                        document.body.removeChild(textArea)
+                        if (successful) {
+                            alert('Share link copied to clipboard!')
+                        } else {
+                            alert('Failed to copy. Please copy manually: ' + urlString)
+                        }
+                    }
+                } catch (clipboardError) {
+                    const textArea = document.createElement('textarea')
+                    textArea.value = urlString
+                    textArea.style.position = 'fixed'
+                    textArea.style.left = '-999999px'
+                    document.body.appendChild(textArea)
+                    textArea.select()
+                    const successful = document.execCommand('copy')
+                    document.body.removeChild(textArea)
+                    if (successful) {
+                        alert('Share link copied to clipboard!')
+                    } else {
+                        alert('Failed to copy. Please copy manually: ' + urlString)
+                    }
+                }
             }
         } catch (error) {
             console.error('Error sharing:', error)

@@ -29,13 +29,32 @@ export default function ShareButton({ onShare }) {
         }
     }
 
-    const handleCopy = () => {
+    const handleCopy = async () => {
         if (urlInputRef.current) {
             urlInputRef.current.select()
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                setCopied(true)
-                setTimeout(() => setCopied(false), 2000)
-            })
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(shareUrl)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                } else {
+                    const successful = document.execCommand('copy')
+                    if (successful) {
+                        setCopied(true)
+                        setTimeout(() => setCopied(false), 2000)
+                    } else {
+                        alert('Failed to copy. Please select and copy manually.')
+                    }
+                }
+            } catch (err) {
+                const successful = document.execCommand('copy')
+                if (successful) {
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                } else {
+                    alert('Failed to copy. Please select and copy manually.')
+                }
+            }
         }
     }
 
