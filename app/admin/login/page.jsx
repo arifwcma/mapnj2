@@ -26,8 +26,11 @@ export default function AdminLoginPage() {
             
             const data = await response.json()
             
+            console.log("Login response:", { success: data.success, error: data.error, status: response.status })
+            
             if (data.success) {
                 router.push("/admin")
+                router.refresh()
             } else {
                 setError(data.error || "Invalid credentials")
             }

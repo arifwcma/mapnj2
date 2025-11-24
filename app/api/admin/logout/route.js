@@ -3,10 +3,12 @@ import { cookies } from "next/headers"
 
 const SESSION_COOKIE_NAME = "admin_session"
 
-export async function POST() {
+export async function POST(request) {
     try {
         const cookieStore = await cookies()
-        cookieStore.delete(SESSION_COOKIE_NAME)
+        cookieStore.delete(SESSION_COOKIE_NAME, {
+            path: "/"
+        })
         
         return NextResponse.json({ success: true })
     } catch (error) {
