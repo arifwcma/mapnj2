@@ -108,6 +108,9 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                 const url = new URL(window.location.href)
                 url.searchParams.set('share', token)
                 const urlString = url.toString()
+                
+                await new Promise(resolve => setTimeout(resolve, 100))
+                
                 try {
                     if (navigator.clipboard && window.isSecureContext) {
                         await navigator.clipboard.writeText(urlString)
@@ -116,9 +119,20 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                         const textArea = document.createElement('textarea')
                         textArea.value = urlString
                         textArea.style.position = 'fixed'
-                        textArea.style.left = '-999999px'
+                        textArea.style.top = '0'
+                        textArea.style.left = '0'
+                        textArea.style.width = '2em'
+                        textArea.style.height = '2em'
+                        textArea.style.padding = '0'
+                        textArea.style.border = 'none'
+                        textArea.style.outline = 'none'
+                        textArea.style.boxShadow = 'none'
+                        textArea.style.background = 'transparent'
+                        textArea.setAttribute('readonly', '')
                         document.body.appendChild(textArea)
+                        textArea.focus()
                         textArea.select()
+                        textArea.setSelectionRange(0, 99999)
                         const successful = document.execCommand('copy')
                         document.body.removeChild(textArea)
                         if (successful) {
@@ -131,9 +145,20 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                     const textArea = document.createElement('textarea')
                     textArea.value = urlString
                     textArea.style.position = 'fixed'
-                    textArea.style.left = '-999999px'
+                    textArea.style.top = '0'
+                    textArea.style.left = '0'
+                    textArea.style.width = '2em'
+                    textArea.style.height = '2em'
+                    textArea.style.padding = '0'
+                    textArea.style.border = 'none'
+                    textArea.style.outline = 'none'
+                    textArea.style.boxShadow = 'none'
+                    textArea.style.background = 'transparent'
+                    textArea.setAttribute('readonly', '')
                     document.body.appendChild(textArea)
+                    textArea.focus()
                     textArea.select()
+                    textArea.setSelectionRange(0, 99999)
                     const successful = document.execCommand('copy')
                     document.body.removeChild(textArea)
                     if (successful) {
@@ -145,6 +170,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
             }
         } catch (error) {
             console.error('Error sharing:', error)
+            alert('Error creating share link. Please try again.')
         } finally {
             setShareLoading(false)
         }
