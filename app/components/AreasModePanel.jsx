@@ -60,7 +60,8 @@ export default function AreasModePanel({
     setYAxisRange,
     onShareAreaSnapshots,
     areaSnapshotsOpen,
-    setAreaSnapshotsOpen
+    setAreaSnapshotsOpen,
+    onFocusArea
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -321,18 +322,22 @@ export default function AreasModePanel({
                         {tableData.map(({ area, index, averageNdvi, currentNdvi }) => (
                             <tr key={area.id} style={{ borderBottom: "1px solid #eee" }}>
                                 <td style={{ padding: "8px" }}>
-                                    <div style={{
-                                        width: "20px",
-                                        height: "20px",
-                                        border: `2px solid ${getColorForIndex(index)}`,
-                                        borderRadius: "50%",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontWeight: "bold",
-                                        color: getColorForIndex(index),
-                                        backgroundColor: "white"
-                                    }}>
+                                    <div 
+                                        onClick={() => onFocusArea && onFocusArea(index)}
+                                        style={{
+                                            width: "20px",
+                                            height: "20px",
+                                            border: `2px solid ${getColorForIndex(index)}`,
+                                            borderRadius: "50%",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontWeight: "bold",
+                                            color: getColorForIndex(index),
+                                            backgroundColor: "white",
+                                            cursor: "pointer"
+                                        }}
+                                    >
                                         {index + 1}
                                     </div>
                                 </td>

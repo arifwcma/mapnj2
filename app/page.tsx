@@ -53,6 +53,8 @@ function PageContent() {
     const [restoredBounds, setRestoredBounds] = useState<[[number, number], [number, number]] | null>(null)
     const [pointSnapshotsOpen, setPointSnapshotsOpen] = useState(false)
     const [areaSnapshotsOpen, setAreaSnapshotsOpen] = useState(false)
+    const [focusPointIndex, setFocusPointIndex] = useState<number | null>(null)
+    const [focusAreaIndex, setFocusAreaIndex] = useState<number | null>(null)
     
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -598,6 +600,8 @@ function PageContent() {
                     onMapBoundsChange={setMapBounds}
                     initialZoom={restoredZoom}
                     initialBounds={restoredBounds}
+                    focusPointIndex={focusPointIndex}
+                    focusAreaIndex={focusAreaIndex}
                 />
             </div>
             
@@ -618,6 +622,10 @@ function PageContent() {
                         onSharePointSnapshots={handleSharePointSnapshots}
                         pointSnapshotsOpen={pointSnapshotsOpen}
                         setPointSnapshotsOpen={setPointSnapshotsOpen}
+                        onFocusPoint={(index) => {
+                            setFocusPointIndex(index)
+                            setTimeout(() => setFocusPointIndex(null), 100)
+                        }}
                     />
                 )}
                 
@@ -650,6 +658,10 @@ function PageContent() {
                         onShareAreaSnapshots={handleShareAreaSnapshots}
                         areaSnapshotsOpen={areaSnapshotsOpen}
                         setAreaSnapshotsOpen={setAreaSnapshotsOpen}
+                        onFocusArea={(index) => {
+                            setFocusAreaIndex(index)
+                            setTimeout(() => setFocusAreaIndex(null), 100)
+                        }}
                     />
                 )}
                 

@@ -259,6 +259,16 @@ function ZoomToRectangle({ bounds }) {
     return null
 }
 
+function PanToLocation({ position }) {
+    const map = useMap()
+    useEffect(() => {
+        if (position && map) {
+            map.panTo(position)
+        }
+    }, [position, map])
+    return null
+}
+
 function ZoomTracker({ onZoomChange }) {
     const map = useMap()
     
@@ -313,7 +323,7 @@ function PointClickHandler({ isActive, onPointClick }) {
 const EMPTY_POINTS_ARRAY = /** @type {Array<{ id: string, lat: number, lon: number }>} */ ([])
 const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field' }>} */ ([])
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null) }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null) }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     
@@ -487,6 +497,14 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 onFieldClick={onFieldClick}
                 currentZoom={currentZoom}
             />
+            {focusPointIndex !== null && focusPointIndex >= 0 && focusPointIndex < selectedPoints.length && (
+                <PanToLocation position={[selectedPoints[focusPointIndex].lat, selectedPoints[focusPointIndex].lon]} />
+            )}
+            {focusAreaIndex !== null && focusAreaIndex >= 0 && focusAreaIndex < selectedAreas.length && (() => {
+                const area = selectedAreas[focusAreaIndex]
+                const center = getAreaCenter(area)
+                return center ? <PanToLocation position={[center.lat, center.lon]} /> : null
+            })()}
         </MapContainer>
     )
 }
