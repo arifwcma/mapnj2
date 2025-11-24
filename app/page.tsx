@@ -179,7 +179,7 @@ export default function Page() {
             console.error('Error saving share:', error)
             return null
         }
-    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange])
+    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange, pointsYAxisRange, areasYAxisRange, pointMonthsYAxisRange, areaMonthsYAxisRange, currentZoom, mapBounds])
     
     const { fieldsData, fieldsLoading, loadFieldsForBounds } = useFields()
     
