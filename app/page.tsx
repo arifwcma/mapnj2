@@ -45,6 +45,10 @@ export default function Page() {
     const [areaMonthsSelectedMonths, setAreaMonthsSelectedMonths] = useState<Array<{ year: number, month: number }>>([])
     const [pointsVisibleRange, setPointsVisibleRange] = useState<{ startMonth: { year: number, month: number }, endMonth: { year: number, month: number } } | null>(null)
     const [areasVisibleRange, setAreasVisibleRange] = useState<{ startMonth: { year: number, month: number }, endMonth: { year: number, month: number } } | null>(null)
+    const [pointsYAxisRange, setPointsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [areasYAxisRange, setAreasYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [pointMonthsYAxisRange, setPointMonthsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
+    const [areaMonthsYAxisRange, setAreaMonthsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
     const [shouldRestoreMap, setShouldRestoreMap] = useState(false)
     
     const searchParams = useSearchParams()
@@ -97,6 +101,10 @@ export default function Page() {
                             if (state.areaMonthsSelectedMonths) setAreaMonthsSelectedMonths(state.areaMonthsSelectedMonths)
                             if (state.pointsVisibleRange) setPointsVisibleRange(state.pointsVisibleRange)
                             if (state.areasVisibleRange) setAreasVisibleRange(state.areasVisibleRange)
+                            if (state.pointsYAxisRange) setPointsYAxisRange(state.pointsYAxisRange)
+                            if (state.areasYAxisRange) setAreasYAxisRange(state.areasYAxisRange)
+                            if (state.pointMonthsYAxisRange) setPointMonthsYAxisRange(state.pointMonthsYAxisRange)
+                            if (state.areaMonthsYAxisRange) setAreaMonthsYAxisRange(state.areaMonthsYAxisRange)
                             if (state.currentZoom !== undefined && state.currentZoom !== null) {
                                 setCurrentZoom(state.currentZoom)
                             }
@@ -149,6 +157,10 @@ export default function Page() {
             areaMonthsSelectedMonths,
             pointsVisibleRange,
             areasVisibleRange,
+            pointsYAxisRange,
+            areasYAxisRange,
+            pointMonthsYAxisRange,
+            areaMonthsYAxisRange,
             currentZoom,
             mapBounds
         }
@@ -583,6 +595,8 @@ export default function Page() {
                         onRemovePoint={handleRemovePoint}
                         visibleRange={pointsVisibleRange}
                         setVisibleRange={setPointsVisibleRange}
+                        yAxisRange={pointsYAxisRange}
+                        setYAxisRange={setPointsYAxisRange}
                     />
                 )}
                 
@@ -594,6 +608,8 @@ export default function Page() {
                         onMonthChange={handleMonthChange}
                         selectedMonths={pointMonthsSelectedMonths}
                         setSelectedMonths={setPointMonthsSelectedMonths}
+                        yAxisRange={pointMonthsYAxisRange}
+                        setYAxisRange={setPointMonthsYAxisRange}
                     />
                 )}
                 
@@ -608,6 +624,8 @@ export default function Page() {
                         onRemoveArea={(index: number) => setSelectedAreas(prev => prev.filter((_, i) => i !== index))}
                         visibleRange={areasVisibleRange}
                         setVisibleRange={setAreasVisibleRange}
+                        yAxisRange={areasYAxisRange}
+                        setYAxisRange={setAreasYAxisRange}
                     />
                 )}
                 
@@ -619,6 +637,8 @@ export default function Page() {
                         onMonthChange={handleMonthChange}
                         selectedMonths={areaMonthsSelectedMonths}
                         setSelectedMonths={setAreaMonthsSelectedMonths}
+                        yAxisRange={areaMonthsYAxisRange}
+                        setYAxisRange={setAreaMonthsYAxisRange}
                     />
                 )}
             </div>

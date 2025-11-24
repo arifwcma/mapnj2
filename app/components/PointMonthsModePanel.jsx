@@ -45,7 +45,9 @@ export default function PointMonthsModePanel({
     cloudTolerance,
     onMonthChange,
     selectedMonths,
-    setSelectedMonths
+    setSelectedMonths,
+    yAxisRange,
+    setYAxisRange
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
@@ -198,7 +200,6 @@ export default function PointMonthsModePanel({
         }
     }, [tableData])
     
-    const [yAxisRange, setYAxisRange] = useState("0-1")
     
     const chartOptions = useMemo(() => ({
         responsive: true,

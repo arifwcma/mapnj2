@@ -48,7 +48,9 @@ export default function AreaMonthsModePanel({
     cloudTolerance,
     onMonthChange,
     selectedMonths,
-    setSelectedMonths
+    setSelectedMonths,
+    yAxisRange,
+    setYAxisRange
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
@@ -211,7 +213,6 @@ export default function AreaMonthsModePanel({
         }
     }, [tableData])
     
-    const [yAxisRange, setYAxisRange] = useState("0-1")
     
     const chartOptions = useMemo(() => ({
         responsive: true,

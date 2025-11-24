@@ -47,3 +47,13 @@
 
 11. When I say "@DC" (or "DC") - it means:
    - "Don't change code - just talking"
+
+12. SHARE FEATURE REQUIREMENT:
+   - Any new feature or state that affects the user's view/analysis must be included in the Share functionality
+   - When adding new features, ensure:
+     a) State is lifted to page.tsx if it needs to be shareable
+     b) State is added to handleShare() serialization in page.tsx
+     c) State is restored in the share URL loading useEffect in page.tsx
+     d) State is passed as props to relevant components
+   - Examples of shareable state: UI preferences, selected filters, chart settings, visible ranges, zoom levels, map bounds
+   - If unsure whether something should be shareable, ask the user
