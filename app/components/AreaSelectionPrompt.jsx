@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useLayoutEffect, useRef } from "react"
+import { useEffect, useLayoutEffect, useRef, useMemo } from "react"
 import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { useStatusMessage } from "./StatusMessage"
@@ -14,7 +14,9 @@ export default function AreaSelectionPrompt({
     currentZoom,
     fieldsData
 }) {
-    const getMessage = () => {
+    const fieldsFeaturesLength = fieldsData?.features?.length ?? 0
+    
+    const message = useMemo(() => {
         if (isDrawing) {
             return MESSAGES.AREA_DRAW_RECTANGLE
         }
@@ -22,15 +24,14 @@ export default function AreaSelectionPrompt({
             if (currentZoom === null || currentZoom === undefined || currentZoom < FIELD_SELECTION_MIN_ZOOM) {
                 return MESSAGES.AREA_ZOOM_INSUFFICIENT
             }
-            if (!fieldsData || fieldsData.features?.length === 0) {
+            if (fieldsFeaturesLength === 0) {
                 return MESSAGES.AREA_LOADING_PARCELS
             }
             return MESSAGES.AREA_CLICK_PARCEL
         }
         return null
-    }
+    }, [isDrawing, fieldSelectionMode, currentZoom, fieldsFeaturesLength])
 
-    const message = getMessage()
     const isLoadingMessage = message === MESSAGES.AREA_LOADING_PARCELS
     const { setStatusMessage, setDirectionalMessage } = useStatusMessage()
 
