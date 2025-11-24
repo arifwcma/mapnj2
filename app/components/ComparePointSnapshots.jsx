@@ -30,6 +30,9 @@ function getAllMonthsInRange(startMonth, endMonth) {
 export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen }) {
     const [showPopup, setShowPopup] = useState(false)
     const [shareLoading, setShareLoading] = useState(false)
+    const [shareUrl, setShareUrl] = useState("")
+    const [showShareModal, setShowShareModal] = useState(false)
+    const shareUrlInputRef = useRef(null)
     
     const isControlled = externalIsOpen !== undefined
     const isOpen = isControlled ? externalIsOpen : showPopup
@@ -108,65 +111,8 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                 const url = new URL(window.location.href)
                 url.searchParams.set('share', token)
                 const urlString = url.toString()
-                
-                await new Promise(resolve => setTimeout(resolve, 100))
-                
-                try {
-                    if (navigator.clipboard && window.isSecureContext) {
-                        await navigator.clipboard.writeText(urlString)
-                        alert('Share link copied to clipboard!')
-                    } else {
-                        const textArea = document.createElement('textarea')
-                        textArea.value = urlString
-                        textArea.style.position = 'fixed'
-                        textArea.style.top = '0'
-                        textArea.style.left = '0'
-                        textArea.style.width = '2em'
-                        textArea.style.height = '2em'
-                        textArea.style.padding = '0'
-                        textArea.style.border = 'none'
-                        textArea.style.outline = 'none'
-                        textArea.style.boxShadow = 'none'
-                        textArea.style.background = 'transparent'
-                        textArea.setAttribute('readonly', '')
-                        document.body.appendChild(textArea)
-                        textArea.focus()
-                        textArea.select()
-                        textArea.setSelectionRange(0, 99999)
-                        const successful = document.execCommand('copy')
-                        document.body.removeChild(textArea)
-                        if (successful) {
-                            alert('Share link copied to clipboard!')
-                        } else {
-                            alert('Failed to copy. Please copy manually: ' + urlString)
-                        }
-                    }
-                } catch (clipboardError) {
-                    const textArea = document.createElement('textarea')
-                    textArea.value = urlString
-                    textArea.style.position = 'fixed'
-                    textArea.style.top = '0'
-                    textArea.style.left = '0'
-                    textArea.style.width = '2em'
-                    textArea.style.height = '2em'
-                    textArea.style.padding = '0'
-                    textArea.style.border = 'none'
-                    textArea.style.outline = 'none'
-                    textArea.style.boxShadow = 'none'
-                    textArea.style.background = 'transparent'
-                    textArea.setAttribute('readonly', '')
-                    document.body.appendChild(textArea)
-                    textArea.focus()
-                    textArea.select()
-                    textArea.setSelectionRange(0, 99999)
-                    const successful = document.execCommand('copy')
-                    document.body.removeChild(textArea)
-                    if (successful) {
-                        alert('Share link copied to clipboard!')
-                    } else {
-                        alert('Failed to copy. Please copy manually: ' + urlString)
-                    }
-                }
+                setShareUrl(urlString)
+                setShowShareModal(true)
             }
         } catch (error) {
             console.error('Error sharing:', error)
@@ -175,6 +121,33 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
             setShareLoading(false)
         }
     }
+    
+    const handleCopyFromModal = async () => {
+        if (shareUrlInputRef.current) {
+            shareUrlInputRef.current.select()
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(shareUrl)
+                    alert('Share link copied to clipboard!')
+                    setShowShareModal(false)
+                } else {
+                    const successful = document.execCommand('copy')
+                    if (successful) {
+                        alert('Share link copied to clipboard!')
+                        setShowShareModal(false)
+                    }
+                }
+            } catch (error) {
+                console.error('Copy failed:', error)
+            }
+        }
+    }
+    
+    useEffect(() => {
+        if (showShareModal && shareUrl && shareUrlInputRef.current) {
+            shareUrlInputRef.current.select()
+        }
+    }, [showShareModal, shareUrl])
     
     const months = visibleRange ? getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth) : []
     
@@ -409,7 +382,91 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             </table>
                         </div>
                     </div>
-                </>
+                </> 
+            )}
+            
+            {showShareModal && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 20000
+                    }}
+                    onClick={() => setShowShareModal(false)}
+                >
+                    <div
+                        style={{
+                            backgroundColor: "white",
+                            padding: "20px",
+                            borderRadius: "8px",
+                            maxWidth: "600px",
+                            width: "90%",
+                            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                            <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>Share Link</h3>
+                            <button
+                                onClick={() => setShowShareModal(false)}
+                                style={{
+                                    background: "none",
+                                    border: "none",
+                                    fontSize: "24px",
+                                    cursor: "pointer",
+                                    color: "#666",
+                                    padding: 0,
+                                    width: "30px",
+                                    height: "30px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div style={{ marginBottom: "15px" }}>
+                            <input
+                                ref={shareUrlInputRef}
+                                type="text"
+                                value={shareUrl}
+                                readOnly
+                                style={{
+                                    width: "100%",
+                                    padding: "8px",
+                                    border: "1px solid #ccc",
+                                    borderRadius: "4px",
+                                    fontSize: "14px",
+                                    fontFamily: "monospace"
+                                }}
+                            />
+                        </div>
+                        <button
+                            onClick={handleCopyFromModal}
+                            style={{
+                                width: "100%",
+                                padding: "10px",
+                                backgroundColor: "#0066cc",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                fontWeight: "bold"
+                            }}
+                        >
+                            Copy URL
+                        </button>
+                    </div>
+                </div>
             )}
         </>
     )
