@@ -110,6 +110,26 @@ export default function PointsModePanel({
     }, [effectiveVisibleRange, selectedPoints, pointDataMaps])
     
     useEffect(() => {
+        if (!selectedYear || !selectedMonth || selectedPoints.length === 0 || !effectiveVisibleRange) {
+            return
+        }
+        
+        const currentMonthKey = monthKey(selectedYear, selectedMonth)
+        const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
+        const monthKeys = months.map(m => monthKey(m.year, m.month))
+        
+        if (!monthKeys.includes(currentMonthKey)) {
+            monthKeys.push(currentMonthKey)
+        }
+        
+        selectedPoints.forEach((point, index) => {
+            if (pointDataMaps[index]?.fetchMissingMonths) {
+                pointDataMaps[index].fetchMissingMonths(monthKeys)
+            }
+        })
+    }, [selectedYear, selectedMonth, selectedPoints, effectiveVisibleRange, pointDataMaps])
+    
+    useEffect(() => {
         if (effectiveVisibleRange && selectedPoints.length > 0 && previousDataMapsRef.current.length > 0) {
             const months = getAllMonthsInRange(effectiveVisibleRange.startMonth, effectiveVisibleRange.endMonth)
             
