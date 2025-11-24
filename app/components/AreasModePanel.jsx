@@ -57,7 +57,10 @@ export default function AreasModePanel({
     visibleRange,
     setVisibleRange,
     yAxisRange,
-    setYAxisRange
+    setYAxisRange,
+    onShareAreaSnapshots,
+    areaSnapshotsOpen,
+    setAreaSnapshotsOpen
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -294,6 +297,9 @@ export default function AreasModePanel({
                     selectedAreas={selectedAreas}
                     cloudTolerance={cloudTolerance}
                     visibleRange={effectiveVisibleRange}
+                    onShare={onShareAreaSnapshots}
+                    isOpen={areaSnapshotsOpen}
+                    setIsOpen={setAreaSnapshotsOpen}
                 />
             )}
             

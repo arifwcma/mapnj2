@@ -51,6 +51,8 @@ export default function Page() {
     const [areaMonthsYAxisRange, setAreaMonthsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
     const [restoredZoom, setRestoredZoom] = useState<number | null>(null)
     const [restoredBounds, setRestoredBounds] = useState<[[number, number], [number, number]] | null>(null)
+    const [pointSnapshotsOpen, setPointSnapshotsOpen] = useState(false)
+    const [areaSnapshotsOpen, setAreaSnapshotsOpen] = useState(false)
     
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -114,6 +116,12 @@ export default function Page() {
                                 setMapBounds(state.mapBounds)
                                 setRestoredBounds(state.mapBounds)
                             }
+                            if (state.pointSnapshotsOpen) {
+                                setPointSnapshotsOpen(true)
+                            }
+                            if (state.areaSnapshotsOpen) {
+                                setAreaSnapshotsOpen(true)
+                            }
                         }
                     }
                 })
@@ -135,7 +143,7 @@ export default function Page() {
         }
     }, [selectedAreas])
     
-    const handleShare = useCallback(async () => {
+    const handleShare = useCallback(async (openPointSnapshots = false, openAreaSnapshots = false) => {
         const state = {
             basemap,
             analysisMode,
@@ -162,7 +170,9 @@ export default function Page() {
             pointMonthsYAxisRange,
             areaMonthsYAxisRange,
             currentZoom,
-            mapBounds
+            mapBounds,
+            pointSnapshotsOpen: openPointSnapshots || pointSnapshotsOpen,
+            areaSnapshotsOpen: openAreaSnapshots || areaSnapshotsOpen
         }
         
         try {
@@ -179,7 +189,15 @@ export default function Page() {
             console.error('Error saving share:', error)
             return null
         }
-    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange, pointsYAxisRange, areasYAxisRange, pointMonthsYAxisRange, areaMonthsYAxisRange, currentZoom, mapBounds])
+    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange, pointsYAxisRange, areasYAxisRange, pointMonthsYAxisRange, areaMonthsYAxisRange, currentZoom, mapBounds, pointSnapshotsOpen, areaSnapshotsOpen])
+    
+    const handleSharePointSnapshots = useCallback(async () => {
+        return handleShare(true, false)
+    }, [handleShare])
+    
+    const handleShareAreaSnapshots = useCallback(async () => {
+        return handleShare(false, true)
+    }, [handleShare])
     
     const { fieldsData, fieldsLoading, loadFieldsForBounds } = useFields()
     
@@ -597,6 +615,9 @@ export default function Page() {
                         setVisibleRange={setPointsVisibleRange}
                         yAxisRange={pointsYAxisRange}
                         setYAxisRange={setPointsYAxisRange}
+                        onSharePointSnapshots={handleSharePointSnapshots}
+                        pointSnapshotsOpen={pointSnapshotsOpen}
+                        setPointSnapshotsOpen={setPointSnapshotsOpen}
                     />
                 )}
                 
@@ -626,6 +647,9 @@ export default function Page() {
                         setVisibleRange={setAreasVisibleRange}
                         yAxisRange={areasYAxisRange}
                         setYAxisRange={setAreasYAxisRange}
+                        onShareAreaSnapshots={handleShareAreaSnapshots}
+                        areaSnapshotsOpen={areaSnapshotsOpen}
+                        setAreaSnapshotsOpen={setAreaSnapshotsOpen}
                     />
                 )}
                 
@@ -639,6 +663,9 @@ export default function Page() {
                         setSelectedMonths={setAreaMonthsSelectedMonths}
                         yAxisRange={areaMonthsYAxisRange}
                         setYAxisRange={setAreaMonthsYAxisRange}
+                        onShareAreaSnapshots={handleShareAreaSnapshots}
+                        areaSnapshotsOpen={areaSnapshotsOpen}
+                        setAreaSnapshotsOpen={setAreaSnapshotsOpen}
                     />
                 )}
             </div>

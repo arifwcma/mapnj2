@@ -50,7 +50,10 @@ export default function AreaMonthsModePanel({
     selectedMonths,
     setSelectedMonths,
     yAxisRange,
-    setYAxisRange
+    setYAxisRange,
+    onShareAreaSnapshots,
+    areaSnapshotsOpen,
+    setAreaSnapshotsOpen
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
@@ -285,6 +288,9 @@ export default function AreaMonthsModePanel({
                         cloudTolerance={cloudTolerance}
                         visibleRange={visibleRange}
                         selectedMonths={sortedMonths}
+                        onShare={onShareAreaSnapshots}
+                        isOpen={areaSnapshotsOpen}
+                        setIsOpen={setAreaSnapshotsOpen}
                     />
                 </div>
             )}

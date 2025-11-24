@@ -38,8 +38,18 @@ function calculateAspectRatio(area) {
     return 4/3
 }
 
-export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibleRange, selectedMonths = null }) {
+export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibleRange, selectedMonths = null, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen }) {
     const [showPopup, setShowPopup] = useState(false)
+    
+    const isControlled = externalIsOpen !== undefined
+    const isOpen = isControlled ? externalIsOpen : showPopup
+    const setIsOpen = isControlled ? setExternalIsOpen : setShowPopup
+    
+    useEffect(() => {
+        if (isControlled && externalIsOpen !== undefined) {
+            setShowPopup(externalIsOpen)
+        }
+    }, [externalIsOpen, isControlled])
     const [tileUrls, setTileUrls] = useState({})
     const [loading, setLoading] = useState({})
     const [isDragging, setIsDragging] = useState(false)
@@ -48,7 +58,7 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
     const fetchedRef = useRef(new Set())
     
     useEffect(() => {
-        if (!showPopup || selectedAreas.length === 0) {
+        if (!isOpen || selectedAreas.length === 0) {
             fetchedRef.current.clear()
             return
         }
@@ -132,18 +142,30 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                     })
             })
         })
-    }, [showPopup, visibleRange, cloudTolerance, selectedAreas, selectedMonths])
+    }, [isOpen, visibleRange, cloudTolerance, selectedAreas, selectedMonths])
     
     const months = selectedMonths && selectedMonths.length > 0 
         ? [...selectedMonths] 
         : (visibleRange ? getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth) : [])
     
     const handleClose = () => {
-        setShowPopup(false)
+        setIsOpen(false)
         setTileUrls({})
         setLoading({})
         setPopupPosition({ x: 0, y: 0 })
         fetchedRef.current.clear()
+    }
+    
+    const handleShare = async () => {
+        if (!onShare) return
+        const token = await onShare(false)
+        if (token) {
+            const url = new URL(window.location.href)
+            url.searchParams.set('share', token)
+            navigator.clipboard.writeText(url.toString()).then(() => {
+                alert('Share link copied to clipboard!')
+            })
+        }
     }
     
     const handleMouseDown = (e) => {
@@ -192,7 +214,7 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
     return (
         <>
             <button
-                onClick={() => setShowPopup(true)}
+                onClick={() => setIsOpen(true)}
                 style={{
                     background: "none",
                     border: "none",
@@ -213,7 +235,7 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                 Compare snapshots
             </button>
             
-            {showPopup && (
+            {isOpen && (
                 <>
                     <div
                         style={{
@@ -261,19 +283,36 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                             <div style={{ fontWeight: "bold" }}>
                                 Compare Snapshots
                             </div>
-                            <button
-                                onClick={handleClose}
-                                style={{
-                                    padding: "6px 12px",
-                                    cursor: "pointer",
-                                    backgroundColor: "#dc3545",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "4px"
-                                }}
-                            >
-                                Close
-                            </button>
+                            <div style={{ display: "flex", gap: "10px" }}>
+                                {onShare && (
+                                    <button
+                                        onClick={handleShare}
+                                        style={{
+                                            padding: "6px 12px",
+                                            cursor: "pointer",
+                                            backgroundColor: "#0066cc",
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: "4px"
+                                        }}
+                                    >
+                                        Share
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleClose}
+                                    style={{
+                                        padding: "6px 12px",
+                                        cursor: "pointer",
+                                        backgroundColor: "#dc3545",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "4px"
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                         
                         <div

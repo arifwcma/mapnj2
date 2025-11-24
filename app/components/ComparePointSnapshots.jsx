@@ -27,8 +27,18 @@ function getAllMonthsInRange(startMonth, endMonth) {
     return months
 }
 
-export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange }) {
+export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen }) {
     const [showPopup, setShowPopup] = useState(false)
+    
+    const isControlled = externalIsOpen !== undefined
+    const isOpen = isControlled ? externalIsOpen : showPopup
+    const setIsOpen = isControlled ? setExternalIsOpen : setShowPopup
+    
+    useEffect(() => {
+        if (isControlled && externalIsOpen !== undefined) {
+            setShowPopup(externalIsOpen)
+        }
+    }, [externalIsOpen, isControlled])
     const [ndviData, setNdviData] = useState({})
     const [loading, setLoading] = useState({})
     const [isDragging, setIsDragging] = useState(false)
@@ -37,7 +47,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
     const fetchedRef = useRef(new Set())
     
     useEffect(() => {
-        if (!showPopup || !visibleRange || selectedPoints.length === 0) {
+        if (!isOpen || !visibleRange || selectedPoints.length === 0) {
             fetchedRef.current.clear()
             return
         }
@@ -82,14 +92,26 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                     })
             })
         })
-    }, [showPopup, visibleRange, cloudTolerance, selectedPoints])
+    }, [isOpen, visibleRange, cloudTolerance, selectedPoints])
     
     const handleClose = () => {
-        setShowPopup(false)
+        setIsOpen(false)
         setNdviData({})
         setLoading({})
         setPopupPosition({ x: 0, y: 0 })
         fetchedRef.current.clear()
+    }
+    
+    const handleShare = async () => {
+        if (!onShare) return
+        const token = await onShare(true)
+        if (token) {
+            const url = new URL(window.location.href)
+            url.searchParams.set('share', token)
+            navigator.clipboard.writeText(url.toString()).then(() => {
+                alert('Share link copied to clipboard!')
+            })
+        }
     }
     
     const handleMouseDown = (e) => {
@@ -137,7 +159,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
         <>
             <div style={{ marginBottom: "15px" }}>
                 <button
-                    onClick={() => setShowPopup(true)}
+                    onClick={() => setIsOpen(true)}
                     style={{
                         background: "none",
                         border: "none",
@@ -159,7 +181,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                 </button>
             </div>
             
-            {showPopup && (
+            {isOpen && (
                 <>
                     <div
                         style={{
@@ -207,19 +229,36 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             <div style={{ fontWeight: "bold" }}>
                                 Compare Snapshots
                             </div>
-                            <button
-                                onClick={handleClose}
-                                style={{
-                                    padding: "6px 12px",
-                                    cursor: "pointer",
-                                    backgroundColor: "#dc3545",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "4px"
-                                }}
-                            >
-                                Close
-                            </button>
+                            <div style={{ display: "flex", gap: "10px" }}>
+                                {onShare && (
+                                    <button
+                                        onClick={handleShare}
+                                        style={{
+                                            padding: "6px 12px",
+                                            cursor: "pointer",
+                                            backgroundColor: "#0066cc",
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: "4px"
+                                        }}
+                                    >
+                                        Share
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleClose}
+                                    style={{
+                                        padding: "6px 12px",
+                                        cursor: "pointer",
+                                        backgroundColor: "#dc3545",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "4px"
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                         
                         <div

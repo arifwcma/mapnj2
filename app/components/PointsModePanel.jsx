@@ -57,7 +57,10 @@ export default function PointsModePanel({
     visibleRange,
     setVisibleRange,
     yAxisRange,
-    setYAxisRange
+    setYAxisRange,
+    onSharePointSnapshots,
+    pointSnapshotsOpen,
+    setPointSnapshotsOpen
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -300,6 +303,9 @@ export default function PointsModePanel({
                     selectedPoints={selectedPoints}
                     cloudTolerance={cloudTolerance}
                     visibleRange={effectiveVisibleRange}
+                    onShare={onSharePointSnapshots}
+                    isOpen={pointSnapshotsOpen}
+                    setIsOpen={setPointSnapshotsOpen}
                 />
             )}
             
