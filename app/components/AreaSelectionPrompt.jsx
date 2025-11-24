@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useLayoutEffect } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { useStatusMessage } from "./StatusMessage"
@@ -43,17 +43,23 @@ export default function AreaSelectionPrompt({
         return () => setStatusMessage(null)
     }, [isLoadingMessage, setStatusMessage])
 
-    useLayoutEffect(() => {
+    const callbacksRef = useRef({ onSelectParcel, onDrawRectangle, onCancel })
+    
+    useEffect(() => {
+        callbacksRef.current = { onSelectParcel, onDrawRectangle, onCancel }
+    }, [onSelectParcel, onDrawRectangle, onCancel])
+
+    const promptMessage = useMemo(() => {
         if (!isSelectionMode) {
             const parts = MESSAGES.AREA_SELECT_PROMPT.split(/(parcel|rectangle)/)
-            setDirectionalMessage(
+            return (
                 <>
                     {parts.map((part, idx) => {
                         if (part === "parcel") {
                             return (
                                 <button 
                                     key={idx}
-                                    onClick={onSelectParcel} 
+                                    onClick={() => callbacksRef.current.onSelectParcel()} 
                                     style={{
                                         background: "none",
                                         border: "none",
@@ -78,7 +84,7 @@ export default function AreaSelectionPrompt({
                             return (
                                 <button 
                                     key={idx}
-                                    onClick={onDrawRectangle} 
+                                    onClick={() => callbacksRef.current.onDrawRectangle()} 
                                     style={{
                                         background: "none",
                                         border: "none",
@@ -104,12 +110,17 @@ export default function AreaSelectionPrompt({
                     })}
                 </>
             )
-        } else if (message && !isLoadingMessage && isSelectionMode) {
-            setDirectionalMessage(
+        }
+        return null
+    }, [isSelectionMode])
+
+    const selectionMessage = useMemo(() => {
+        if (message && !isLoadingMessage && isSelectionMode) {
+            return (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
                     <div>{message}</div>
                     <button 
-                        onClick={onCancel} 
+                        onClick={() => callbacksRef.current.onCancel()} 
                         style={{
                             background: "none",
                             border: "none",
@@ -131,11 +142,19 @@ export default function AreaSelectionPrompt({
                     </button>
                 </div>
             )
+        }
+        return null
+    }, [message, isLoadingMessage, isSelectionMode])
+
+    useLayoutEffect(() => {
+        if (!isSelectionMode) {
+            setDirectionalMessage(promptMessage)
+        } else if (selectionMessage) {
+            setDirectionalMessage(selectionMessage)
         } else {
             setDirectionalMessage(null)
         }
-        return () => setDirectionalMessage(null)
-    }, [isSelectionMode, message, isLoadingMessage, onSelectParcel, onDrawRectangle, onCancel, setDirectionalMessage])
+    }, [isSelectionMode, promptMessage, selectionMessage, setDirectionalMessage])
 
     return (
         <div className="text-sm text-gray-800 mb-4">
