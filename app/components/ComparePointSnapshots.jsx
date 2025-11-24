@@ -42,9 +42,6 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
     }, [externalIsOpen, isControlled])
     const [ndviData, setNdviData] = useState({})
     const [loading, setLoading] = useState({})
-    const [isDragging, setIsDragging] = useState(false)
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-    const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
     const fetchedRef = useRef(new Set())
     
     useEffect(() => {
@@ -99,7 +96,6 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
         setIsOpen(false)
         setNdviData({})
         setLoading({})
-        setPopupPosition({ x: 0, y: 0 })
         fetchedRef.current.clear()
     }
     
@@ -120,41 +116,6 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
             setShareLoading(false)
         }
     }
-    
-    const handleMouseDown = (e) => {
-        if (e.target.closest('button') || e.target.closest('table')) {
-            return
-        }
-        setIsDragging(true)
-        const rect = e.currentTarget.getBoundingClientRect()
-        setDragOffset({
-            x: e.clientX - rect.left - rect.width / 2,
-            y: e.clientY - rect.top - rect.height / 2
-        })
-    }
-    
-    useEffect(() => {
-        if (!isDragging) return
-        
-        const handleMouseMove = (e) => {
-            setPopupPosition({
-                x: e.clientX - window.innerWidth / 2 - dragOffset.x,
-                y: e.clientY - window.innerHeight / 2 - dragOffset.y
-            })
-        }
-        
-        const handleMouseUp = () => {
-            setIsDragging(false)
-        }
-        
-        window.addEventListener('mousemove', handleMouseMove)
-        window.addEventListener('mouseup', handleMouseUp)
-        
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove)
-            window.removeEventListener('mouseup', handleMouseUp)
-        }
-    }, [isDragging, dragOffset])
     
     const months = visibleRange ? getAllMonthsInRange(visibleRange.startMonth, visibleRange.endMonth) : []
     
@@ -207,7 +168,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             position: "fixed",
                             top: "50%",
                             left: "50%",
-                            transform: `translate(calc(-50% + ${popupPosition.x}px), calc(-50% + ${popupPosition.y}px))`,
+                            transform: "translate(-50%, -50%)",
                             backgroundColor: "white",
                             borderRadius: "8px",
                             padding: "20px",
@@ -218,7 +179,6 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                             maxHeight: "95vh",
                             display: "flex",
                             flexDirection: "column",
-                            cursor: isDragging ? "grabbing" : "default"
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -228,35 +188,52 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                                 justifyContent: "space-between", 
                                 alignItems: "center", 
                                 marginBottom: "20px",
-                                cursor: "grab",
-                                userSelect: "none"
                             }}
-                            onMouseDown={handleMouseDown}
                         >
                             <div style={{ fontWeight: "bold" }}>
                                 Compare Snapshots
                             </div>
                             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                                 {onShare && (
-                                    shareLoading ? (
-                                        <span>Loading...</span>
-                                    ) : (
-                                        <a
-                                            href="#"
-                                            onClick={(e) => {
-                                                e.preventDefault()
-                                                handleShare()
-                                            }}
-                                            style={{
-                                                color: "#0066cc",
-                                                textDecoration: "underline",
-                                                cursor: "pointer",
-                                                fontSize: "14px"
-                                            }}
-                                        >
-                                            Share
-                                        </a>
-                                    )
+                                    <div style={{ minWidth: "60px", textAlign: "left", display: "flex", alignItems: "center" }}>
+                                        {shareLoading ? (
+                                            <>
+                                                <div
+                                                    style={{
+                                                        width: "14px",
+                                                        height: "14px",
+                                                        border: "2px solid #f3f3f3",
+                                                        borderTop: "2px solid #0066cc",
+                                                        borderRadius: "50%",
+                                                        animation: "spin 1s linear infinite",
+                                                        display: "inline-block"
+                                                    }}
+                                                />
+                                                <style>{`
+                                                    @keyframes spin {
+                                                        0% { transform: rotate(0deg); }
+                                                        100% { transform: rotate(360deg); }
+                                                    }
+                                                `}</style>
+                                            </>
+                                        ) : (
+                                            <a
+                                                href="#"
+                                                onClick={(e) => {
+                                                    e.preventDefault()
+                                                    handleShare()
+                                                }}
+                                                style={{
+                                                    color: "#0066cc",
+                                                    textDecoration: "underline",
+                                                    cursor: "pointer",
+                                                    fontSize: "14px"
+                                                }}
+                                            >
+                                                Share
+                                            </a>
+                                        )}
+                                    </div>
                                 )}
                                 <button
                                     onClick={handleClose}
