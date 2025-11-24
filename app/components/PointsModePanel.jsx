@@ -68,6 +68,7 @@ export default function PointsModePanel({
     const pointDataMapsRef = useRef([])
     const previousDataMapsRef = useRef([])
     const chartRef = useRef(null)
+    const [hiddenDatasets, setHiddenDatasets] = useState(new Set())
     
     const {
         visibleRange: effectiveVisibleRange,
@@ -82,6 +83,10 @@ export default function PointsModePanel({
     useEffect(() => {
         pointDataMapsRef.current = pointDataMaps
     }, [pointDataMaps])
+    
+    useEffect(() => {
+        setHiddenDatasets(new Set())
+    }, [selectedPoints.length])
     
     const handleDataMapReady = useCallback((index, dataMapObj) => {
         setPointDataMaps(prev => {
@@ -257,8 +262,7 @@ export default function PointsModePanel({
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: true,
-                position: "top"
+                display: false
             },
             tooltip: {
                 mode: "index",
@@ -365,7 +369,64 @@ export default function PointsModePanel({
             
             {effectiveVisibleRange && displayData.length > 0 && displayData[0].length > 0 && (
                 <>
-                    <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", justifyContent: "center", marginTop: "20px", marginBottom: "10px" }}>
+                        {selectedPoints.map((point, index) => {
+                            const color = getColorForIndex(index)
+                            const isHidden = hiddenDatasets.has(index)
+                            return (
+                                <div
+                                    key={point.id}
+                                    onClick={() => {
+                                        if (chartRef.current?.chart) {
+                                            const chart = chartRef.current.chart
+                                            const meta = chart.getDatasetMeta(index)
+                                            const newHidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null
+                                            meta.hidden = newHidden
+                                            chart.update()
+                                            setHiddenDatasets(prev => {
+                                                const next = new Set(prev)
+                                                if (newHidden) {
+                                                    next.add(index)
+                                                } else {
+                                                    next.delete(index)
+                                                }
+                                                return next
+                                            })
+                                        }
+                                    }}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        cursor: "pointer",
+                                        opacity: isHidden ? 0.5 : 1
+                                    }}
+                                >
+                                    <div style={{
+                                        width: "30px",
+                                        height: "2px",
+                                        backgroundColor: color
+                                    }} />
+                                    <div style={{
+                                        width: "18px",
+                                        height: "18px",
+                                        border: `2px solid ${color}`,
+                                        borderRadius: "50%",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: "bold",
+                                        fontSize: "12px",
+                                        color: color,
+                                        backgroundColor: "white"
+                                    }}>
+                                        {index + 1}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                    <div style={{ width: "100%", height: "350px" }}>
                         <Line ref={chartRef} data={chartData} options={chartOptions} />
                     </div>
                     <ChartNavigation
