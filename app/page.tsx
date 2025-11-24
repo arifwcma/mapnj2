@@ -49,7 +49,8 @@ export default function Page() {
     const [areasYAxisRange, setAreasYAxisRange] = useState<"0-1" | "-1-1">("0-1")
     const [pointMonthsYAxisRange, setPointMonthsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
     const [areaMonthsYAxisRange, setAreaMonthsYAxisRange] = useState<"0-1" | "-1-1">("0-1")
-    const [shouldRestoreMap, setShouldRestoreMap] = useState(false)
+    const [restoredZoom, setRestoredZoom] = useState<number | null>(null)
+    const [restoredBounds, setRestoredBounds] = useState<[[number, number], [number, number]] | null>(null)
     
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -107,12 +108,11 @@ export default function Page() {
                             if (state.areaMonthsYAxisRange !== undefined) setAreaMonthsYAxisRange(state.areaMonthsYAxisRange)
                             if (state.currentZoom !== undefined && state.currentZoom !== null) {
                                 setCurrentZoom(state.currentZoom)
+                                setRestoredZoom(state.currentZoom)
                             }
                             if (state.mapBounds) {
                                 setMapBounds(state.mapBounds)
-                                setShouldRestoreMap(true)
-                            } else if (state.currentZoom !== undefined && state.currentZoom !== null) {
-                                setShouldRestoreMap(true)
+                                setRestoredBounds(state.mapBounds)
                             }
                         }
                     }
@@ -578,8 +578,8 @@ export default function Page() {
                     currentZoom={currentZoom}
                     onZoomChange={setCurrentZoom}
                     onMapBoundsChange={setMapBounds}
-                    initialZoom={shouldRestoreMap ? currentZoom : null}
-                    initialBounds={shouldRestoreMap ? mapBounds : null}
+                    initialZoom={restoredZoom}
+                    initialBounds={restoredBounds}
                 />
             </div>
             

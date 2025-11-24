@@ -95,36 +95,75 @@ function MapResize({ ndviTileUrl, rgbTileUrl }) {
 
 function MapRestore({ initialZoom, initialBounds, onZoomChange, onMapBoundsChange }) {
     const map = useMap()
-    const hasRestoredRef = useRef(false)
+    const restoredRef = useRef(false)
+    const lastValuesRef = useRef({ zoom: null, bounds: null })
     
     useEffect(() => {
-        if (!map || hasRestoredRef.current) return
+        if (!map) return
         
-        if (initialZoom !== null && initialZoom !== undefined) {
-            map.setZoom(initialZoom)
-            if (onZoomChange) {
-                onZoomChange(initialZoom)
+        const hasValues = (initialZoom !== null && initialZoom !== undefined) || initialBounds !== null
+        const valuesChanged = 
+            lastValuesRef.current.zoom !== initialZoom || 
+            JSON.stringify(lastValuesRef.current.bounds) !== JSON.stringify(initialBounds)
+        
+        if (!hasValues) {
+            lastValuesRef.current = { zoom: initialZoom, bounds: initialBounds }
+            return
+        }
+        
+        if (!valuesChanged && restoredRef.current) {
+            return
+        }
+        
+        if (valuesChanged) {
+            restoredRef.current = false
+            lastValuesRef.current = { zoom: initialZoom, bounds: initialBounds }
+        }
+        
+        const restore = () => {
+            const shouldRestoreZoom = initialZoom !== null && initialZoom !== undefined
+            const shouldRestoreBounds = initialBounds !== null
+            
+            if (shouldRestoreZoom) {
+                map.setZoom(initialZoom, { animate: false })
+                if (onZoomChange) {
+                    onZoomChange(initialZoom)
+                }
+            }
+            
+            if (shouldRestoreBounds) {
+                const [[swLat, swLng], [neLat, neLng]] = initialBounds
+                const bounds = [[swLat, swLng], [neLat, neLng]]
+                map.fitBounds(bounds, { animate: false })
+                if (onMapBoundsChange) {
+                    setTimeout(() => {
+                        const mapBounds = map.getBounds()
+                        const sw = mapBounds.getSouthWest()
+                        const ne = mapBounds.getNorthEast()
+                        onMapBoundsChange([
+                            [sw.lat, sw.lng],
+                            [ne.lat, ne.lng]
+                        ])
+                    }, 100)
+                }
+            }
+            
+            if (shouldRestoreZoom || shouldRestoreBounds) {
+                restoredRef.current = true
             }
         }
         
-        if (initialBounds) {
-            const [[swLat, swLng], [neLat, neLng]] = initialBounds
-            const bounds = [[swLat, swLng], [neLat, neLng]]
-            map.fitBounds(bounds)
-            if (onMapBoundsChange) {
-                setTimeout(() => {
-                    const mapBounds = map.getBounds()
-                    const sw = mapBounds.getSouthWest()
-                    const ne = mapBounds.getNorthEast()
-                    onMapBoundsChange([
-                        [sw.lat, sw.lng],
-                        [ne.lat, ne.lng]
-                    ])
-                }, 300)
+        const tryRestore = () => {
+            if (map._loaded) {
+                setTimeout(() => restore(), 100)
+            } else {
+                map.whenReady(() => {
+                    setTimeout(() => restore(), 100)
+                })
             }
         }
         
-        hasRestoredRef.current = true
+        tryRestore()
     }, [map, initialZoom, initialBounds, onZoomChange, onMapBoundsChange])
     
     return null
@@ -314,7 +353,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
         <MapContainer center={mapCenter} zoom={mapZoom} style={MAP_STYLE}>
             <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
-            {(initialZoom !== null || initialBounds) && <MapRestore initialZoom={initialZoom} initialBounds={initialBounds} onZoomChange={onZoomChange} onMapBoundsChange={onMapBoundsChange} />}
+            <MapRestore initialZoom={initialZoom} initialBounds={initialBounds} onZoomChange={onZoomChange} onMapBoundsChange={onMapBoundsChange} />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
             {onMapBoundsChange && <MapBoundsTracker onBoundsChange={onMapBoundsChange} />}
             {onMapBoundsChange && <FieldSelectionBoundsUpdater fieldSelectionMode={fieldSelectionMode} onBoundsChange={onMapBoundsChange} />}
