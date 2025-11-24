@@ -6,15 +6,26 @@ export default function ShareButton({ onShare }) {
     const [isOpen, setIsOpen] = useState(false)
     const [shareUrl, setShareUrl] = useState("")
     const [copied, setCopied] = useState(false)
+    const [loading, setLoading] = useState(false)
     const urlInputRef = useRef(null)
 
     const handleShareClick = async () => {
-        const token = await onShare()
-        if (token) {
-            const url = new URL(window.location.href)
-            url.searchParams.set('share', token)
-            setShareUrl(url.toString())
-            setIsOpen(true)
+        setIsOpen(true)
+        setLoading(true)
+        setShareUrl("")
+        setCopied(false)
+        
+        try {
+            const token = await onShare()
+            if (token) {
+                const url = new URL(window.location.href)
+                url.searchParams.set('share', token)
+                setShareUrl(url.toString())
+            }
+        } catch (error) {
+            console.error('Error creating share link:', error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -34,10 +45,10 @@ export default function ShareButton({ onShare }) {
     }
 
     useEffect(() => {
-        if (isOpen && urlInputRef.current) {
+        if (isOpen && !loading && shareUrl && urlInputRef.current) {
             urlInputRef.current.select()
         }
-    }, [isOpen])
+    }, [isOpen, loading, shareUrl])
 
     return (
         <>
@@ -107,38 +118,62 @@ export default function ShareButton({ onShare }) {
                                 ×
                             </button>
                         </div>
-                        <div style={{ marginBottom: "15px" }}>
-                            <input
-                                ref={urlInputRef}
-                                type="text"
-                                value={shareUrl}
-                                readOnly
-                                style={{
-                                    width: "100%",
-                                    padding: "8px",
-                                    border: "1px solid #ccc",
-                                    borderRadius: "4px",
-                                    fontSize: "14px",
-                                    fontFamily: "monospace"
-                                }}
-                            />
-                        </div>
-                        <button
-                            onClick={handleCopy}
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                backgroundColor: copied ? "#28a745" : "#0066cc",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: "bold"
-                            }}
-                        >
-                            {copied ? "Copied!" : "Copy URL"}
-                        </button>
+                        {loading ? (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px" }}>
+                                <div
+                                    style={{
+                                        width: "40px",
+                                        height: "40px",
+                                        border: "4px solid #f3f3f3",
+                                        borderTop: "4px solid #0066cc",
+                                        borderRadius: "50%",
+                                        animation: "spin 1s linear infinite"
+                                    }}
+                                />
+                                <p style={{ marginTop: "15px", color: "#666", fontSize: "14px" }}>Creating share link...</p>
+                                <style>{`
+                                    @keyframes spin {
+                                        0% { transform: rotate(0deg); }
+                                        100% { transform: rotate(360deg); }
+                                    }
+                                `}</style>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ marginBottom: "15px" }}>
+                                    <input
+                                        ref={urlInputRef}
+                                        type="text"
+                                        value={shareUrl}
+                                        readOnly
+                                        style={{
+                                            width: "100%",
+                                            padding: "8px",
+                                            border: "1px solid #ccc",
+                                            borderRadius: "4px",
+                                            fontSize: "14px",
+                                            fontFamily: "monospace"
+                                        }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleCopy}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px",
+                                        backgroundColor: copied ? "#28a745" : "#0066cc",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: "bold"
+                                    }}
+                                >
+                                    {copied ? "Copied!" : "Copy URL"}
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
