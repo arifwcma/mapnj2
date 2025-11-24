@@ -66,8 +66,8 @@ function PageContent() {
     const previousAnalysisModeRef = useRef(analysisMode)
     const previousCompareModeRef = useRef(compareMode)
     const previousCloudToleranceRef = useRef(cloudTolerance)
-    const mapPanDebounceRef = useRef(null)
-    const mapZoomDebounceRef = useRef(null)
+    const mapPanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const mapZoomDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -748,7 +748,7 @@ function PageContent() {
                     selectedFieldFeature={selectedFieldFeature}
                     onFieldClick={handleFieldClick}
                     currentZoom={currentZoom}
-                    onZoomChange={(zoom) => {
+                    onZoomChange={(zoom: number) => {
                         setCurrentZoom(zoom)
                         if (mapZoomDebounceRef.current) {
                             clearTimeout(mapZoomDebounceRef.current)
@@ -758,9 +758,10 @@ function PageContent() {
                                 zoom,
                                 bounds: mapBounds
                             })
+                            mapZoomDebounceRef.current = null
                         }, 1000)
                     }}
-                    onMapBoundsChange={(bounds) => {
+                    onMapBoundsChange={(bounds: [[number, number], [number, number]]) => {
                         setMapBounds(bounds)
                         if (mapPanDebounceRef.current) {
                             clearTimeout(mapPanDebounceRef.current)
@@ -770,6 +771,7 @@ function PageContent() {
                                 bounds,
                                 zoom: currentZoom
                             })
+                            mapPanDebounceRef.current = null
                         }, 2000)
                     }}
                     initialZoom={restoredZoom}
@@ -796,7 +798,7 @@ function PageContent() {
                         onSharePointSnapshots={handleSharePointSnapshots}
                         pointSnapshotsOpen={pointSnapshotsOpen}
                         setPointSnapshotsOpen={setPointSnapshotsOpen}
-                        onFocusPoint={(index) => {
+                        onFocusPoint={(index: number) => {
                             setFocusPointIndex(index)
                             setTimeout(() => setFocusPointIndex(null), 100)
                         }}
@@ -841,7 +843,7 @@ function PageContent() {
                         onShareAreaSnapshots={handleShareAreaSnapshots}
                         areaSnapshotsOpen={areaSnapshotsOpen}
                         setAreaSnapshotsOpen={setAreaSnapshotsOpen}
-                        onFocusArea={(index) => {
+                        onFocusArea={(index: number) => {
                             setFocusAreaIndex(index)
                             setTimeout(() => setFocusAreaIndex(null), 100)
                         }}

@@ -6,8 +6,8 @@ const BATCH_INTERVAL = 8000
 const STORAGE_KEY = "analytics_queue"
 
 export default function useAnalytics() {
-    const queueRef = useRef([])
-    const batchTimeoutRef = useRef(null)
+    const queueRef = useRef<any[]>([])
+    const batchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const sessionStartTimeRef = useRef(Date.now())
     const sessionEventCountRef = useRef(0)
 
@@ -35,7 +35,7 @@ export default function useAnalytics() {
         }
     }, [])
 
-    const sendBatch = useCallback(async (events) => {
+    const sendBatch = useCallback(async (events: any[]) => {
         if (events.length === 0) return
 
         try {
@@ -71,7 +71,7 @@ export default function useAnalytics() {
         }, BATCH_INTERVAL)
     }, [processQueue])
 
-    const trackEvent = useCallback((eventType, data = null) => {
+    const trackEvent = useCallback((eventType: string, data: any = null) => {
         try {
             const event = {
                 event_type: eventType,
