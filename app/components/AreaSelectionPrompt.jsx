@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import { useEffect, useLayoutEffect, useRef } from "react"
 import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { useStatusMessage } from "./StatusMessage"
@@ -49,10 +49,10 @@ export default function AreaSelectionPrompt({
         callbacksRef.current = { onSelectParcel, onDrawRectangle, onCancel }
     }, [onSelectParcel, onDrawRectangle, onCancel])
 
-    const promptMessage = useMemo(() => {
+    useLayoutEffect(() => {
         if (!isSelectionMode) {
             const parts = MESSAGES.AREA_SELECT_PROMPT.split(/(parcel|rectangle)/)
-            return (
+            setDirectionalMessage(
                 <>
                     {parts.map((part, idx) => {
                         if (part === "parcel") {
@@ -110,13 +110,8 @@ export default function AreaSelectionPrompt({
                     })}
                 </>
             )
-        }
-        return null
-    }, [isSelectionMode])
-
-    const selectionMessage = useMemo(() => {
-        if (message && !isLoadingMessage && isSelectionMode) {
-            return (
+        } else if (message && !isLoadingMessage && isSelectionMode) {
+            setDirectionalMessage(
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
                     <div>{message}</div>
                     <button 
@@ -142,19 +137,10 @@ export default function AreaSelectionPrompt({
                     </button>
                 </div>
             )
-        }
-        return null
-    }, [message, isLoadingMessage, isSelectionMode])
-
-    useLayoutEffect(() => {
-        if (!isSelectionMode) {
-            setDirectionalMessage(promptMessage)
-        } else if (selectionMessage) {
-            setDirectionalMessage(selectionMessage)
         } else {
             setDirectionalMessage(null)
         }
-    }, [isSelectionMode, promptMessage, selectionMessage, setDirectionalMessage])
+    }, [isSelectionMode, message, isLoadingMessage, setDirectionalMessage])
 
     return (
         <div className="text-sm text-gray-800 mb-4">
