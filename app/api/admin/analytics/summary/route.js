@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
 import { isAdminAuthenticated } from "@/app/lib/adminAuth"
 import { getAnalyticsSummary } from "@/app/lib/db"
 
 export async function GET(request) {
-    if (!(await isAdminAuthenticated())) {
+    const authResult = await isAdminAuthenticated()
+    if (!authResult) {
+        try {
+            const cookieStore = await cookies()
+            const allCookies = cookieStore.getAll()
+            console.log("Auth failed - available cookies:", allCookies.map(c => c.name))
+        } catch (e) {
+            console.log("Auth failed - error getting cookies:", e)
+        }
         return NextResponse.json(
             { error: "Unauthorized" },
             { status: 401 }

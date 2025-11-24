@@ -68,6 +68,8 @@ function PageContent() {
     const previousCloudToleranceRef = useRef(cloudTolerance)
     const mapPanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const mapZoomDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const lastPointClickRef = useRef<{ lat: number, lon: number, time: number } | null>(null)
+    const lastAreaAddRef = useRef<{ bounds: [[number, number], [number, number]], time: number } | null>(null)
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -365,14 +367,14 @@ function PageContent() {
     }, [trackEvent])
     
     const handlePointClick = useCallback((lat: number, lon: number) => {
-        trackEvent("map_click", {
-            lat,
-            lon,
-            zoom: currentZoom,
-            analysis_mode: analysisMode,
-            compare_mode: compareMode,
-            bounds: mapBounds
-        })
+        const now = Date.now()
+        if (lastPointClickRef.current && 
+            Math.abs(lastPointClickRef.current.lat - lat) < 0.0001 && 
+            Math.abs(lastPointClickRef.current.lon - lon) < 0.0001 &&
+            now - lastPointClickRef.current.time < 1000) {
+            return
+        }
+        lastPointClickRef.current = { lat, lon, time: now }
         
         if (analysisMode === "point" && compareMode === "points") {
             const newPoint = {
@@ -401,7 +403,7 @@ function PageContent() {
                 compare_mode: compareMode
             })
         }
-    }, [analysisMode, compareMode, currentZoom, mapBounds, trackEvent])
+    }, [analysisMode, compareMode, trackEvent])
     
     const handleRemovePoint = useCallback((index: number) => {
         setSelectedPoints(prev => {
@@ -471,6 +473,18 @@ function PageContent() {
     }, [stopDrawing, resetRectangle, fieldSelectionMode, isDrawing, trackEvent])
     
     const handleFieldClick = useCallback((bounds: [[number, number], [number, number]], feature: any) => {
+        const now = Date.now()
+        const boundsKey = `${bounds[0][0]},${bounds[0][1]},${bounds[1][0]},${bounds[1][1]}`
+        if (lastAreaAddRef.current && 
+            lastAreaAddRef.current.bounds[0][0] === bounds[0][0] &&
+            lastAreaAddRef.current.bounds[0][1] === bounds[0][1] &&
+            lastAreaAddRef.current.bounds[1][0] === bounds[1][0] &&
+            lastAreaAddRef.current.bounds[1][1] === bounds[1][1] &&
+            now - lastAreaAddRef.current.time < 1000) {
+            return
+        }
+        lastAreaAddRef.current = { bounds, time: now }
+        
         if (analysisMode === "area" && compareMode === "areas") {
             const newArea = {
                 id: `area_${Date.now()}_${Math.random()}`,
@@ -538,6 +552,23 @@ function PageContent() {
     
     const handleFinalize = useCallback(() => {
         if (analysisMode === "area" && compareMode === "areas" && currentBounds) {
+            const now = Date.now()
+            if (lastAreaAddRef.current && 
+                lastAreaAddRef.current.bounds[0][0] === currentBounds[0][0] &&
+                lastAreaAddRef.current.bounds[0][1] === currentBounds[0][1] &&
+                lastAreaAddRef.current.bounds[1][0] === currentBounds[1][0] &&
+                lastAreaAddRef.current.bounds[1][1] === currentBounds[1][1] &&
+                now - lastAreaAddRef.current.time < 1000) {
+                finalizeRectangle()
+                setBoundsSource('rectangle')
+                setSelectedFieldFeature(null)
+                if (analysisMode === "area" && compareMode === "areas") {
+                    startDrawing()
+                }
+                return
+            }
+            lastAreaAddRef.current = { bounds: currentBounds, time: now }
+            
             const newArea = {
                 id: `area_${Date.now()}_${Math.random()}`,
                 geometry: null,
@@ -563,6 +594,20 @@ function PageContent() {
                 loadAreaNdvi(newArea)
             }
         } else if (analysisMode === "area" && compareMode === "months" && currentBounds) {
+            const now = Date.now()
+            if (lastAreaAddRef.current && 
+                lastAreaAddRef.current.bounds[0][0] === currentBounds[0][0] &&
+                lastAreaAddRef.current.bounds[0][1] === currentBounds[0][1] &&
+                lastAreaAddRef.current.bounds[1][0] === currentBounds[1][0] &&
+                lastAreaAddRef.current.bounds[1][1] === currentBounds[1][1] &&
+                now - lastAreaAddRef.current.time < 1000) {
+                finalizeRectangle()
+                setBoundsSource('rectangle')
+                setSelectedFieldFeature(null)
+                return
+            }
+            lastAreaAddRef.current = { bounds: currentBounds, time: now }
+            
             const newArea = {
                 id: `area_${Date.now()}_${Math.random()}`,
                 geometry: null,

@@ -96,28 +96,11 @@ export default function useAnalytics() {
     useEffect(() => {
         loadQueueFromStorage()
 
-        trackEvent("session_started", {
-            user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-            screen_resolution: typeof window !== "undefined" ? `${window.screen.width}x${window.screen.height}` : null,
-            referrer: typeof document !== "undefined" ? document.referrer || null : null,
-            has_share_token: typeof window !== "undefined" ? new URLSearchParams(window.location.search).has("share") : false,
-        })
-
         const handleBeforeUnload = () => {
             if (queueRef.current.length > 0) {
                 const events = [...queueRef.current]
                 queueRef.current = []
                 
-                const sessionDuration = Date.now() - sessionStartTimeRef.current
-                events.push({
-                    event_type: "session_ended",
-                    data: JSON.stringify({
-                        session_duration: sessionDuration,
-                        total_events: sessionEventCountRef.current,
-                    }),
-                    timestamp: Date.now(),
-                })
-
                 navigator.sendBeacon(
                     "/api/analytics/log",
                     JSON.stringify({ events })
@@ -134,7 +117,7 @@ export default function useAnalytics() {
             }
             processQueue()
         }
-    }, [loadQueueFromStorage, trackEvent, processQueue])
+    }, [loadQueueFromStorage, processQueue])
 
     return { trackEvent }
 }

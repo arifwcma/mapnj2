@@ -20,7 +20,9 @@ export default function AdminDashboard() {
     
     const checkAuth = useCallback(async () => {
         try {
-            const response = await fetch("/api/admin/analytics/summary")
+            const response = await fetch("/api/admin/analytics/summary", {
+                credentials: 'include'
+            })
             if (response.status === 401) {
                 router.push("/admin/login")
                 return false
@@ -42,7 +44,9 @@ export default function AdminDashboard() {
                 params.append("endDate", new Date(filters.endDate + "T23:59:59").getTime().toString())
             }
             
-            const response = await fetch(`/api/admin/analytics/summary?${params}`)
+            const response = await fetch(`/api/admin/analytics/summary?${params}`, {
+                credentials: 'include'
+            })
             if (response.ok) {
                 const data = await response.json()
                 setSummary(data)
@@ -67,7 +71,9 @@ export default function AdminDashboard() {
                 params.append("endDate", new Date(filters.endDate + "T23:59:59").getTime().toString())
             }
             
-            const response = await fetch(`/api/admin/analytics/events?${params}`)
+            const response = await fetch(`/api/admin/analytics/events?${params}`, {
+                credentials: 'include'
+            })
             if (response.ok) {
                 const data = await response.json()
                 setEvents(data.events)
@@ -91,7 +97,10 @@ export default function AdminDashboard() {
         }
         
         try {
-            const response = await fetch("/api/admin/analytics/clear", { method: "POST" })
+            const response = await fetch("/api/admin/analytics/clear", { 
+                method: "POST",
+                credentials: 'include'
+            })
             if (response.ok) {
                 await Promise.all([loadSummary(), loadEvents(1)])
             }
@@ -151,7 +160,9 @@ export default function AdminDashboard() {
                 params.append("endDate", new Date(filters.endDate + "T23:59:59").getTime().toString())
             }
             
-            const response = await fetch(`/api/admin/analytics/export?${params}`)
+            const response = await fetch(`/api/admin/analytics/export?${params}`, {
+                credentials: 'include'
+            })
             if (response.ok) {
                 if (format === "csv") {
                     const blob = await response.blob()

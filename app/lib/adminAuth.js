@@ -11,6 +11,7 @@ export async function isAdminAuthenticated() {
         const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)
         
         if (!sessionCookie) {
+            console.log("No session cookie found")
             return false
         }
         
@@ -18,11 +19,15 @@ export async function isAdminAuthenticated() {
         const now = Date.now()
         
         if (now > sessionData.expires) {
+            console.log("Session expired")
             return false
         }
         
-        return sessionData.username === ADMIN_USERNAME
-    } catch {
+        const isValid = sessionData.username === ADMIN_USERNAME
+        console.log("Auth check:", { isValid, username: sessionData.username })
+        return isValid
+    } catch (error) {
+        console.error("Auth check error:", error)
         return false
     }
 }

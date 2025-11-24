@@ -100,25 +100,24 @@ export function getAnalyticsSummary(startDate = null, endDate = null) {
         count: row.count
     }))
     
-    const sessionsStmt = db.prepare('SELECT COUNT(*) as count FROM analytics WHERE event_type = ?')
-    const sessionResult = sessionsStmt.get('session_started')
-    const totalSessions = sessionResult ? sessionResult.count : 0
+    const totalSessions = 0
     
     let topUsers = []
     try {
         const topUsersStmt = db.prepare(`
             SELECT data FROM analytics 
-            WHERE event_type = 'session_started' 
-            AND data IS NOT NULL
+            WHERE data IS NOT NULL
         `)
-        const sessionStartedEvents = topUsersStmt.all()
+        const allEvents = topUsersStmt.all()
         const ipCounts = {}
         
-        sessionStartedEvents.forEach(row => {
+        allEvents.forEach(row => {
             try {
                 const data = JSON.parse(row.data)
                 const ip = data.ip || 'Unknown'
-                ipCounts[ip] = (ipCounts[ip] || 0) + 1
+                if (ip && ip !== 'Unknown') {
+                    ipCounts[ip] = (ipCounts[ip] || 0) + 1
+                }
             } catch {
             }
         })
@@ -131,23 +130,7 @@ export function getAnalyticsSummary(startDate = null, endDate = null) {
         topUsers = []
     }
     
-    const sessionDurationsStmt = db.prepare(`
-        SELECT data FROM analytics 
-        WHERE event_type = 'session_ended' 
-        AND data IS NOT NULL
-    `)
-    const sessionDurations = sessionDurationsStmt.all().map(row => {
-        try {
-            const data = JSON.parse(row.data)
-            return data.session_duration || 0
-        } catch {
-            return 0
-        }
-    })
-    
-    const avgSessionDuration = sessionDurations.length > 0
-        ? Math.round(sessionDurations.reduce((a, b) => a + b, 0) / sessionDurations.length)
-        : 0
+    const avgSessionDuration = 0
     
     return {
         totalEvents: total,
