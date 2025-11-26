@@ -291,16 +291,6 @@ export default function AdminDashboard() {
                         <div style={{ fontSize: "14px", color: "#6c757d", marginBottom: "8px" }}>Last 30 Days</div>
                         <div style={{ fontSize: "32px", fontWeight: "bold" }}>{summary.events30d.toLocaleString()}</div>
                     </div>
-                    <div style={{ backgroundColor: "#f8f9fa", padding: "20px", borderRadius: "8px", border: "1px solid #dee2e6" }}>
-                        <div style={{ fontSize: "14px", color: "#6c757d", marginBottom: "8px" }}>Total Sessions</div>
-                        <div style={{ fontSize: "32px", fontWeight: "bold" }}>{summary.totalSessions.toLocaleString()}</div>
-                    </div>
-                    <div style={{ backgroundColor: "#f8f9fa", padding: "20px", borderRadius: "8px", border: "1px solid #dee2e6" }}>
-                        <div style={{ fontSize: "14px", color: "#6c757d", marginBottom: "8px" }}>Avg Session Duration</div>
-                        <div style={{ fontSize: "32px", fontWeight: "bold" }}>
-                            {Math.round(summary.avgSessionDuration / 1000 / 60)}m
-                        </div>
-                    </div>
                 </div>
             )}
             
@@ -448,23 +438,39 @@ export default function AdminDashboard() {
                             <th style={{ padding: "10px", textAlign: "left" }}>Event Type</th>
                             <th style={{ padding: "10px", textAlign: "left" }}>Timestamp</th>
                             <th style={{ padding: "10px", textAlign: "left" }}>Data</th>
+                            <th style={{ padding: "10px", textAlign: "left" }}>Location</th>
                         </tr>
                     </thead>
                     <tbody>
                         {events.map((event) => {
                             let ip = "-"
+                            let lat = null
+                            let lon = null
+                            
                             if (event.data) {
-                                if (typeof event.data === "object" && event.data.ip) {
-                                    ip = event.data.ip
+                                let parsedData = null
+                                
+                                if (typeof event.data === "object" && event.data !== null) {
+                                    parsedData = event.data
                                 } else if (typeof event.data === "string") {
                                     try {
-                                        const parsed = JSON.parse(event.data)
-                                        ip = parsed.ip || "-"
+                                        parsedData = JSON.parse(event.data)
                                     } catch {
-                                        ip = "-"
+                                        parsedData = null
+                                    }
+                                }
+                                
+                                if (parsedData) {
+                                    if (parsedData.ip) {
+                                        ip = parsedData.ip
+                                    }
+                                    if (typeof parsedData.lat === "number" && typeof parsedData.lon === "number") {
+                                        lat = parsedData.lat
+                                        lon = parsedData.lon
                                     }
                                 }
                             }
+                            
                             return (
                                 <tr key={event.id} style={{ borderBottom: "1px solid #dee2e6" }}>
                                     <td style={{ padding: "10px" }}>{ip === "Unknown" || ip === "-" ? ip : ip}</td>
@@ -487,6 +493,24 @@ export default function AdminDashboard() {
                                                 }}
                                             >
                                                 Copy data
+                                            </a>
+                                        ) : (
+                                            "-"
+                                        )}
+                                    </td>
+                                    <td style={{ padding: "10px" }}>
+                                        {lat !== null && lon !== null ? (
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    color: "#0066cc",
+                                                    textDecoration: "underline",
+                                                    cursor: "pointer"
+                                                }}
+                                            >
+                                                {lat},{lon}
                                             </a>
                                         ) : (
                                             "-"

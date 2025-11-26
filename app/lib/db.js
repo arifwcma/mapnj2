@@ -42,7 +42,8 @@ export function getShare(token) {
 
 export function logAnalytics(eventType, data = null) {
     const stmt = db.prepare('INSERT INTO analytics (event_type, data, timestamp) VALUES (?, ?, ?)')
-    stmt.run(eventType, data ? JSON.stringify(data) : null, Date.now())
+    const dataString = data !== null && data !== undefined ? JSON.stringify(data) : null
+    stmt.run(eventType, dataString, Date.now())
 }
 
 export function getAnalyticsSummary(startDate = null, endDate = null) {

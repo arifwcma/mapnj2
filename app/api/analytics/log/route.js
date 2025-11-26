@@ -52,32 +52,29 @@ export async function POST(request) {
 
         for (const event of events) {
             try {
-                let data = event.data ? (typeof event.data === "string" ? event.data : JSON.stringify(event.data)) : null
+                let eventData = null
                 
-                if (data) {
-                    try {
-                        const parsedData = typeof data === "string" ? JSON.parse(data) : data
-                        parsedData.ip = ip
-                        data = JSON.stringify(parsedData)
-                    } catch (parseError) {
-                        const newData = { ip }
-                        if (typeof data === "string") {
-                            try {
-                                const parsed = JSON.parse(data)
-                                Object.assign(newData, parsed)
-                            } catch {
-                                newData.raw = data
-                            }
-                        } else {
-                            Object.assign(newData, data)
+                if (event.data) {
+                    if (typeof event.data === "string") {
+                        try {
+                            eventData = JSON.parse(event.data)
+                        } catch {
+                            eventData = { raw: event.data }
                         }
-                        data = JSON.stringify(newData)
+                    } else if (typeof event.data === "object" && event.data !== null) {
+                        eventData = { ...event.data }
+                    } else {
+                        eventData = { value: event.data }
                     }
-                } else {
-                    data = JSON.stringify({ ip })
                 }
                 
-                logAnalytics(event.event_type, data)
+                if (eventData === null) {
+                    eventData = {}
+                }
+                
+                eventData.ip = ip
+                
+                logAnalytics(event.event_type, eventData)
             } catch (error) {
                 console.error("Failed to log analytics event:", error)
             }
