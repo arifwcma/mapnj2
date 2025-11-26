@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { logAnalytics } from "@/app/lib/db"
 
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/point/month - Request received")
@@ -48,6 +49,9 @@ export async function GET(request) {
             console.log(`[API] /api/ndvi/point/month - Calling getNdviAtPoint with:`, { lat: latNum, lon: lonNum, start: dateRange.start, end: dateRange.end, cloud: cloudNum })
             const ndvi = await getNdviAtPoint(latNum, lonNum, dateRange.start, dateRange.end, null, cloudNum)
             console.log(`[API] /api/ndvi/point/month - NDVI result:`, ndvi)
+            
+            logAnalytics("point_month_ndvi_request", JSON.stringify({ lat: latNum, lon: lonNum, year: yearNum, month: monthNum, cloud: cloudNum }))
+            
             return NextResponse.json({
                 year: yearNum,
                 month: monthNum,

@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import useAnalytics from "@/app/hooks/useAnalytics"
 
 export default function ShareButton({ onShare }) {
-    const { trackEvent } = useAnalytics()
     const [isOpen, setIsOpen] = useState(false)
     const [shareUrl, setShareUrl] = useState("")
     const [copied, setCopied] = useState(false)
@@ -38,13 +36,11 @@ export default function ShareButton({ onShare }) {
                 if (navigator.clipboard && window.isSecureContext) {
                     await navigator.clipboard.writeText(shareUrl)
                     setCopied(true)
-                    trackEvent("share_url_copied")
                     setTimeout(() => setCopied(false), 2000)
                 } else {
                     const successful = document.execCommand('copy')
                     if (successful) {
                         setCopied(true)
-                        trackEvent("share_url_copied")
                         setTimeout(() => setCopied(false), 2000)
                     } else {
                         alert('Failed to copy. Please select and copy manually.')
@@ -54,7 +50,6 @@ export default function ShareButton({ onShare }) {
                 const successful = document.execCommand('copy')
                 if (successful) {
                     setCopied(true)
-                    trackEvent("share_url_copied")
                     setTimeout(() => setCopied(false), 2000)
                 } else {
                     alert('Failed to copy. Please select and copy manually.')
@@ -204,4 +199,3 @@ export default function ShareButton({ onShare }) {
         </>
     )
 }
-

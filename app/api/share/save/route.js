@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { saveShare } from '@/app/lib/db'
+import { saveShare, logAnalytics } from '@/app/lib/db'
 import { randomUUID } from 'crypto'
 
 export async function POST(request) {
@@ -7,6 +7,9 @@ export async function POST(request) {
         const state = await request.json()
         const token = randomUUID()
         saveShare(token, state)
+        
+        logAnalytics("share_created", JSON.stringify({ token }))
+        
         return NextResponse.json({ token })
     } catch (error) {
         console.error('Error saving share:', error)

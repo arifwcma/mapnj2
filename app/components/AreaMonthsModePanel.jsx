@@ -13,7 +13,6 @@ import { MESSAGES } from "@/app/lib/messageConstants"
 import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getAreaCenter } from "@/app/lib/bboxUtils"
-import useAnalytics from "@/app/hooks/useAnalytics"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import AreaSnapshot from "./AreaSnapshot"
 import CompareSnapshots from "./CompareSnapshots"
@@ -57,12 +56,10 @@ export default function AreaMonthsModePanel({
     setAreaSnapshotsOpen
 }) {
     const requestTracker = useRequestTracker()
-    const { trackEvent } = useAnalytics()
     const [dataMap, setDataMap] = useState(null)
     const [selectedYear, setSelectedYear] = useState(null)
     const [selectedMonth, setSelectedMonth] = useState(null)
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
-    const previousYAxisRangeRef = useRef(yAxisRange)
     
     const currentMonth = getCurrentMonth()
     
@@ -99,17 +96,8 @@ export default function AreaMonthsModePanel({
     }, [])
     
     const handleRemoveMonth = useCallback((year, month) => {
-        setSelectedMonths(prev => {
-            const updated = prev.filter(m => !(m.year === year && m.month === month))
-            trackEvent("month_removed", {
-                year,
-                month,
-                analysis_mode: "area",
-                total_months: updated.length
-            })
-            return updated
-        })
-    }, [trackEvent])
+        setSelectedMonths(prev => prev.filter(m => !(m.year === year && m.month === month)))
+    }, [setSelectedMonths])
     
     const addMonth = useCallback((year, month) => {
         const key = monthKey(year, month)
@@ -150,13 +138,6 @@ export default function AreaMonthsModePanel({
         const success = addMonth(selectedYear, selectedMonth)
         
         if (success) {
-            trackEvent("month_added", {
-                year: selectedYear,
-                month: selectedMonth,
-                analysis_mode: "area",
-                total_months: selectedMonths.length + 1
-            })
-            
             const allMonths = getAllAvailableMonths()
             const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
             excludedKeys.add(addedKey)
@@ -169,7 +150,7 @@ export default function AreaMonthsModePanel({
                 onMonthChange(nextAvailable.year, nextAvailable.month)
             }
         }
-    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange, trackEvent])
+    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange])
     
     const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)
@@ -309,19 +290,7 @@ export default function AreaMonthsModePanel({
                         selectedMonths={sortedMonths}
                         onShare={onShareAreaSnapshots}
                         isOpen={areaSnapshotsOpen}
-                        setIsOpen={(open) => {
-                            setAreaSnapshotsOpen(open)
-                            if (open) {
-                                trackEvent("snapshot_modal_opened", {
-                                    snapshot_type: "area",
-                                    item_count: selectedMonths.length
-                                })
-                            } else {
-                                trackEvent("snapshot_modal_closed", {
-                                    snapshot_type: "area"
-                                })
-                            }
-                        }}
+                    setIsOpen={setAreaSnapshotsOpen}
                     />
                 </div>
             )}
@@ -382,16 +351,8 @@ export default function AreaMonthsModePanel({
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "0 10px" }}>
                             <button
                                 onClick={() => {
-                                    const previousRange = previousYAxisRangeRef.current
                                     const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
-                                    previousYAxisRangeRef.current = newRange
                                     setYAxisRange(newRange)
-                                    trackEvent("y_axis_range_toggle", {
-                                        previous_range: previousRange,
-                                        new_range: newRange,
-                                        analysis_mode: "area",
-                                        compare_mode: "months"
-                                    })
                                 }}
                                 style={{
                                     padding: "8px 16px",

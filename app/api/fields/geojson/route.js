@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { logAnalytics } from "@/app/lib/db"
 
 const WFS_BASE_URL = "http://testpozi.online/cgi-bin/qgis_mapserv.fcgi?MAP=/var/www/qgis_projects/wimmera_parcels/wimmera_parcels.qgz"
 
@@ -54,6 +55,8 @@ export async function GET(request) {
             type: geoJsonData?.type, 
             featureCount: geoJsonData?.features?.length || 0 
         })
+        
+        logAnalytics("fields_requested", JSON.stringify({ bbox: bboxParam, zoom, featureCount: geoJsonData?.features?.length || 0 }))
         
         return NextResponse.json(geoJsonData)
     } catch (error) {

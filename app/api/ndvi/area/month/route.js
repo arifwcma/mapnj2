@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getAverageNdviForArea } from "@/app/lib/earthengineUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { logAnalytics } from "@/app/lib/db"
 
 async function handleRequest(request) {
     console.log(`[API] ${request.method} /api/ndvi/area/month - Request received`)
@@ -95,6 +96,9 @@ async function handleRequest(request) {
         try {
             const ndvi = await getAverageNdviForArea(dateRange.start, dateRange.end, bbox, cloudNum, geometry)
             console.log(`[API] /api/ndvi/area/month - Success for ${yearNum}-${monthNum}:`, { ndvi })
+            
+            logAnalytics("area_month_ndvi_request", JSON.stringify({ bbox, year: yearNum, month: monthNum, cloud: cloudNum }))
+            
             return NextResponse.json({
                 year: yearNum,
                 month: monthNum,

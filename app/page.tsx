@@ -22,7 +22,6 @@ import useRectangleDraw from "@/app/hooks/useRectangleDraw"
 import useNdviData from "@/app/hooks/useNdviData"
 import useFields from "@/app/hooks/useFields"
 import useAreaNdvi from "@/app/hooks/useAreaNdvi"
-import useAnalytics from "@/app/hooks/useAnalytics"
 import { useStatusMessage } from "@/app/components/StatusMessage"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { DEBOUNCE_DELAYS } from "@/app/lib/config"
@@ -60,14 +59,6 @@ function PageContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const hasRestoredStateRef = useRef(false)
-    const { trackEvent } = useAnalytics()
-    
-    const previousBasemapRef = useRef(basemap)
-    const previousAnalysisModeRef = useRef(analysisMode)
-    const previousCompareModeRef = useRef(compareMode)
-    const previousCloudToleranceRef = useRef(cloudTolerance)
-    const mapPanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const mapZoomDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const lastPointClickRef = useRef<{ lat: number, lon: number, time: number } | null>(null)
     const lastAreaAddRef = useRef<{ bounds: [[number, number], [number, number]], time: number } | null>(null)
     
@@ -135,16 +126,6 @@ function PageContent() {
                             if (state.areaSnapshotsOpen) {
                                 setAreaSnapshotsOpen(true)
                             }
-                            
-                            trackEvent("share_link_opened", {
-                                token: shareToken,
-                                restored_state: {
-                                    analysis_mode: state.analysisMode,
-                                    compare_mode: state.compareMode,
-                                    has_points: !!(state.selectedPoints && state.selectedPoints.length > 0),
-                                    has_areas: !!(state.selectedAreas && state.selectedAreas.length > 0),
-                                }
-                            })
                         }
                     }
                 })
@@ -152,7 +133,7 @@ function PageContent() {
                     console.error('Error loading share state:', err)
                 })
         }
-    }, [searchParams, trackEvent])
+    }, [searchParams])
     
     useEffect(() => {
         if (!selectedPoint || selectedPoint.lat === null || selectedPoint.lon === null) {
@@ -167,13 +148,6 @@ function PageContent() {
     }, [selectedAreas])
     
     const handleShare = useCallback(async (openPointSnapshots = false, openAreaSnapshots = false) => {
-        trackEvent("share_button_clicked", {
-            analysis_mode: analysisMode,
-            compare_mode: compareMode,
-            has_points: selectedPoints.length > 0 || (selectedPoint.lat !== null && selectedPoint.lon !== null),
-            has_areas: selectedAreas.length > 0
-        })
-        
         const state = {
             basemap,
             analysisMode,
@@ -219,7 +193,7 @@ function PageContent() {
             console.error('Error saving share:', error)
             return null
         }
-    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange, pointsYAxisRange, areasYAxisRange, pointMonthsYAxisRange, areaMonthsYAxisRange, currentZoom, mapBounds, pointSnapshotsOpen, areaSnapshotsOpen, trackEvent])
+    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange, pointsYAxisRange, areasYAxisRange, pointMonthsYAxisRange, areaMonthsYAxisRange, currentZoom, mapBounds, pointSnapshotsOpen, areaSnapshotsOpen])
     
     const handleSharePointSnapshots = useCallback(async () => {
         return handleShare(true, false)
@@ -295,8 +269,6 @@ function PageContent() {
     }, [cloudTolerance])
     
     const handleAnalysisModeChange = useCallback((mode: "point" | "area") => {
-        const previousMode = previousAnalysisModeRef.current
-        previousAnalysisModeRef.current = mode
         setAnalysisMode(mode)
         resetRectangle()
         clearNdvi()
@@ -309,15 +281,9 @@ function PageContent() {
         setSelectedYear(null)
         setSelectedMonth(null)
         setCompareMode(mode === "point" ? "points" : "areas")
-        trackEvent("analysis_mode_change", {
-            previous_mode: previousMode,
-            new_mode: mode
-        })
-    }, [resetRectangle, clearNdvi, trackEvent])
+    }, [resetRectangle, clearNdvi])
     
     const handleCompareModeChange = useCallback((mode: "points" | "areas" | "months") => {
-        const previousMode = previousCompareModeRef.current
-        previousCompareModeRef.current = mode
         setCompareMode(mode)
         resetRectangle()
         clearNdvi()
@@ -329,16 +295,9 @@ function PageContent() {
         setSelectedFieldFeature(null)
         setSelectedYear(null)
         setSelectedMonth(null)
-        trackEvent("compare_mode_change", {
-            previous_mode: previousMode,
-            new_mode: mode,
-            analysis_mode: analysisMode
-        })
-    }, [resetRectangle, clearNdvi, analysisMode, trackEvent])
+    }, [resetRectangle, clearNdvi])
     
     const handleCloudChange = (newValue: number) => {
-        const previousValue = previousCloudToleranceRef.current
-        previousCloudToleranceRef.current = newValue
         cloudToleranceRef.current = newValue
         setCloudTolerance(newValue)
         
@@ -348,23 +307,13 @@ function PageContent() {
         
         cloudDebounceTimeoutRef.current = setTimeout(() => {
             updateCloudTolerance(newValue)
-            trackEvent("cloud_tolerance_change", {
-                previous_value: previousValue,
-                new_value: newValue
-            })
         }, DEBOUNCE_DELAYS.CLOUD_TOLERANCE)
     }
     
     
     const handleBasemapChange = useCallback((newBasemap: string) => {
-        const previousBasemap = previousBasemapRef.current
-        previousBasemapRef.current = newBasemap
         setBasemap(newBasemap)
-        trackEvent("basemap_change", {
-            previous_basemap: previousBasemap,
-            new_basemap: newBasemap
-        })
-    }, [trackEvent])
+    }, [])
     
     const handlePointClick = useCallback((lat: number, lon: number) => {
         const now = Date.now()
@@ -382,95 +331,47 @@ function PageContent() {
                 lat,
                 lon
             }
-            setSelectedPoints(prev => {
-                const updated = [...prev, newPoint]
-                trackEvent("point_added", {
-                    lat,
-                    lon,
-                    point_index: prev.length,
-                    total_points: updated.length,
-                    compare_mode: compareMode
-                })
-                return updated
-            })
+            setSelectedPoints(prev => [...prev, newPoint])
         } else if (analysisMode === "point" && compareMode === "months") {
             setSelectedPoint({ lat, lon })
-            trackEvent("point_added", {
-                lat,
-                lon,
-                point_index: 0,
-                total_points: 1,
-                compare_mode: compareMode
-            })
         }
-    }, [analysisMode, compareMode, trackEvent])
+    }, [analysisMode, compareMode])
     
     const handleRemovePoint = useCallback((index: number) => {
-        setSelectedPoints(prev => {
-            const updated = prev.filter((_, i) => i !== index)
-            trackEvent("point_removed", {
-                point_index: index,
-                total_points: updated.length
-            })
-            return updated
-        })
-    }, [trackEvent])
+        setSelectedPoints(prev => prev.filter((_, i) => i !== index))
+    }, [])
     
     const handleMonthChange = useCallback((year: number, month: number) => {
-        const previousYear = selectedYear
-        const previousMonth = selectedMonth
         setSelectedYear(year)
         setSelectedMonth(month)
-        if (previousYear !== null && previousMonth !== null) {
-            trackEvent("month_changed", {
-                previous_year: previousYear,
-                previous_month: previousMonth,
-                new_year: year,
-                new_month: month,
-                analysis_mode: analysisMode,
-                compare_mode: compareMode
-            })
-        }
-    }, [selectedYear, selectedMonth, analysisMode, compareMode, trackEvent])
+    }, [])
     
     const handleStartFieldSelection = useCallback(() => {
-        
         if (isDrawing) {
             stopDrawing()
             resetRectangle()
             setBoundsSource(null)
         }
         setFieldSelectionMode(true)
-        trackEvent("field_selection_started", {
-            zoom: currentZoom,
-            bounds: mapBounds
-        })
         
         if (currentZoom !== null && currentZoom !== undefined && currentZoom >= 13) {
             if (mapBounds) {
                 loadFieldsForBounds(mapBounds, currentZoom)
             }
         }
-    }, [isDrawing, stopDrawing, resetRectangle, currentZoom, mapBounds, loadFieldsForBounds, trackEvent])
+    }, [isDrawing, stopDrawing, resetRectangle, currentZoom, mapBounds, loadFieldsForBounds])
     
     const handleCancelFieldSelection = useCallback(() => {
         setFieldSelectionMode(false)
-        trackEvent("field_selection_cancelled")
-    }, [trackEvent])
+    }, [])
     
     const handleCancelSelection = useCallback(() => {
-        if (fieldSelectionMode) {
-            trackEvent("field_selection_cancelled")
-        }
-        if (isDrawing) {
-            trackEvent("rectangle_drawing_cancelled")
-        }
         setFieldSelectionMode(false)
         stopDrawing()
         resetRectangle()
         setSelectedFieldFeature(null)
         setBoundsSource(null)
-    }, [stopDrawing, resetRectangle, fieldSelectionMode, isDrawing, trackEvent])
+    }, [stopDrawing, resetRectangle])
     
     const handleFieldClick = useCallback((bounds: [[number, number], [number, number]], feature: any) => {
         const now = Date.now()
@@ -496,23 +397,13 @@ function PageContent() {
                 ndviTileUrl: null,
                 rgbTileUrl: null
             }
-            setSelectedAreas(prev => {
-                const updated = [...prev, newArea]
-                trackEvent("area_added", {
-                    bounds,
-                    bounds_source: 'field',
-                    area_index: prev.length,
-                    total_areas: updated.length,
-                    compare_mode: compareMode
-                })
-                return updated
-            })
+            setSelectedAreas(prev => [...prev, newArea])
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
             if (selectedYear && selectedMonth) {
                 loadAreaNdvi(newArea)
-        }
+            }
         } else if (analysisMode === "area" && compareMode === "months") {
             const newArea = {
                 id: `area_${Date.now()}_${Math.random()}`,
@@ -525,30 +416,22 @@ function PageContent() {
                 rgbTileUrl: null
             }
             setSelectedAreas([newArea])
-            trackEvent("area_added", {
-                bounds,
-                bounds_source: 'field',
-                area_index: 0,
-                total_areas: 1,
-                compare_mode: compareMode
-            })
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
             setFieldSelectionMode(false)
         }
-    }, [analysisMode, compareMode, selectedAreas.length, setBounds, selectedYear, selectedMonth, loadAreaNdvi, trackEvent])
+    }, [analysisMode, compareMode, selectedAreas.length, setBounds, selectedYear, selectedMonth, loadAreaNdvi])
     
     const handleStartDrawing = useCallback(() => {
         if (fieldSelectionMode) {
-        setFieldSelectionMode(false)
-        setSelectedFieldFeature(null)
+            setFieldSelectionMode(false)
+            setSelectedFieldFeature(null)
             setBoundsSource(null)
         }
         startDrawing()
         setBoundsSource('rectangle')
-        trackEvent("rectangle_drawing_started")
-    }, [startDrawing, fieldSelectionMode, trackEvent])
+    }, [startDrawing, fieldSelectionMode])
     
     const handleFinalize = useCallback(() => {
         if (analysisMode === "area" && compareMode === "areas" && currentBounds) {
@@ -579,17 +462,7 @@ function PageContent() {
                 ndviTileUrl: null,
                 rgbTileUrl: null
             }
-            setSelectedAreas(prev => {
-                const updated = [...prev, newArea]
-                trackEvent("area_added", {
-                    bounds: currentBounds,
-                    bounds_source: 'rectangle',
-                    area_index: prev.length,
-                    total_areas: updated.length,
-                    compare_mode: compareMode
-                })
-                return updated
-            })
+            setSelectedAreas(prev => [...prev, newArea])
             if (selectedYear && selectedMonth) {
                 loadAreaNdvi(newArea)
             }
@@ -619,13 +492,6 @@ function PageContent() {
                 rgbTileUrl: null
             }
             setSelectedAreas([newArea])
-            trackEvent("area_added", {
-                bounds: currentBounds,
-                bounds_source: 'rectangle',
-                area_index: 0,
-                total_areas: 1,
-                compare_mode: compareMode
-            })
         }
         finalizeRectangle()
         setBoundsSource('rectangle')
@@ -633,7 +499,7 @@ function PageContent() {
         if (analysisMode === "area" && compareMode === "areas") {
             startDrawing()
         }
-    }, [finalizeRectangle, analysisMode, compareMode, currentBounds, selectedAreas.length, selectedYear, selectedMonth, loadAreaNdvi, startDrawing, trackEvent])
+    }, [finalizeRectangle, analysisMode, compareMode, currentBounds, selectedAreas.length, selectedYear, selectedMonth, loadAreaNdvi, startDrawing])
     
     const handleReset = useCallback(() => {
         resetRectangle()
@@ -644,12 +510,7 @@ function PageContent() {
         setFieldSelectionMode(false)
         setBoundsSource(null)
         setSelectedFieldFeature(null)
-        trackEvent("reset_clicked", {
-            reset_type: "full",
-            analysis_mode: analysisMode,
-            compare_mode: compareMode
-        })
-    }, [resetRectangle, clearNdvi, analysisMode, compareMode, trackEvent])
+    }, [resetRectangle, clearNdvi])
     
     const handleResetAreaSelection = useCallback(() => {
         setSelectedAreas([])
@@ -663,12 +524,7 @@ function PageContent() {
     const handleResetPointSelection = useCallback(() => {
         setSelectedPoint({ lat: null, lon: null })
         clearNdvi()
-        trackEvent("reset_clicked", {
-            reset_type: "point_selection",
-            analysis_mode: analysisMode,
-            compare_mode: compareMode
-        })
-    }, [clearNdvi, analysisMode, compareMode, trackEvent])
+    }, [clearNdvi])
     
     useEffect(() => {
         if (analysisMode === "area" && compareMode === "areas") {
@@ -795,29 +651,9 @@ function PageContent() {
                     currentZoom={currentZoom}
                     onZoomChange={(zoom: number) => {
                         setCurrentZoom(zoom)
-                        if (mapZoomDebounceRef.current) {
-                            clearTimeout(mapZoomDebounceRef.current)
-                        }
-                        mapZoomDebounceRef.current = setTimeout(() => {
-                            trackEvent("map_zoom", {
-                                zoom,
-                                bounds: mapBounds
-                            })
-                            mapZoomDebounceRef.current = null
-                        }, 1000)
                     }}
                     onMapBoundsChange={(bounds: [[number, number], [number, number]]) => {
                         setMapBounds(bounds)
-                        if (mapPanDebounceRef.current) {
-                            clearTimeout(mapPanDebounceRef.current)
-                        }
-                        mapPanDebounceRef.current = setTimeout(() => {
-                            trackEvent("map_pan", {
-                                bounds,
-                                zoom: currentZoom
-                            })
-                            mapPanDebounceRef.current = null
-                        }, 2000)
                     }}
                     initialZoom={restoredZoom}
                     initialBounds={restoredBounds}
@@ -872,14 +708,7 @@ function PageContent() {
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onRemoveArea={(index: number) => {
-                            setSelectedAreas(prev => {
-                                const updated = prev.filter((_, i) => i !== index)
-                                trackEvent("area_removed", {
-                                    area_index: index,
-                                    total_areas: updated.length
-                                })
-                                return updated
-                            })
+                            setSelectedAreas(prev => prev.filter((_, i) => i !== index))
                         }}
                         visibleRange={areasVisibleRange}
                         setVisibleRange={setAreasVisibleRange}

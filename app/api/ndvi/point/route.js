@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { logAnalytics } from "@/app/lib/db"
 
 export async function GET(request) {
     console.log("[API] GET /api/ndvi/point - Request received")
@@ -41,6 +42,9 @@ export async function GET(request) {
         console.log("API: Getting NDVI at point", { lat: latNum, lon: lonNum, start, end, cloud })
         const ndvi = await getNdviAtPoint(latNum, lonNum, start, end, null, cloud)
         console.log("API: NDVI retrieved:", ndvi)
+        
+        logAnalytics("point_ndvi_request", JSON.stringify({ lat: latNum, lon: lonNum, start, end, cloud }))
+        
         return NextResponse.json({ ndvi, lat: latNum, lon: lonNum })
     } catch (error) {
         const errorMessage = error.message || error.toString() || ""
