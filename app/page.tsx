@@ -131,14 +131,20 @@ function PageContent() {
                                 setAreaSnapshotsOpen(true)
                             }
                             const shareUrl = typeof window !== 'undefined' ? window.location.href : ''
+                            const feature = 
+                                state.analysisMode === "point" && state.compareMode === "points" ? "Point-Points" :
+                                state.analysisMode === "point" && state.compareMode === "months" ? "Point-Months" :
+                                state.analysisMode === "area" && state.compareMode === "areas" ? "Area-Areas" :
+                                state.analysisMode === "area" && state.compareMode === "months" ? "Area-Months" :
+                                null
+                            const total_objects = state.analysisMode === "point" 
+                                ? (state.compareMode === "points" ? (state.selectedPoints?.length || 0) : (state.selectedPoint?.lat ? 1 : 0))
+                                : (state.selectedAreas?.length || 0)
+                            
                             trackEvent("share_link_opened", {
                                 url: shareUrl,
-                                restored_state: {
-                                    analysis_mode: state.analysisMode,
-                                    compare_mode: state.compareMode,
-                                    has_points: !!(state.selectedPoints?.length || state.selectedPoint?.lat),
-                                    has_areas: !!state.selectedAreas?.length
-                                }
+                                feature: feature,
+                                total_objects: total_objects
                             })
                         }
                     }
