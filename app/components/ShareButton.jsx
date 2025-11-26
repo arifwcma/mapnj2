@@ -16,7 +16,7 @@ export default function ShareButton({ onShare, feature = null, total_objects = 0
         setShareUrl("")
         setCopied(false)
         
-        if (feature !== null) {
+        if (feature != null) {
             trackEvent("Shared", {
                 feature: feature,
                 total_objects: total_objects

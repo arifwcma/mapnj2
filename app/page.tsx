@@ -806,7 +806,7 @@ function PageContent() {
                         analysisMode === "point" && compareMode === "months" ? "Point-Months" :
                         analysisMode === "area" && compareMode === "areas" ? "Area-Areas" :
                         analysisMode === "area" && compareMode === "months" ? "Area-Months" :
-                        null
+                        undefined
                     }
                     total_objects={
                         analysisMode === "point" 
