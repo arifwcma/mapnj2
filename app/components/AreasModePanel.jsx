@@ -19,6 +19,7 @@ import AreaSnapshot from "./AreaSnapshot"
 import CompareSnapshots from "./CompareSnapshots"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
+import { trackEvent } from "@/app/lib/analytics"
 
 registerChartJS()
 
@@ -83,10 +84,18 @@ export default function AreasModePanel({
     
     const handleLeftArrow = useCallback(() => {
         originalHandleLeftArrow()
+        trackEvent("Chart arrow clicked", {
+            feature: "Area-Areas",
+            arrow: "left"
+        })
     }, [originalHandleLeftArrow])
     
     const handleRightArrow = useCallback(() => {
         originalHandleRightArrow()
+        trackEvent("Chart arrow clicked", {
+            feature: "Area-Areas",
+            arrow: "right"
+        })
     }, [originalHandleRightArrow])
     
     const handleDataMapReady = useCallback((index, dataMap) => {
@@ -448,7 +457,12 @@ export default function AreasModePanel({
                         yAxisRange={yAxisRange}
                         onYAxisToggle={() => {
                             const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                            const arrowDirection = yAxisRange === "0-1" ? "down" : "up"
                             setYAxisRange(newRange)
+                            trackEvent("Chart arrow clicked", {
+                                feature: "Area-Areas",
+                                arrow: arrowDirection
+                            })
                         }}
                     />
                     <NdviLegend />

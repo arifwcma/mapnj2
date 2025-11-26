@@ -19,6 +19,7 @@ import PointSnapshot from "./PointSnapshot"
 import ComparePointSnapshots from "./ComparePointSnapshots"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
+import { trackEvent } from "@/app/lib/analytics"
 
 registerChartJS()
 
@@ -93,10 +94,18 @@ export default function PointsModePanel({
     
     const handleLeftArrow = useCallback(() => {
         originalHandleLeftArrow()
+        trackEvent("Chart arrow clicked", {
+            feature: "Point-Points",
+            arrow: "left"
+        })
     }, [originalHandleLeftArrow])
     
     const handleRightArrow = useCallback(() => {
         originalHandleRightArrow()
+        trackEvent("Chart arrow clicked", {
+            feature: "Point-Points",
+            arrow: "right"
+        })
     }, [originalHandleRightArrow])
     
     useEffect(() => {
@@ -460,7 +469,12 @@ export default function PointsModePanel({
                         yAxisRange={yAxisRange}
                         onYAxisToggle={() => {
                             const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                            const arrowDirection = yAxisRange === "0-1" ? "down" : "up"
                             setYAxisRange(newRange)
+                            trackEvent("Chart arrow clicked", {
+                                feature: "Point-Points",
+                                arrow: arrowDirection
+                            })
                         }}
                     />
                     <NdviLegend />

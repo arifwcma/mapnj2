@@ -12,6 +12,7 @@ import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
+import { trackEvent } from "@/app/lib/analytics"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
 import NdviLegend from "./NdviLegend"
@@ -132,6 +133,14 @@ export default function PointMonthsModePanel({
         const success = addMonth(selectedYear, selectedMonth)
         
         if (success) {
+            if (selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null) {
+                trackEvent("Point - Month Added", {
+                    lat: selectedPoint.lat,
+                    lon: selectedPoint.lon,
+                    month: `${selectedYear}-${selectedMonth}`
+                })
+            }
+            
             const allMonths = getAllAvailableMonths()
             const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
             excludedKeys.add(addedKey)
@@ -144,7 +153,7 @@ export default function PointMonthsModePanel({
                 onMonthChange(nextAvailable.year, nextAvailable.month)
             }
         }
-    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange])
+    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange, selectedPoint])
     
     const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)

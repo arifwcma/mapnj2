@@ -486,6 +486,7 @@ export default function AdminDashboard() {
                                                     e.preventDefault()
                                                     handleCopyData(event.data)
                                                 }}
+                                                title={JSON.stringify(event.data, null, 2)}
                                                 style={{
                                                     color: "#0066cc",
                                                     textDecoration: "underline",

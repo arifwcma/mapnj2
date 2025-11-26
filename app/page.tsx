@@ -290,7 +290,6 @@ function PageContent() {
     }, [cloudTolerance])
     
     const handleAnalysisModeChange = useCallback((mode: "point" | "area") => {
-        const previousMode = analysisMode
         setAnalysisMode(mode)
         resetRectangle()
         clearNdvi()
@@ -304,14 +303,9 @@ function PageContent() {
         setSelectedMonth(null)
         const newCompareMode = mode === "point" ? "points" : "areas"
         setCompareMode(newCompareMode)
-        trackEvent("analysis_mode_change", {
-            previous_mode: previousMode,
-            new_mode: mode
-        })
-    }, [resetRectangle, clearNdvi, analysisMode])
+    }, [resetRectangle, clearNdvi])
     
     const handleCompareModeChange = useCallback((mode: "points" | "areas" | "months") => {
-        const previousMode = compareMode
         setCompareMode(mode)
         resetRectangle()
         clearNdvi()
@@ -323,12 +317,7 @@ function PageContent() {
         setSelectedFieldFeature(null)
         setSelectedYear(null)
         setSelectedMonth(null)
-        trackEvent("compare_mode_change", {
-            previous_mode: previousMode,
-            new_mode: mode,
-            analysis_mode: analysisMode
-        })
-    }, [resetRectangle, clearNdvi, compareMode, analysisMode])
+    }, [resetRectangle, clearNdvi, compareMode])
     
     const handleCloudChange = (newValue: number) => {
         const previousValue = cloudTolerance
@@ -384,11 +373,9 @@ function PageContent() {
             })
         } else if (analysisMode === "point" && compareMode === "months") {
             setSelectedPoint({ lat, lon })
-            trackEvent("point_added", {
+            trackEvent("Point Set", {
                 lat,
-                lon,
-                point_index: 0,
-                total_points: 1
+                lon
             })
         }
     }, [analysisMode, compareMode, selectedPoints.length])
@@ -425,9 +412,18 @@ function PageContent() {
     }, [])
     
     const handleMonthChange = useCallback((year: number, month: number) => {
+        if (analysisMode === "point" && compareMode === "points") {
+            trackEvent("Calendar Month Changed in Point-Points", {
+                current_calendar_month: `${year}-${month}`
+            })
+        } else if (analysisMode === "area" && compareMode === "areas") {
+            trackEvent("Calendar Month Changed in Area-Areas", {
+                current_calendar_month: `${year}-${month}`
+            })
+        }
         setSelectedYear(year)
         setSelectedMonth(month)
-    }, [])
+    }, [analysisMode, compareMode])
     
     const handleStartFieldSelection = useCallback(() => {
         if (isDrawing) {
