@@ -17,6 +17,7 @@ import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
+import ChartNavigation from "./ChartNavigation"
 
 registerChartJS()
 
@@ -320,27 +321,21 @@ export default function PointMonthsModePanel({
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line data={chartData} options={chartOptions} />
                     </div>
-                    <div style={{ position: "relative", marginTop: "10px" }}>
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "0 10px" }}>
-                            <button
-                                onClick={() => {
-                                    const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
-                                    setYAxisRange(newRange)
-                                }}
-                                style={{
-                                    padding: "8px 16px",
-                                    cursor: "pointer",
-                                    backgroundColor: "white",
-                                    color: "#333",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "8px",
-                                    fontWeight: "500"
-                                }}
-                            >
-                                {yAxisRange === "0-1" ? "↓" : "↑"}
-                            </button>
-                        </div>
-                    </div>
+                    <ChartNavigation
+                        canGoLeft={() => false}
+                        canGoRight={() => false}
+                        onLeftClick={() => {}}
+                        onRightClick={() => {}}
+                        yAxisRange={yAxisRange}
+                        onYAxisToggle={() => {
+                            const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                            setYAxisRange(newRange)
+                            trackEvent("Chart arrow clicked", {
+                                feature: "Point-Months",
+                                arrow: yAxisRange === "0-1" ? "down" : "up"
+                            })
+                        }}
+                    />
                     <NdviLegend />
                 </>
             )}
