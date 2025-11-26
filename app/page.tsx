@@ -942,24 +942,23 @@ function PageContent() {
                         onMonthChange={handleMonthChange}
                         onRemoveArea={(index: number) => {
                             const newLength = selectedAreas.length - 1
+                            
                             setSelectedAreas(prev => {
-                                const updated = prev.filter((_, i) => i !== index)
-                                
-                                setTimeout(() => {
-                                    if (areaRemoveTrackingRef.current?.index === index && 
-                                        areaRemoveTrackingRef.current?.length === newLength) {
-                                        return
-                                    }
-                                    areaRemoveTrackingRef.current = { index, length: newLength }
-                                    trackEvent("Area removed", {
-                                        area_index: index,
-                                        total_areas: newLength
-                                    })
-                                    areaRemoveTrackingRef.current = null
-                                }, 0)
-                                
-                                return updated
+                                return prev.filter((_, i) => i !== index)
                             })
+                            
+                            setTimeout(() => {
+                                if (areaRemoveTrackingRef.current?.index === index && 
+                                    areaRemoveTrackingRef.current?.length === newLength) {
+                                    return
+                                }
+                                areaRemoveTrackingRef.current = { index, length: newLength }
+                                trackEvent("Area removed", {
+                                    area_index: index,
+                                    total_areas: newLength
+                                })
+                                areaRemoveTrackingRef.current = null
+                            }, 0)
                         }}
                         visibleRange={areasVisibleRange}
                         setVisibleRange={setAreasVisibleRange}

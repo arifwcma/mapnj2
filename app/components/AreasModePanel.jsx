@@ -366,6 +366,12 @@ export default function AreasModePanel({
                                         area={area}
                                         cloudTolerance={cloudTolerance}
                                         visibleRange={effectiveVisibleRange}
+                                        areaIndex={index}
+                                        onSnapshotClick={(index) => {
+                                            trackEvent("Area-Areas - snapshot viewed", {
+                                                area_index: index
+                                            })
+                                        }}
                                     />
                                 </td>
                                 <td style={{ padding: "8px" }}>
