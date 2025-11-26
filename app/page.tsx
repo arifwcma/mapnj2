@@ -65,6 +65,7 @@ function PageContent() {
     const lastPointRemoveRef = useRef<{ index: number, time: number } | null>(null)
     const pointRemoveTrackingRef = useRef<{ index: number, length: number } | null>(null)
     const areaAddTrackingRef = useRef<{ index: number, total: number, source: string, time: number } | null>(null)
+    const areaRemoveTrackingRef = useRef<{ index: number, length: number } | null>(null)
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -543,10 +544,9 @@ function PageContent() {
                 const centerLon = (bounds[0][1] + bounds[1][1]) / 2
                 trackEvent("Parcel set", {
                     area_index: 0,
-                    total_areas: 1,
+                    lat: centerLat,
+                    lon: centerLon,
                     bounds: bounds,
-                    center_lat: centerLat,
-                    center_lon: centerLon,
                     geometry_type: feature?.geometry?.type || null,
                     properties: feature?.properties || null
                 })
@@ -676,13 +676,12 @@ function PageContent() {
                 const centerLon = (minLng + maxLng) / 2
                 trackEvent("Rectangle set", {
                     area_index: 0,
-                    total_areas: 1,
+                    lat: centerLat,
+                    lon: centerLon,
                     min_lat: minLat,
                     min_lng: minLng,
                     max_lat: maxLat,
-                    max_lng: maxLng,
-                    center_lat: centerLat,
-                    center_lon: centerLon
+                    max_lng: maxLng
                 })
             }, 0)
         }
@@ -703,10 +702,14 @@ function PageContent() {
         setFieldSelectionMode(false)
         setBoundsSource(null)
         setSelectedFieldFeature(null)
+        const feature = 
+            analysisMode === "point" && compareMode === "points" ? "Point-Points" :
+            analysisMode === "point" && compareMode === "months" ? "Point-Months" :
+            analysisMode === "area" && compareMode === "areas" ? "Area-Areas" :
+            analysisMode === "area" && compareMode === "months" ? "Area-Months" :
+            null
         trackEvent("Reset clicked", {
-            reset_type: "full",
-            analysis_mode: analysisMode,
-            compare_mode: compareMode
+            feature: feature
         })
     }, [resetRectangle, clearNdvi, analysisMode, compareMode])
     
@@ -717,20 +720,28 @@ function PageContent() {
         setFieldSelectionMode(false)
         setBoundsSource(null)
         setSelectedFieldFeature(null)
+        const feature = 
+            analysisMode === "point" && compareMode === "points" ? "Point-Points" :
+            analysisMode === "point" && compareMode === "months" ? "Point-Months" :
+            analysisMode === "area" && compareMode === "areas" ? "Area-Areas" :
+            analysisMode === "area" && compareMode === "months" ? "Area-Months" :
+            null
         trackEvent("Reset clicked", {
-            reset_type: "area_selection",
-            analysis_mode: analysisMode,
-            compare_mode: compareMode
+            feature: feature
         })
     }, [resetRectangle, clearNdvi, analysisMode, compareMode])
     
     const handleResetPointSelection = useCallback(() => {
         setSelectedPoint({ lat: null, lon: null })
         clearNdvi()
+        const feature = 
+            analysisMode === "point" && compareMode === "points" ? "Point-Points" :
+            analysisMode === "point" && compareMode === "months" ? "Point-Months" :
+            analysisMode === "area" && compareMode === "areas" ? "Area-Areas" :
+            analysisMode === "area" && compareMode === "months" ? "Area-Months" :
+            null
         trackEvent("Reset clicked", {
-            reset_type: "point_selection",
-            analysis_mode: analysisMode,
-            compare_mode: compareMode
+            feature: feature
         })
     }, [clearNdvi, analysisMode, compareMode])
     
@@ -930,7 +941,25 @@ function PageContent() {
                         cloudTolerance={cloudTolerance}
                         onMonthChange={handleMonthChange}
                         onRemoveArea={(index: number) => {
-                            setSelectedAreas(prev => prev.filter((_, i) => i !== index))
+                            const newLength = selectedAreas.length - 1
+                            setSelectedAreas(prev => {
+                                const updated = prev.filter((_, i) => i !== index)
+                                
+                                setTimeout(() => {
+                                    if (areaRemoveTrackingRef.current?.index === index && 
+                                        areaRemoveTrackingRef.current?.length === newLength) {
+                                        return
+                                    }
+                                    areaRemoveTrackingRef.current = { index, length: newLength }
+                                    trackEvent("Area removed", {
+                                        area_index: index,
+                                        total_areas: newLength
+                                    })
+                                    areaRemoveTrackingRef.current = null
+                                }, 0)
+                                
+                                return updated
+                            })
                         }}
                         visibleRange={areasVisibleRange}
                         setVisibleRange={setAreasVisibleRange}

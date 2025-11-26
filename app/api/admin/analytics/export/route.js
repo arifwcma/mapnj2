@@ -24,13 +24,52 @@ export async function GET(request) {
         })
         
         if (format === "csv") {
-            const headers = ["id", "event_type", "timestamp", "data"]
-            const rows = events.map(event => [
-                event.id,
-                event.event_type,
-                new Date(event.timestamp).toISOString(),
-                event.data ? JSON.stringify(event.data) : ""
-            ])
+            const headers = ["ip", "event_type", "timestamp", "lat", "lon", "data"]
+            const rows = events.map(event => {
+                let ip = "-"
+                let lat = null
+                let lon = null
+                
+                if (event.data) {
+                    let parsedData = null
+                    
+                    if (typeof event.data === "object" && event.data !== null) {
+                        parsedData = event.data
+                    } else if (typeof event.data === "string") {
+                        try {
+                            parsedData = JSON.parse(event.data)
+                        } catch {
+                            parsedData = null
+                        }
+                    }
+                    
+                    if (parsedData) {
+                        if (parsedData.ip) {
+                            ip = parsedData.ip
+                        }
+                        if (typeof parsedData.lat === "number" && typeof parsedData.lon === "number") {
+                            lat = parsedData.lat
+                            lon = parsedData.lon
+                        } else if ((event.event_type === "Parcel added" || event.event_type === "Rectangle added" || 
+                                    event.event_type === "Parcel set" || event.event_type === "Rectangle set") &&
+                                   typeof parsedData.center_lat === "number" && typeof parsedData.center_lon === "number") {
+                            lat = parsedData.center_lat
+                            lon = parsedData.center_lon
+                        }
+                    }
+                }
+                
+                const dataStr = event.data ? JSON.stringify(event.data) : ""
+                
+                return [
+                    ip === "Unknown" || ip === "-" ? ip : ip,
+                    event.event_type,
+                    new Date(event.timestamp).toLocaleString(),
+                    lat !== null ? lat.toString() : "",
+                    lon !== null ? lon.toString() : "",
+                    dataStr
+                ]
+            })
             
             const csvContent = [
                 headers.join(","),

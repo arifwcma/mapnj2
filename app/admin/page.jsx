@@ -146,10 +146,10 @@ export default function AdminDashboard() {
         }
     }, [])
     
-    const handleExport = useCallback(async (format) => {
+    const handleExport = useCallback(async () => {
         try {
             const params = new URLSearchParams()
-            params.append("format", format)
+            params.append("format", "csv")
             if (filters.eventType) {
                 params.append("eventType", filters.eventType)
             }
@@ -164,28 +164,15 @@ export default function AdminDashboard() {
                 credentials: 'include'
             })
             if (response.ok) {
-                if (format === "csv") {
-                    const blob = await response.blob()
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.href = url
-                    a.download = `analytics-${Date.now()}.csv`
-                    document.body.appendChild(a)
-                    a.click()
-                    document.body.removeChild(a)
-                    window.URL.revokeObjectURL(url)
-                } else {
-                    const data = await response.json()
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-                    const url = window.URL.createObjectURL(blob)
-                    const a = document.createElement("a")
-                    a.href = url
-                    a.download = `analytics-${Date.now()}.json`
-                    document.body.appendChild(a)
-                    a.click()
-                    document.body.removeChild(a)
-                    window.URL.revokeObjectURL(url)
-                }
+                const blob = await response.blob()
+                const url = window.URL.createObjectURL(blob)
+                const a = document.createElement("a")
+                a.href = url
+                a.download = `analytics-${Date.now()}.csv`
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                window.URL.revokeObjectURL(url)
             }
         } catch (error) {
             console.error("Export failed:", error)
@@ -341,36 +328,20 @@ export default function AdminDashboard() {
             <div style={{ backgroundColor: "white", padding: "20px", borderRadius: "8px", border: "1px solid #dee2e6" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                     <h2 style={{ fontSize: "20px", margin: 0 }}>Recent Events</h2>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                        <button
-                            onClick={() => handleExport("csv")}
-                            style={{
-                                padding: "6px 12px",
-                                backgroundColor: "#28a745",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px"
-                            }}
-                        >
-                            Export CSV
-                        </button>
-                        <button
-                            onClick={() => handleExport("json")}
-                            style={{
-                                padding: "6px 12px",
-                                backgroundColor: "#17a2b8",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                fontSize: "14px"
-                            }}
-                        >
-                            Export JSON
-                        </button>
-                    </div>
+                    <button
+                        onClick={handleExport}
+                        style={{
+                            padding: "6px 12px",
+                            backgroundColor: "#28a745",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "14px"
+                        }}
+                    >
+                        Export CSV
+                    </button>
                 </div>
                 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px", marginBottom: "20px" }}>
@@ -467,7 +438,8 @@ export default function AdminDashboard() {
                                     if (typeof parsedData.lat === "number" && typeof parsedData.lon === "number") {
                                         lat = parsedData.lat
                                         lon = parsedData.lon
-                                    } else if ((event.event_type === "Parcel added" || event.event_type === "Rectangle added") &&
+                                    } else if ((event.event_type === "Parcel added" || event.event_type === "Rectangle added" || 
+                                                event.event_type === "Parcel set" || event.event_type === "Rectangle set") &&
                                                typeof parsedData.center_lat === "number" && typeof parsedData.center_lon === "number") {
                                         lat = parsedData.center_lat
                                         lon = parsedData.center_lon
@@ -515,7 +487,7 @@ export default function AdminDashboard() {
                                                     cursor: "pointer"
                                                 }}
                                             >
-                                                {lat},{lon}
+                                                {lat}, {lon}
                                             </a>
                                         ) : (
                                             "-"
