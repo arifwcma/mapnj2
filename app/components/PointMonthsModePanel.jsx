@@ -92,6 +92,9 @@ export default function PointMonthsModePanel({
     
     const handleRemoveMonth = useCallback((year, month) => {
         setSelectedMonths(prev => prev.filter(m => !(m.year === year && m.month === month)))
+        trackEvent("Point-Months - month removed", {
+            month: `${year}-${month}`
+        })
     }, [setSelectedMonths])
     
     const addMonth = useCallback((year, month) => {

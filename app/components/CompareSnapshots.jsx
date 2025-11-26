@@ -219,7 +219,13 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
     return (
         <>
             <button
-                onClick={() => setIsOpen(true)}
+                onClick={() => {
+                    setIsOpen(true)
+                    const feature = selectedMonths ? "Area-Months" : "Area-Areas"
+                    trackEvent(`${feature} - compare snapshots`, {
+                        total_areas: selectedAreas.length
+                    })
+                }}
                 style={{
                     background: "none",
                     border: "none",

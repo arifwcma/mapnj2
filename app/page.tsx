@@ -714,12 +714,16 @@ function PageContent() {
     }, [resetRectangle, clearNdvi, analysisMode, compareMode])
     
     const handleResetAreaSelection = useCallback(() => {
+        const wasSet = selectedAreas.length > 0
         setSelectedAreas([])
         resetRectangle()
         clearNdvi()
         setFieldSelectionMode(false)
         setBoundsSource(null)
         setSelectedFieldFeature(null)
+        if (analysisMode === "area" && compareMode === "months" && wasSet) {
+            trackEvent("Area unset", {})
+        }
         const feature = 
             analysisMode === "point" && compareMode === "points" ? "Point-Points" :
             analysisMode === "point" && compareMode === "months" ? "Point-Months" :
@@ -729,11 +733,15 @@ function PageContent() {
         trackEvent("Reset clicked", {
             feature: feature
         })
-    }, [resetRectangle, clearNdvi, analysisMode, compareMode])
+    }, [resetRectangle, clearNdvi, analysisMode, compareMode, selectedAreas.length])
     
     const handleResetPointSelection = useCallback(() => {
+        const wasSet = selectedPoint.lat !== null && selectedPoint.lon !== null
         setSelectedPoint({ lat: null, lon: null })
         clearNdvi()
+        if (analysisMode === "point" && compareMode === "months" && wasSet) {
+            trackEvent("Point unset", {})
+        }
         const feature = 
             analysisMode === "point" && compareMode === "points" ? "Point-Points" :
             analysisMode === "point" && compareMode === "months" ? "Point-Months" :
@@ -743,7 +751,7 @@ function PageContent() {
         trackEvent("Reset clicked", {
             feature: feature
         })
-    }, [clearNdvi, analysisMode, compareMode])
+    }, [clearNdvi, analysisMode, compareMode, selectedPoint])
     
     useEffect(() => {
         if (analysisMode === "area" && compareMode === "areas") {
