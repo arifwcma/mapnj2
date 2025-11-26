@@ -64,6 +64,7 @@ function PageContent() {
     const lastAreaAddRef = useRef<{ bounds: [[number, number], [number, number]], time: number } | null>(null)
     const lastPointRemoveRef = useRef<{ index: number, time: number } | null>(null)
     const pointRemoveTrackingRef = useRef<{ index: number, length: number } | null>(null)
+    const areaAddTrackingRef = useRef<{ index: number, total: number, source: string, time: number } | null>(null)
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -201,15 +202,9 @@ function PageContent() {
             })
             const data = await response.json()
             if (data.token) {
-                trackEvent("share_created", {
-                    token: data.token,
-                    analysis_mode: analysisMode,
-                    compare_mode: compareMode,
-                    has_points: !!(selectedPoints.length || selectedPoint.lat),
-                    has_areas: !!selectedAreas.length
-                })
+                return data.token
             }
-            return data.token
+            return null
         } catch (error) {
             console.error('Error saving share:', error)
             return null
@@ -482,21 +477,34 @@ function PageContent() {
                 ndviTileUrl: null,
                 rgbTileUrl: null
             }
+            const areaIndex = selectedAreas.length
+            const totalAreas = areaIndex + 1
+            
             setSelectedAreas(prev => {
-                const updated = [...prev, newArea]
-                const areaIndex = prev.length
-                const totalAreas = updated.length
-                
-                setTimeout(() => {
-                    trackEvent("area_added", {
-                        area_index: areaIndex,
-                        total_areas: totalAreas,
-                        bounds_source: 'field'
-                    })
-                }, 0)
-                
-                return updated
+                return [...prev, newArea]
             })
+            
+            setTimeout(() => {
+                const now = Date.now()
+                if (areaAddTrackingRef.current?.index === areaIndex && 
+                    areaAddTrackingRef.current?.total === totalAreas &&
+                    areaAddTrackingRef.current?.source === 'field' &&
+                    now - (areaAddTrackingRef.current?.time || 0) < 100) {
+                    return
+                }
+                areaAddTrackingRef.current = { index: areaIndex, total: totalAreas, source: 'field', time: now }
+                const centerLat = (bounds[0][0] + bounds[1][0]) / 2
+                const centerLon = (bounds[0][1] + bounds[1][1]) / 2
+                trackEvent("Parcel added", {
+                    area_index: areaIndex,
+                    total_areas: totalAreas,
+                    bounds: bounds,
+                    center_lat: centerLat,
+                    center_lon: centerLon,
+                    geometry_type: feature?.geometry?.type || null,
+                    properties: feature?.properties || null
+                })
+            }, 0)
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
@@ -515,11 +523,27 @@ function PageContent() {
                 rgbTileUrl: null
             }
             setSelectedAreas([newArea])
-            trackEvent("area_added", {
-                area_index: 0,
-                total_areas: 1,
-                bounds_source: 'field'
-            })
+            setTimeout(() => {
+                const now = Date.now()
+                if (areaAddTrackingRef.current?.index === 0 && 
+                    areaAddTrackingRef.current?.total === 1 &&
+                    areaAddTrackingRef.current?.source === 'field' &&
+                    now - (areaAddTrackingRef.current?.time || 0) < 100) {
+                    return
+                }
+                areaAddTrackingRef.current = { index: 0, total: 1, source: 'field', time: now }
+                const centerLat = (bounds[0][0] + bounds[1][0]) / 2
+                const centerLon = (bounds[0][1] + bounds[1][1]) / 2
+                trackEvent("Parcel added", {
+                    area_index: 0,
+                    total_areas: 1,
+                    bounds: bounds,
+                    center_lat: centerLat,
+                    center_lon: centerLon,
+                    geometry_type: feature?.geometry?.type || null,
+                    properties: feature?.properties || null
+                })
+            }, 0)
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
@@ -566,21 +590,39 @@ function PageContent() {
                 ndviTileUrl: null,
                 rgbTileUrl: null
             }
+            const areaIndex = selectedAreas.length
+            const totalAreas = areaIndex + 1
+            
             setSelectedAreas(prev => {
-                const updated = [...prev, newArea]
-                const areaIndex = prev.length
-                const totalAreas = updated.length
-                
-                setTimeout(() => {
-                    trackEvent("area_added", {
-                        area_index: areaIndex,
-                        total_areas: totalAreas,
-                        bounds_source: 'rectangle'
-                    })
-                }, 0)
-                
-                return updated
+                return [...prev, newArea]
             })
+            
+            setTimeout(() => {
+                const now = Date.now()
+                if (areaAddTrackingRef.current?.index === areaIndex && 
+                    areaAddTrackingRef.current?.total === totalAreas &&
+                    areaAddTrackingRef.current?.source === 'rectangle' &&
+                    now - (areaAddTrackingRef.current?.time || 0) < 100) {
+                    return
+                }
+                areaAddTrackingRef.current = { index: areaIndex, total: totalAreas, source: 'rectangle', time: now }
+                const minLat = currentBounds[0][0]
+                const minLng = currentBounds[0][1]
+                const maxLat = currentBounds[1][0]
+                const maxLng = currentBounds[1][1]
+                const centerLat = (minLat + maxLat) / 2
+                const centerLon = (minLng + maxLng) / 2
+                trackEvent("Rectangle added", {
+                    area_index: areaIndex,
+                    total_areas: totalAreas,
+                    min_lat: minLat,
+                    min_lng: minLng,
+                    max_lat: maxLat,
+                    max_lng: maxLng,
+                    center_lat: centerLat,
+                    center_lon: centerLon
+                })
+            }, 0)
             if (selectedYear && selectedMonth) {
                 loadAreaNdvi(newArea)
             }
@@ -610,11 +652,32 @@ function PageContent() {
                 rgbTileUrl: null
             }
             setSelectedAreas([newArea])
-            trackEvent("area_added", {
-                area_index: 0,
-                total_areas: 1,
-                bounds_source: 'rectangle'
-            })
+            setTimeout(() => {
+                const now = Date.now()
+                if (areaAddTrackingRef.current?.index === 0 && 
+                    areaAddTrackingRef.current?.total === 1 &&
+                    areaAddTrackingRef.current?.source === 'rectangle' &&
+                    now - (areaAddTrackingRef.current?.time || 0) < 100) {
+                    return
+                }
+                areaAddTrackingRef.current = { index: 0, total: 1, source: 'rectangle', time: now }
+                const minLat = currentBounds[0][0]
+                const minLng = currentBounds[0][1]
+                const maxLat = currentBounds[1][0]
+                const maxLng = currentBounds[1][1]
+                const centerLat = (minLat + maxLat) / 2
+                const centerLon = (minLng + maxLng) / 2
+                trackEvent("Rectangle added", {
+                    area_index: 0,
+                    total_areas: 1,
+                    min_lat: minLat,
+                    min_lng: minLng,
+                    max_lat: maxLat,
+                    max_lng: maxLng,
+                    center_lat: centerLat,
+                    center_lon: centerLon
+                })
+            }, 0)
         }
         finalizeRectangle()
         setBoundsSource('rectangle')

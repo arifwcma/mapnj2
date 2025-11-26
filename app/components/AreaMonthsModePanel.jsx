@@ -13,6 +13,7 @@ import { MESSAGES } from "@/app/lib/messageConstants"
 import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getAreaCenter } from "@/app/lib/bboxUtils"
+import { trackEvent } from "@/app/lib/analytics"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import AreaSnapshot from "./AreaSnapshot"
 import CompareSnapshots from "./CompareSnapshots"
@@ -138,6 +139,17 @@ export default function AreaMonthsModePanel({
         const success = addMonth(selectedYear, selectedMonth)
         
         if (success) {
+            if (selectedArea) {
+                const areaCenter = getAreaCenter(selectedArea)
+                if (areaCenter && areaCenter.lat !== null && areaCenter.lon !== null) {
+                    trackEvent("Area - Month Added", {
+                        lat: areaCenter.lat,
+                        lon: areaCenter.lon,
+                        month: `${selectedYear}-${selectedMonth}`
+                    })
+                }
+            }
+            
             const allMonths = getAllAvailableMonths()
             const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
             excludedKeys.add(addedKey)
@@ -150,7 +162,7 @@ export default function AreaMonthsModePanel({
                 onMonthChange(nextAvailable.year, nextAvailable.month)
             }
         }
-    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange])
+    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange, selectedArea])
     
     const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)

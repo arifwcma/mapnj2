@@ -467,6 +467,10 @@ export default function AdminDashboard() {
                                     if (typeof parsedData.lat === "number" && typeof parsedData.lon === "number") {
                                         lat = parsedData.lat
                                         lon = parsedData.lon
+                                    } else if ((event.event_type === "Parcel added" || event.event_type === "Rectangle added") &&
+                                               typeof parsedData.center_lat === "number" && typeof parsedData.center_lon === "number") {
+                                        lat = parsedData.center_lat
+                                        lon = parsedData.center_lon
                                     }
                                 }
                             }
