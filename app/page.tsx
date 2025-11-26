@@ -130,8 +130,9 @@ function PageContent() {
                             if (state.areaSnapshotsOpen) {
                                 setAreaSnapshotsOpen(true)
                             }
+                            const shareUrl = typeof window !== 'undefined' ? window.location.href : ''
                             trackEvent("share_link_opened", {
-                                token: shareToken,
+                                url: shareUrl,
                                 restored_state: {
                                     analysis_mode: state.analysisMode,
                                     compare_mode: state.compareMode,
