@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { trackEvent } from "@/app/lib/analytics"
 
-export default function ShareButton({ onShare }) {
+export default function ShareButton({ onShare, feature = null, total_objects = 0 }) {
     const [isOpen, setIsOpen] = useState(false)
     const [shareUrl, setShareUrl] = useState("")
     const [copied, setCopied] = useState(false)
@@ -15,7 +15,13 @@ export default function ShareButton({ onShare }) {
         setLoading(true)
         setShareUrl("")
         setCopied(false)
-        trackEvent("share_button_clicked", {})
+        
+        if (feature !== null) {
+            trackEvent("Shared", {
+                feature: feature,
+                total_objects: total_objects
+            })
+        }
         
         try {
             const token = await onShare()

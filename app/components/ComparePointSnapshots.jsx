@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react"
 import { formatMonthLabel } from "@/app/lib/dateUtils"
 import { MIN_YEAR, MIN_MONTH } from "@/app/lib/config"
 import { getColorForIndex } from "@/app/lib/colorUtils"
+import { trackEvent } from "@/app/lib/analytics"
 import PointSnapshot from "./PointSnapshot"
 
 function getAllMonthsInRange(startMonth, endMonth) {
@@ -104,6 +105,9 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
     
     const handleShare = async () => {
         if (!onShare || shareLoading) return
+        trackEvent("Point-Points - compare snapshot shared", {
+            total_points: selectedPoints.length
+        })
         setShowShareModal(true)
         setShareLoading(true)
         setShareUrl("")
@@ -159,7 +163,12 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
         <>
             <div style={{ marginBottom: "15px" }}>
                 <button
-                    onClick={() => setIsOpen(true)}
+                    onClick={() => {
+                        setIsOpen(true)
+                        trackEvent("Point-Points - Compare Snapshots", {
+                            total_points: selectedPoints.length
+                        })
+                    }}
                     style={{
                         background: "none",
                         border: "none",

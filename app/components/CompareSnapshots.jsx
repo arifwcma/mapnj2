@@ -4,6 +4,7 @@ import { getMonthDateRange, formatMonthLabel } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { MONTH_NAMES_FULL } from "@/app/lib/config"
 import { getColorForIndex } from "@/app/lib/colorUtils"
+import { trackEvent } from "@/app/lib/analytics"
 
 function getAllMonthsInRange(startMonth, endMonth) {
     const months = []
@@ -158,6 +159,10 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
     
     const handleShare = async () => {
         if (!onShare || shareLoading) return
+        const feature = selectedMonths ? "Area-Months" : "Area-Areas"
+        trackEvent(`${feature} - compare snapshot shared`, {
+            total_areas: selectedAreas.length
+        })
         setShowShareModal(true)
         setShareLoading(true)
         setShareUrl("")

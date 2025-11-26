@@ -330,9 +330,15 @@ function PageContent() {
         
         cloudDebounceTimeoutRef.current = setTimeout(() => {
             updateCloudTolerance(newValue)
-            trackEvent("cloud_tolerance_change", {
-                previous_value: previousValue,
-                new_value: newValue
+            const feature = 
+                analysisMode === "point" && compareMode === "points" ? "Point-Points" :
+                analysisMode === "point" && compareMode === "months" ? "Point-Months" :
+                analysisMode === "area" && compareMode === "areas" ? "Area-Areas" :
+                analysisMode === "area" && compareMode === "months" ? "Area-Months" :
+                null
+            trackEvent("Cloud tolerance changed", {
+                feature: feature,
+                current_value: newValue
             })
         }, DEBOUNCE_DELAYS.CLOUD_TOLERANCE)
     }
@@ -478,11 +484,17 @@ function PageContent() {
             }
             setSelectedAreas(prev => {
                 const updated = [...prev, newArea]
-                trackEvent("area_added", {
-                    area_index: prev.length,
-                    total_areas: updated.length,
-                    bounds_source: 'field'
-                })
+                const areaIndex = prev.length
+                const totalAreas = updated.length
+                
+                setTimeout(() => {
+                    trackEvent("area_added", {
+                        area_index: areaIndex,
+                        total_areas: totalAreas,
+                        bounds_source: 'field'
+                    })
+                }, 0)
+                
                 return updated
             })
             setBounds(bounds)
@@ -556,11 +568,17 @@ function PageContent() {
             }
             setSelectedAreas(prev => {
                 const updated = [...prev, newArea]
-                trackEvent("area_added", {
-                    area_index: prev.length,
-                    total_areas: updated.length,
-                    bounds_source: 'rectangle'
-                })
+                const areaIndex = prev.length
+                const totalAreas = updated.length
+                
+                setTimeout(() => {
+                    trackEvent("area_added", {
+                        area_index: areaIndex,
+                        total_areas: totalAreas,
+                        bounds_source: 'rectangle'
+                    })
+                }, 0)
+                
                 return updated
             })
             if (selectedYear && selectedMonth) {
@@ -692,7 +710,21 @@ function PageContent() {
     return (
         <div style={{ display: "flex", width: "100%", height: "100vh" }}>
             <div style={{ width: "10%", height: "100vh", borderRight: "1px solid #ccc", backgroundColor: "white", overflowY: "auto", padding: "20px" }}>
-                <ShareButton onShare={handleShare} />
+                <ShareButton 
+                    onShare={handleShare}
+                    feature={
+                        analysisMode === "point" && compareMode === "points" ? "Point-Points" :
+                        analysisMode === "point" && compareMode === "months" ? "Point-Months" :
+                        analysisMode === "area" && compareMode === "areas" ? "Area-Areas" :
+                        analysisMode === "area" && compareMode === "months" ? "Area-Months" :
+                        null
+                    }
+                    total_objects={
+                        analysisMode === "point" 
+                            ? (compareMode === "points" ? selectedPoints.length : (selectedPoint.lat !== null ? 1 : 0))
+                            : selectedAreas.length
+                    }
+                />
                 <BasemapSelector basemap={basemap} onBasemapChange={handleBasemapChange} />
                 <AnalysisModeSelector analysisMode={analysisMode} onAnalysisModeChange={handleAnalysisModeChange} />
                 <CompareModeSelector 
