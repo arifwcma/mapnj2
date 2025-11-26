@@ -62,6 +62,8 @@ function PageContent() {
     const hasRestoredStateRef = useRef(false)
     const lastPointClickRef = useRef<{ lat: number, lon: number, time: number } | null>(null)
     const lastAreaAddRef = useRef<{ bounds: [[number, number], [number, number]], time: number } | null>(null)
+    const lastPointRemoveRef = useRef<{ index: number, time: number } | null>(null)
+    const pointRemoveTrackingRef = useRef<{ index: number, length: number } | null>(null)
     
     useEffect(() => {
         if (!selectedYear || !selectedMonth) {
@@ -392,12 +394,32 @@ function PageContent() {
     }, [analysisMode, compareMode, selectedPoints.length])
     
     const handleRemovePoint = useCallback((index: number) => {
+        const now = Date.now()
+        if (lastPointRemoveRef.current && 
+            lastPointRemoveRef.current.index === index &&
+            now - lastPointRemoveRef.current.time < 1000) {
+            return
+        }
+        lastPointRemoveRef.current = { index, time: now }
+        
         setSelectedPoints(prev => {
             const updated = prev.filter((_, i) => i !== index)
-            trackEvent("point_removed", {
-                point_index: index,
-                total_points: updated.length
-            })
+            const newLength = updated.length
+            
+            if (!pointRemoveTrackingRef.current || 
+                pointRemoveTrackingRef.current.index !== index ||
+                pointRemoveTrackingRef.current.length !== newLength) {
+                pointRemoveTrackingRef.current = { index, length: newLength }
+                
+                setTimeout(() => {
+                    trackEvent("point_removed", {
+                        point_index: index,
+                        total_points: newLength
+                    })
+                    pointRemoveTrackingRef.current = null
+                }, 0)
+            }
+            
             return updated
         })
     }, [])
