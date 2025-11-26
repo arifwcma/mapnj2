@@ -142,7 +142,7 @@ export default function AreaMonthsModePanel({
             if (selectedArea) {
                 const areaCenter = getAreaCenter(selectedArea)
                 if (areaCenter && areaCenter.lat !== null && areaCenter.lon !== null) {
-                    trackEvent("Area - Month Added", {
+                    trackEvent("Area - month set", {
                         lat: areaCenter.lat,
                         lon: areaCenter.lon,
                         month: `${selectedYear}-${selectedMonth}`

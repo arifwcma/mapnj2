@@ -165,7 +165,7 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                 <button
                     onClick={() => {
                         setIsOpen(true)
-                        trackEvent("Point-Points - Compare Snapshots", {
+                        trackEvent("Point-Points - compare snapshots", {
                             total_points: selectedPoints.length
                         })
                     }}

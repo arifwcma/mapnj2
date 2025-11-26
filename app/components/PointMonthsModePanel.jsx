@@ -134,7 +134,7 @@ export default function PointMonthsModePanel({
         
         if (success) {
             if (selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null) {
-                trackEvent("Point - Month Added", {
+                trackEvent("Point - month added", {
                     lat: selectedPoint.lat,
                     lon: selectedPoint.lon,
                     month: `${selectedYear}-${selectedMonth}`

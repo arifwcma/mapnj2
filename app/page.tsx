@@ -141,7 +141,7 @@ function PageContent() {
                                 ? (state.compareMode === "points" ? (state.selectedPoints?.length || 0) : (state.selectedPoint?.lat ? 1 : 0))
                                 : (state.selectedAreas?.length || 0)
                             
-                            trackEvent("share_link_opened", {
+                            trackEvent("Share link opened", {
                                 url: shareUrl,
                                 feature: feature,
                                 total_objects: total_objects
@@ -349,7 +349,7 @@ function PageContent() {
     const handleBasemapChange = useCallback((newBasemap: string) => {
         const previousBasemap = basemap
         setBasemap(newBasemap)
-        trackEvent("basemap_change", {
+        trackEvent("Basemap change", {
             previous_basemap: previousBasemap,
             new_basemap: newBasemap
         })
@@ -373,7 +373,7 @@ function PageContent() {
             }
             const pointIndex = selectedPoints.length
             setSelectedPoints(prev => [...prev, newPoint])
-            trackEvent("point_added", {
+            trackEvent("Point added", {
                 lat,
                 lon,
                 point_index: pointIndex,
@@ -381,7 +381,7 @@ function PageContent() {
             })
         } else if (analysisMode === "point" && compareMode === "months") {
             setSelectedPoint({ lat, lon })
-            trackEvent("Point Set", {
+            trackEvent("Point set", {
                 lat,
                 lon
             })
@@ -407,7 +407,7 @@ function PageContent() {
                 pointRemoveTrackingRef.current = { index, length: newLength }
                 
                 setTimeout(() => {
-                    trackEvent("point_removed", {
+                    trackEvent("Point removed", {
                         point_index: index,
                         total_points: newLength
                     })
@@ -421,11 +421,11 @@ function PageContent() {
     
     const handleMonthChange = useCallback((year: number, month: number) => {
         if (analysisMode === "point" && compareMode === "points") {
-            trackEvent("Calendar Month Changed in Point-Points", {
+            trackEvent("Calendar month changed in Point-Points", {
                 current_calendar_month: `${year}-${month}`
             })
         } else if (analysisMode === "area" && compareMode === "areas") {
-            trackEvent("Calendar Month Changed in Area-Areas", {
+            trackEvent("Calendar month changed in Area-Areas", {
                 current_calendar_month: `${year}-${month}`
             })
         }
@@ -541,7 +541,7 @@ function PageContent() {
                 areaAddTrackingRef.current = { index: 0, total: 1, source: 'field', time: now }
                 const centerLat = (bounds[0][0] + bounds[1][0]) / 2
                 const centerLon = (bounds[0][1] + bounds[1][1]) / 2
-                trackEvent("Parcel added", {
+                trackEvent("Parcel set", {
                     area_index: 0,
                     total_areas: 1,
                     bounds: bounds,
@@ -674,7 +674,7 @@ function PageContent() {
                 const maxLng = currentBounds[1][1]
                 const centerLat = (minLat + maxLat) / 2
                 const centerLon = (minLng + maxLng) / 2
-                trackEvent("Rectangle added", {
+                trackEvent("Rectangle set", {
                     area_index: 0,
                     total_areas: 1,
                     min_lat: minLat,
@@ -703,7 +703,7 @@ function PageContent() {
         setFieldSelectionMode(false)
         setBoundsSource(null)
         setSelectedFieldFeature(null)
-        trackEvent("reset_clicked", {
+        trackEvent("Reset clicked", {
             reset_type: "full",
             analysis_mode: analysisMode,
             compare_mode: compareMode
@@ -717,7 +717,7 @@ function PageContent() {
         setFieldSelectionMode(false)
         setBoundsSource(null)
         setSelectedFieldFeature(null)
-        trackEvent("reset_clicked", {
+        trackEvent("Reset clicked", {
             reset_type: "area_selection",
             analysis_mode: analysisMode,
             compare_mode: compareMode
@@ -727,7 +727,7 @@ function PageContent() {
     const handleResetPointSelection = useCallback(() => {
         setSelectedPoint({ lat: null, lon: null })
         clearNdvi()
-        trackEvent("reset_clicked", {
+        trackEvent("Reset clicked", {
             reset_type: "point_selection",
             analysis_mode: analysisMode,
             compare_mode: compareMode
