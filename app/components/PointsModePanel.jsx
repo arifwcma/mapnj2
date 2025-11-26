@@ -24,24 +24,34 @@ registerChartJS()
 
 function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
     const { dataMap, fetchMissingMonths } = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker)
-    const dataMapSizeRef = useRef(0)
     const dataMapRef = useRef(dataMap)
+    const lastReportedSerializedRef = useRef(null)
+    const fetchMissingMonthsRef = useRef(fetchMissingMonths)
+    const hasInitializedRef = useRef(false)
+    
+    useEffect(() => {
+        fetchMissingMonthsRef.current = fetchMissingMonths
+    }, [fetchMissingMonths])
     
     useEffect(() => {
         dataMapRef.current = dataMap
-    }, [dataMap])
-    
-    useEffect(() => {
-        const currentSize = dataMap?.size || 0
-        if (currentSize !== dataMapSizeRef.current) {
-            dataMapSizeRef.current = currentSize
-            onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths })
+        
+        const serializeMap = (map) => {
+            if (!map || map.size === 0) return ""
+            return Array.from(map.entries())
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([k, v]) => `${k}:${v}`)
+                .join("|")
         }
-    }, [index, dataMap?.size, fetchMissingMonths, onDataMapReady])
-    
-    useEffect(() => {
-        onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths })
-    }, [index, onDataMapReady])
+        
+        const currentSerialized = serializeMap(dataMap)
+        
+        if (!hasInitializedRef.current || currentSerialized !== lastReportedSerializedRef.current) {
+            lastReportedSerializedRef.current = currentSerialized
+            hasInitializedRef.current = true
+            onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths: fetchMissingMonthsRef.current })
+        }
+    }, [index, dataMap, onDataMapReady])
     
     return null
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getShare, logAnalytics } from '@/app/lib/db'
+import { getShare } from '@/app/lib/db'
 
 export async function GET(request, { params }) {
     try {
@@ -10,8 +10,6 @@ export async function GET(request, { params }) {
         if (!state) {
             return NextResponse.json({ error: 'Share not found' }, { status: 404 })
         }
-        
-        logAnalytics("share_loaded", JSON.stringify({ token }))
         
         return NextResponse.json({ state })
     } catch (error) {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { trackEvent } from "@/app/lib/analytics"
 
 export default function ShareButton({ onShare }) {
     const [isOpen, setIsOpen] = useState(false)
@@ -14,6 +15,7 @@ export default function ShareButton({ onShare }) {
         setLoading(true)
         setShareUrl("")
         setCopied(false)
+        trackEvent("share_button_clicked", {})
         
         try {
             const token = await onShare()
@@ -37,11 +39,17 @@ export default function ShareButton({ onShare }) {
                     await navigator.clipboard.writeText(shareUrl)
                     setCopied(true)
                     setTimeout(() => setCopied(false), 2000)
+                    const url = new URL(shareUrl)
+                    const token = url.searchParams.get('share')
+                    trackEvent("share_url_copied", { token: token || null })
                 } else {
                     const successful = document.execCommand('copy')
                     if (successful) {
                         setCopied(true)
                         setTimeout(() => setCopied(false), 2000)
+                        const url = new URL(shareUrl)
+                        const token = url.searchParams.get('share')
+                        trackEvent("share_url_copied", { token: token || null })
                     } else {
                         alert('Failed to copy. Please select and copy manually.')
                     }
@@ -51,6 +59,9 @@ export default function ShareButton({ onShare }) {
                 if (successful) {
                     setCopied(true)
                     setTimeout(() => setCopied(false), 2000)
+                    const url = new URL(shareUrl)
+                    const token = url.searchParams.get('share')
+                    trackEvent("share_url_copied", { token: token || null })
                 } else {
                     alert('Failed to copy. Please select and copy manually.')
                 }

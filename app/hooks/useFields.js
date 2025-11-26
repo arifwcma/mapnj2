@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { bboxToString } from "@/app/lib/bboxUtils"
+import { trackEvent } from "@/app/lib/analytics"
 import { FIELD_SELECTION_MIN_ZOOM, DEBOUNCE_DELAYS } from "@/app/lib/config"
 
 export default function useFields() {
@@ -36,6 +37,13 @@ export default function useFields() {
                     return response.json()
                 })
                 .then(data => {
+                    const featureCount = data?.features?.length || 0
+                    trackEvent("fields_requested", {
+                        bbox: bboxStr,
+                        zoom,
+                        featureCount
+                    })
+                    
                     setFieldsData((prevData) => {
                         if (!prevData || !prevData.features || prevData.features.length === 0) {
                             return data
