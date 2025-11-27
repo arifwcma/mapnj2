@@ -28,6 +28,7 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
             console.log("[useAreaNdvi] Fetching tile - dateRange:", dateRange, "index:", selectedIndex, "cloud:", cloudTolerance)
             
             let tileResponse
+            let apiUrl = ""
             if (area.geometry) {
                 const requestBody = {
                     start: dateRange.start,
@@ -37,7 +38,11 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
                     geometry: area.geometry,
                     index: selectedIndex
                 }
-                console.log("[useAreaNdvi] POST request with geometry")
+                apiUrl = `POST /api/index/average`
+                console.log("[useAreaNdvi] ===== API CALL =====")
+                console.log("[useAreaNdvi] Method: POST")
+                console.log("[useAreaNdvi] URL: /api/index/average")
+                console.log("[useAreaNdvi] Body:", JSON.stringify(requestBody, null, 2))
                 tileResponse = await fetch(`/api/index/average`, {
                     method: "POST",
                     headers: {
@@ -46,8 +51,11 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
                     body: JSON.stringify(requestBody)
                 })
             } else {
-                console.log("[useAreaNdvi] GET request without geometry")
-                tileResponse = await fetch(`/api/index/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}&index=${selectedIndex}`)
+                apiUrl = `/api/index/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}&index=${selectedIndex}`
+                console.log("[useAreaNdvi] ===== API CALL =====")
+                console.log("[useAreaNdvi] Method: GET")
+                console.log("[useAreaNdvi] Full URL:", apiUrl)
+                tileResponse = await fetch(apiUrl)
             }
             
             console.log("[useAreaNdvi] Response status:", tileResponse.status, "ok:", tileResponse.ok)

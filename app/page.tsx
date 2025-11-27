@@ -872,14 +872,15 @@ function PageContent() {
             console.log("[Overlay useEffect] Processing", selectedAreas.length, "areas")
             
             const areasToLoad = selectedAreasRef.current
-            console.log("[Overlay useEffect] Loading overlays for", areasToLoad.length, "areas", paramsChanged ? "(PARAMS CHANGED - forcing reload)" : "")
+            const areasNeedingReload = paramsChanged 
+                ? areasToLoad.filter(area => area.bounds)
+                : areasToLoad.filter(area => area.bounds && !area.indexTileUrl)
+            console.log("[Overlay useEffect] Loading overlays for", areasNeedingReload.length, "of", areasToLoad.length, "areas", paramsChanged ? "(PARAMS CHANGED - reloading ALL)" : "(only missing tileUrls)")
             
-            areasToLoad.forEach((area, idx) => {
+            areasNeedingReload.forEach((area, idx) => {
                 console.log(`[Overlay useEffect] Area ${idx}: id=${area.id}, bounds=${area.bounds ? 'SET' : 'NULL'}, currentTileUrl=${area.indexTileUrl ? 'SET' : 'NULL'}`)
-                if (area.bounds) {
-                    console.log(`[Overlay useEffect] Calling loadAreaNdvi for area ${idx} (${area.id})`)
-                    loadAreaNdvi(area)
-                }
+                console.log(`[Overlay useEffect] Calling loadAreaNdvi for area ${idx} (${area.id})`)
+                loadAreaNdvi(area)
             })
         } else if (analysisMode !== "area" && rectangleBounds && overlayType === "INDEX") {
             const geometry = boundsSource === 'field' ? selectedFieldFeature : null
