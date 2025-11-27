@@ -5,6 +5,7 @@ import { useImageFilters } from "./useImageFilters"
 import { MONTH_NAMES_FULL, DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
+import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
 
 export default function useNdviData() {
     const overlayTiles = useOverlayTiles()
@@ -26,7 +27,7 @@ export default function useNdviData() {
     timeSelectionRef.current = timeSelection
     imageFiltersRef.current = imageFilters
 
-    const loadNdviData = useCallback(async (bbox, cloud = DEFAULT_CLOUD_TOLERANCE, year = null, month = null, overlay = "NDVI", geometry = null) => {
+    const loadNdviData = useCallback(async (bbox, cloud = DEFAULT_CLOUD_TOLERANCE, year = null, month = null, overlay = "INDEX", geometry = null, indexName = DEFAULT_INDEX) => {
         if (!bbox || loadingRef.current) {
             return
         }
@@ -60,7 +61,7 @@ export default function useNdviData() {
             }
 
             if (monthData.count > 0) {
-                await overlayTilesRef.current.loadOverlayTile(bbox, cloud, monthData.year, monthData.month, overlay, geometry)
+                await overlayTilesRef.current.loadOverlayTile(bbox, cloud, monthData.year, monthData.month, overlay, geometry, indexName)
             } else {
                 overlayTilesRef.current.clearTiles()
             }
@@ -101,6 +102,7 @@ export default function useNdviData() {
 
     return {
         ndviTileUrl: overlayTiles.ndviTileUrl,
+        indexTileUrl: overlayTiles.indexTileUrl,
         rgbTileUrl: overlayTiles.rgbTileUrl,
         overlayType: overlayTiles.overlayType,
         endMonth,

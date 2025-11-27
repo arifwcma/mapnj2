@@ -1,8 +1,9 @@
 "use client"
 import { useMemo } from "react"
-import { getNdviColor } from "@/app/lib/ndviColorUtils"
+import { getIndexColor } from "@/app/lib/indexColorUtils"
+import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
 
-export default function NdviLegend({ width = "100%" }) {
+export default function NdviLegend({ width = "100%", indexName = DEFAULT_INDEX }) {
     const tickValues = useMemo(() => {
         return [-1, -0.5, 0, 0.5, 1.0]
     }, [])
@@ -16,7 +17,7 @@ export default function NdviLegend({ width = "100%" }) {
         const stops = []
         for (let i = 0; i <= numSteps; i++) {
             const value = min + (i * stepSize)
-            const color = getNdviColor(value)
+            const color = getIndexColor(value)
             const percentage = (i / numSteps) * 100
             stops.push(`${color} ${percentage}%`)
         }
@@ -50,9 +51,8 @@ export default function NdviLegend({ width = "100%" }) {
                 marginTop: "4px",
                 textAlign: "center"
             }}>
-                NDVI Value
+                {indexName} Value
             </div>
         </div>
     )
 }
-

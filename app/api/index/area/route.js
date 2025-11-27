@@ -1,21 +1,30 @@
 import { NextResponse } from "next/server"
-import { getAverageNdviForArea } from "@/app/lib/earthengineUtils"
+import { getAverageIndexForArea } from "@/app/lib/earthengineUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_INDEX, isValidIndex } from "@/app/lib/indexConfig"
 
 export async function GET(request) {
-    console.log("[API] GET /api/ndvi/area - Request received")
     const { searchParams } = new URL(request.url)
-    console.log("[API] /api/ndvi/area - Params:", { start: searchParams.get("start"), end: searchParams.get("end"), bbox: searchParams.get("bbox"), cloud: searchParams.get("cloud"), hasGeometry: !!searchParams.get("geometry") })
     const geometryParam = searchParams.get("geometry")
     const start = searchParams.get("start")
     const end = searchParams.get("end")
     const bbox = searchParams.get("bbox")
     const cloudParam = searchParams.get("cloud")
+    const indexParam = searchParams.get("index")
+    
     const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
+    const indexName = indexParam || DEFAULT_INDEX
 
     if (!geometryParam || !start || !end || !bbox) {
         return NextResponse.json(
             { error: "Missing required parameters: geometry, start, end, or bbox" },
+            { status: 400 }
+        )
+    }
+
+    if (!isValidIndex(indexName)) {
+        return NextResponse.json(
+            { error: `Invalid index: ${indexName}` },
             { status: 400 }
         )
     }
@@ -38,21 +47,17 @@ export async function GET(request) {
     }
 
     try {
-        console.log("API: Getting average NDVI for area", { start, end, bbox, cloud })
-        const ndvi = await getAverageNdviForArea(start, end, bbox, cloud, geometry)
-        console.log("API: Average NDVI retrieved:", ndvi)
-        
-        return NextResponse.json({ ndvi })
+        const value = await getAverageIndexForArea(start, end, bbox, cloud, geometry, indexName)
+        return NextResponse.json({ value, index: indexName })
     } catch (error) {
-        const errorMessage = error.message || error.toString() || ""
-        if (errorMessage.includes("No images found") || errorMessage.includes("No NDVI value found")) {
-            return NextResponse.json({ ndvi: null })
+        const errorMessage = error?.message || error?.toString() || "Unknown error"
+        if (errorMessage.includes("No images found")) {
+            return NextResponse.json({ value: null, index: indexName })
         }
-        if (errorMessage.includes("Invalid")) {
-            return NextResponse.json({ error: errorMessage }, { status: 400 })
-        }
-        console.error("Error getting average NDVI for area:", error)
-        return NextResponse.json({ error: errorMessage || "Failed to get average NDVI for area" }, { status: 500 })
+        return NextResponse.json(
+            { error: errorMessage },
+            { status: 500 }
+        )
     }
 }
 

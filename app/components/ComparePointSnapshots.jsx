@@ -28,7 +28,7 @@ function getAllMonthsInRange(startMonth, endMonth) {
     return months
 }
 
-export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen }) {
+export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, visibleRange, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen, selectedIndex = "NDVI" }) {
     const [showPopup, setShowPopup] = useState(false)
     const [shareLoading, setShareLoading] = useState(false)
     const [shareUrl, setShareUrl] = useState("")
@@ -72,10 +72,11 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                     lon: point.lon.toString(),
                     year: year.toString(),
                     month: month.toString(),
-                    cloud: cloudTolerance.toString()
+                    cloud: cloudTolerance.toString(),
+                    index: selectedIndex
                 })
                 
-                fetch(`/api/ndvi/point/month?${params.toString()}`)
+                fetch(`/api/index/point/month?${params.toString()}`)
                     .then(async res => {
                         if (!res.ok) {
                             throw new Error(`HTTP ${res.status}`)
@@ -83,7 +84,8 @@ export default function ComparePointSnapshots({ selectedPoints, cloudTolerance, 
                         return await res.json()
                     })
                     .then(data => {
-                        setNdviData(prev => ({ ...prev, [key]: data.ndvi }))
+                        const value = data.value ?? data.ndvi
+                        setNdviData(prev => ({ ...prev, [key]: value }))
                         setLoading(prev => ({ ...prev, [key]: false }))
                     })
                     .catch(err => {

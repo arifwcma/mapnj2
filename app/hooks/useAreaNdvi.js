@@ -1,8 +1,9 @@
 import { useCallback } from "react"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
+import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
 
-export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance, setSelectedAreas) {
+export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance, setSelectedAreas, selectedIndex = DEFAULT_INDEX) {
     const loadAreaNdvi = useCallback(async (area) => {
         if (!selectedYear || !selectedMonth || !area.bounds) {
             return
@@ -19,9 +20,10 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
                     end: dateRange.end,
                     bbox: bboxStr,
                     cloud: cloudTolerance.toString(),
-                    geometry: area.geometry
+                    geometry: area.geometry,
+                    index: selectedIndex
                 }
-                tileResponse = await fetch(`/api/ndvi/average`, {
+                tileResponse = await fetch(`/api/index/average`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -29,7 +31,7 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
                     body: JSON.stringify(requestBody)
                 })
             } else {
-                tileResponse = await fetch(`/api/ndvi/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}`)
+                tileResponse = await fetch(`/api/index/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloudTolerance}&index=${selectedIndex}`)
             }
             
             if (!tileResponse.ok) {
@@ -38,12 +40,12 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
                 const isNoDataError = errorMessage.includes("No images found")
                 
                 if (!isNoDataError) {
-                    console.error("Failed to load NDVI for area:", area.id, errorMessage)
+                    console.error("Failed to load index for area:", area.id, errorMessage)
                 }
                 
                 setSelectedAreas(prev => prev.map(a => 
                     a.id === area.id 
-                        ? { ...a, ndviTileUrl: null }
+                        ? { ...a, ndviTileUrl: null, indexTileUrl: null }
                         : a
                 ))
                 return
@@ -54,14 +56,13 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
             
             setSelectedAreas(prev => prev.map(a => 
                 a.id === area.id 
-                    ? { ...a, ndviTileUrl: tileUrl }
+                    ? { ...a, ndviTileUrl: tileUrl, indexTileUrl: tileUrl }
                     : a
             ))
         } catch (err) {
-            console.error("Error loading NDVI for area:", area.id, err)
+            console.error("Error loading index for area:", area.id, err)
         }
-    }, [selectedYear, selectedMonth, cloudTolerance, setSelectedAreas])
+    }, [selectedYear, selectedMonth, cloudTolerance, setSelectedAreas, selectedIndex])
     
     return { loadAreaNdvi }
 }
-

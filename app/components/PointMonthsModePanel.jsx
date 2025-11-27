@@ -49,7 +49,8 @@ export default function PointMonthsModePanel({
     selectedMonths,
     setSelectedMonths,
     yAxisRange,
-    setYAxisRange
+    setYAxisRange,
+    selectedIndex = "NDVI"
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
@@ -282,7 +283,7 @@ export default function PointMonthsModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Month</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>{selectedIndex} (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
                         </tr>
@@ -295,7 +296,7 @@ export default function PointMonthsModePanel({
                                     {ndvi !== null ? ndvi.toFixed(2) : "N/A"}
                                 </td>
                                 <td style={{ padding: "8px" }}>
-                                    <PointSnapshot ndvi={ndvi} size={30} />
+                                    <PointSnapshot ndvi={ndvi} size={30} indexName={selectedIndex} />
                                 </td>
                                 <td style={{ padding: "8px" }}>
                                     <button
@@ -336,7 +337,7 @@ export default function PointMonthsModePanel({
                             })
                         }}
                     />
-                    <NdviLegend />
+                    <NdviLegend indexName={selectedIndex} />
                 </>
             )}
             

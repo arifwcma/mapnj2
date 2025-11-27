@@ -1,7 +1,7 @@
 # Project Requirements Document
 
 ## Overview
-NDVI analysis application with Point and Area analysis modes. Cloud tolerance dropdown persists across mode changes. Supports comparing multiple points/areas or exploring single point/area across multiple months.
+Vegetation/water index analysis application with Point and Area analysis modes. Supports multiple indices (NDVI, EVI, SAVI, OSAVI, GNDVI, NDSI, ARVI, NDWI, MNDWI). Cloud tolerance and index selection dropdown persist across mode changes. Supports comparing multiple points/areas or exploring single point/area across multiple months.
 
 ---
 
@@ -11,11 +11,50 @@ NDVI analysis application with Point and Area analysis modes. Cloud tolerance dr
 - **Point Analysis**: Analyze individual points on the map
 - **Area Analysis**: Analyze areas (parcels or rectangles) on the map
 
-**Behavior**: Selecting an analysis type resets all state except cloud coverage tolerance.
+**Behavior**: Selecting an analysis type resets all state except cloud coverage tolerance and selected index.
 
 ### Compare Modes
 - **Points/Areas Mode**: Compare multiple points/areas across time
 - **Months Mode**: Explore single point/area across multiple months
+
+---
+
+## Index Selection
+
+### Available Indices
+- **NDVI** (Normalized Difference Vegetation Index) - Default
+- **EVI** (Enhanced Vegetation Index)
+- **SAVI** (Soil-Adjusted Vegetation Index)
+- **OSAVI** (Optimized Soil-Adjusted Vegetation Index)
+- **GNDVI** (Green Normalized Difference Vegetation Index)
+- **NDSI** (Normalized Difference Snow Index)
+- **ARVI** (Atmospherically Resistant Vegetation Index)
+- **NDWI** (Normalized Difference Water Index)
+- **MNDWI** (Modified Normalized Difference Water Index)
+
+### Index Selector
+- **Position**: Below Cloud tolerance dropdown in control panel
+- **Label**: "Index:"
+- **Default**: NDVI
+- **Persistence**: Value persists across mode changes (same as cloud tolerance)
+
+### Index Formulas
+All indices produce values in range -1 to +1.
+
+**Sentinel-2 bands**: B2=Blue, B3=Green, B4=Red, B8=NIR, B11=SWIR
+
+- NDVI = (NIR - Red) / (NIR + Red)
+- EVI = 2.5 × (NIR - Red) / (NIR + 6×Red - 7.5×Blue + 1)
+- SAVI = 1.5 × (NIR - Red) / (NIR + Red + 0.5)
+- OSAVI = (NIR - Red) / (NIR + Red + 0.16)
+- GNDVI = (NIR - Green) / (NIR + Green)
+- NDSI = (Green - SWIR) / (Green + SWIR)
+- ARVI = (NIR - (2×Red - Blue)) / (NIR + (2×Red - Blue))
+- NDWI = (NIR - SWIR) / (NIR + SWIR)
+- MNDWI = (Green - SWIR) / (Green + SWIR)
+
+### Color Scheme
+All indices use the same color palette: darkred → orangered → red → yellow → darkgreen (range -1 to +1)
 
 ---
 
@@ -40,7 +79,7 @@ Below the Analysis dropdown, a dropdown selector: "Compare: Points / Months"
 - **Marker**: Small upside-down triangle (drawn on the fly) in corresponding color based on serial order
 - **Directional message**: Always visible "Click to place a point" when no points selected
 - Clicking anywhere on map places a point
-- NDVI overlay loads for selected points using small bbox around each point (not full viewport)
+- Index overlay loads for selected points using small bbox around each point (not full viewport)
 
 #### Info Panel (when one or more points selected)
 
@@ -59,15 +98,15 @@ Below the Analysis dropdown, a dropdown selector: "Compare: Points / Months"
 - Each cell shows point snapshot (colored circle) or "No data"
 
 **Table**
-- Columns: "Marker", "Latitude", "Longitude", "NDVI (avg)", "Remove"
-- NDVI (avg): Average NDVI of available images (within cloud tolerance) for the corresponding point for the visible range
+- Columns: "Marker", "[Index] (avg)", "Snapshot", "Remove"
+- [Index] (avg): Average index value of available images (within cloud tolerance) for the corresponding point for the visible range
 - Format: 2-digit rounded
 - Remove column: Cross button for each point
 - Clicking cross removes the point from analysis
 - Next added point takes first available color from color queue
 
 **Chart**
-- Shows average NDVI for selected point(s) for visible range
+- Shows average index value for selected point(s) for visible range
 - Updates when month dropdown changes
 - **Default visible range**: When a month is selected via the month dropdown, the chart displays all 12 months of that calendar year (January through December)
 - **Example**: Selecting "May 2022" shows data from January 2022 to December 2022 by default
@@ -79,13 +118,13 @@ Below the Analysis dropdown, a dropdown selector: "Compare: Points / Months"
 - Right limit: Current calendar month
 - Debouncing: 1 second delay for arrow clicks
 
-**NDVI Legend**
+**Index Legend**
 - Position: Below chart navigation arrows
 - Format: Horizontal continuous color gradient bar
 - Range: Always -1 to +1 (regardless of chart y-axis range)
 - Color scheme: Matches GEE visualization (darkred → orangered → red → yellow → darkgreen)
 - Tick values: -1, -0.5, 0, 0.5, 1.0
-- Label: "NDVI Value" below ticks
+- Label: "[Index] Value" below ticks (dynamic based on selected index)
 
 **Empty State**: Info panel shows empty when no points selected
 
@@ -119,21 +158,21 @@ Below the Analysis dropdown, a dropdown selector: "Compare: Points / Months"
 - Uses same blue color as 1st point in Points mode
 
 **Table**
-- Columns: "Month", "NDVI (avg)", "Snapshot", "Remove"
-- NDVI (avg): Average NDVI for the point for that specific month
+- Columns: "Month", "[Index] (avg)", "Snapshot", "Remove"
+- [Index] (avg): Average index value for the point for that specific month
 - Format: 2-digit rounded or "N/A" if null
-- Snapshot column: Shows NDVI value as colored circle (PointSnapshot component)
+- Snapshot column: Shows index value as colored circle (PointSnapshot component)
 - Can remove months from list (remove functionality)
 - Updates when months are added via "Add" button
 
 **Chart**
-- Shows NDVI for selected months only (no auto-add)
+- Shows index value for selected months only (no auto-add)
 - Updates when months are added via "Add" button
 - Y-axis range toggle: Button (↓/↑) toggles between 0-1 and -1 to +1 range
 - Default y-axis range: 0-1
 - Chart navigation: No arrows (only shows selected months)
 
-**NDVI Legend**
+**Index Legend**
 - Position: Below chart (if chart is visible)
 - Same format and behavior as Points mode
 
@@ -171,10 +210,10 @@ Similar to Point Analysis: "Compare: Areas / Months"
   - "Cancel" text link appears below message box
   - Clicking cancel returns to default mode
 
-**NDVI Overlays**
-- Each selected area displays its own NDVI overlay simultaneously
+**Index Overlays**
+- Each selected area displays its own index overlay simultaneously
 - Overlays persist when new area is being selected
-- Overlays load based on selected month/year and cloud tolerance
+- Overlays load based on selected month/year, cloud tolerance, and selected index
 
 #### Info Panel (when one or more areas selected)
 
@@ -191,17 +230,17 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Table is borderless
 
 **Table**
-- Columns: "Marker", "Latitude", "Longitude", "NDVI (avg)", "Snapshot", "Remove"
+- Columns: "Marker", "Latitude", "Longitude", "[Index] (avg)", "Snapshot", "Remove"
 - Borderless styling
-- NDVI (avg): Average NDVI for all pixels in the area (parcel or rectangle) for the selected calendar month
+- [Index] (avg): Average index value for all pixels in the area (parcel or rectangle) for the selected calendar month
 - **Critical**: "avg" refers to averaging all pixels within the area for that month, NOT averaging across multiple months
 - **Critical for parcels**: Only include pixels within the clipped area, NOT all pixels in the bounding box
-- Snapshot column: Thumbnail of NDVI overlay for the corresponding month
+- Snapshot column: Thumbnail of index overlay for the corresponding month
 - Clicking thumbnail opens larger image in closable popup (AreaSnapshot component)
 - Remove column: Cross button (same behavior as Points mode)
 
 **Chart**
-- Shows average NDVI for each month in x-axis (average of all pixels in the area for that month)
+- Shows average index value for each month in x-axis (average of all pixels in the area for that month)
 - Updates when month dropdown changes
 - **Default visible range**: When a month is selected via the month dropdown, the chart displays all 12 months of that calendar year (January through December)
 - **Example**: Selecting "May 2022" shows data from January 2022 to December 2022 by default
@@ -213,7 +252,7 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Right limit: Current calendar month
 - Debouncing: 1 second delay for arrow clicks
 
-**NDVI Legend**
+**Index Legend**
 - Position: Below chart navigation arrows
 - Same format and behavior as Points mode
 
@@ -261,21 +300,21 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Same format as Areas mode comparison popup
 
 **Table**
-- Columns: "Month", "NDVI (avg)", "Snapshot", "Remove"
-- NDVI (avg): Average NDVI for all pixels in the area for that specific month
+- Columns: "Month", "[Index] (avg)", "Snapshot", "Remove"
+- [Index] (avg): Average index value for all pixels in the area for that specific month
 - Format: 2-digit rounded or "N/A" if null
 - Snapshot column: Shows area snapshot thumbnail (AreaSnapshot component)
 - Can remove months from list (remove functionality)
 - Updates when months are added via "Add" button
 
 **Chart**
-- Shows NDVI for selected months only (no auto-add)
+- Shows index value for selected months only (no auto-add)
 - Updates when months are added via "Add" button
 - Y-axis range toggle: Button (↓/↑) toggles between 0-1 and -1 to +1 range
 - Default y-axis range: 0-1
 - Chart navigation: No arrows (only shows selected months)
 
-**NDVI Legend**
+**Index Legend**
 - Position: Below chart (if chart is visible)
 - Same format and behavior as Points mode
 
@@ -294,7 +333,7 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Changing dropdown value updates UI immediately
 - API calls triggered after 1 second of no changes
 - If multiple rapid changes occur, only the last value triggers API call after 1 second delay
-- **Note**: Cloud tolerance only applies to Sentinel-2 data (dates >= January 2019). MODIS data (dates < January 2019) uses SummaryQA=0 filtering and ignores cloud tolerance.
+- **Note**: Cloud tolerance only applies to Sentinel-2 data (dates >= January 2019). MODIS data (dates < January 2019) uses SummaryQA=0 or StateQA filtering and ignores cloud tolerance.
 
 ---
 
@@ -317,11 +356,11 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - **Style**: Same as arrow buttons
 - **Default**: 0-1 range
 
-### NDVI Legend
+### Index Legend
 - **Position**: Below chart navigation arrows (or below chart if no arrows)
 - **Range**: Always -1 to +1 (independent of chart y-axis range)
 - **Format**: Continuous horizontal gradient bar
-- **Color Scheme**: Matches GEE visualization parameters
+- **Color Scheme**: Matches GEE visualization parameters (same for all indices)
 - **Ticks**: -1, -0.5, 0, 0.5, 1.0
 
 ### Compare Snapshots Popup
@@ -342,50 +381,56 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Color utilities: `getColorForIndex()` function
 
 ### Data Calculation
-- NDVI averages exclude null values
+- Index averages exclude null values
 - Cloud tolerance applies only to Sentinel-2 image filtering (dates >= January 2019)
-- Point NDVI fetching: Uses small bbox (0.01° buffer ≈ 1km) around point, not full viewport
-- Area NDVI fetching: Uses area bounds (with geometry clipping for parcels)
+- Point index fetching: Uses small bbox (0.01° buffer ≈ 1km) around point, not full viewport
+- Area index fetching: Uses area bounds (with geometry clipping for parcels)
 - **Initial visible range**: For Point-Points and Area-Areas modes, the initial visible range spans the full calendar year (12 months) of the selected month, from January to December of that year
 
 ### Dual Data Source Logic
 - **Date Range**: Earliest date is January 2001
 - **Sentinel-2**: Used for dates >= January 2019
   - Collection: COPERNICUS/S2_SR_HARMONIZED
-  - NDVI calculation: normalizedDifference(["B8", "B4"])
+  - Index calculation: Uses band formulas from indexConfig.js
   - Cloud filtering: Uses CLOUDY_PIXEL_PERCENTAGE based on cloud tolerance setting
   - Spatial resolution: 10m
 - **MODIS**: Used for dates < January 2019
-  - Collection: MODIS/061/MOD13Q1
-  - NDVI band: Pre-calculated NDVI band (multiply by 0.0001 for scaling)
-  - Quality filtering: SummaryQA = 0 (always, ignores cloud tolerance)
-  - Spatial resolution: 250m (16-day composite)
+  - NDVI/EVI: Collection MODIS/061/MOD13Q1 (pre-calculated, 250m, 16-day)
+  - Other indices: Collection MODIS/061/MOD09A1 (surface reflectance, 500m, 8-day)
+  - Quality filtering: SummaryQA = 0 for MOD13Q1, StateQA for MOD09A1
 - **Automatic Routing**: System automatically selects data source based on query start date
 - **RGB Tiles**: Only available for Sentinel-2 (no MODIS RGB equivalent)
 
+### Index Configuration
+- All index formulas defined in `app/lib/indexConfig.js`
+- Sentinel-2 formulas use direct band math
+- MODIS uses pre-calculated bands where available (NDVI, EVI), otherwise calculates from surface reflectance
+
 ### State Management
-- Mode changes (Point/Area) reset all state except cloud tolerance
+- Mode changes (Point/Area) reset all state except cloud tolerance and selected index
 - Sub-mode changes (Points/Months or Areas/Months) maintain selected points/areas
 - Uses React hooks: useState, useCallback, useEffect, useRef
 - Debouncing implemented with useRef and setTimeout
 
 ### API Endpoints
-- `/api/ndvi/point/month`: Fetch NDVI for point for specific month (no bbox required)
-- `/api/ndvi/point`: Fetch NDVI for point for date range (no bbox required)
-- `/api/ndvi/area/month`: Fetch average NDVI for area for specific month
-- `/api/ndvi/average`: Fetch NDVI tile/thumbnail for area (POST for geometry, GET for bounds)
+- `/api/index/point/month`: Fetch index value for point for specific month
+- `/api/index/point`: Fetch index value for point for date range
+- `/api/index/area/month`: Fetch average index value for area for specific month
+- `/api/index/average`: Fetch index tile/thumbnail for area (POST for geometry, GET for bounds)
 - `/api/count_available`: Count available images for date range
 - `/api/find_month`: Find most recent month with available images
+
+All index endpoints accept `index` query parameter (defaults to NDVI).
 
 ### Earth Engine Processing
 - **Sentinel-2 (dates >= January 2019)**:
   - Image collection: COPERNICUS/S2_SR_HARMONIZED
-  - NDVI calculation: normalizedDifference(["B8", "B4"])
+  - Index calculation: Uses formula from indexConfig based on selected index
   - Cloud filtering: CLOUDY_PIXEL_PERCENTAGE based on cloud tolerance
 - **MODIS (dates < January 2019)**:
-  - Image collection: MODIS/061/MOD13Q1
-  - NDVI: Pre-calculated NDVI band multiplied by 0.0001
-  - Quality filtering: SummaryQA = 0 (ignores cloud tolerance)
+  - NDVI/EVI: Pre-calculated from MOD13Q1
+  - Other indices: Calculated from MOD09A1 surface reflectance
+  - Quality filtering based on product type
 - For rectangle overlays: 20% buffer for filtering, clipped to original bounds
 - For parcel overlays: Filtered by bounds, clipped to exact parcel geometry
 - Empty collection check: Throws "No images found" error if no images available
@@ -393,7 +438,7 @@ Similar to Point Analysis: "Compare: Areas / Months"
 
 ### Component Structure
 - Modular design with separate components for each feature
-- Reusable components: TriangleMarker, AreaSnapshot, PointSnapshot, MonthDropdown, NdviLegend
+- Reusable components: TriangleMarker, AreaSnapshot, PointSnapshot, MonthDropdown, NdviLegend, IndexSelector
 - Hooks: usePointDataMap, useAreaDataMap, useRequestTracker, useToast, useNullDataDetection
 - No comments in code (as per project style)
 
@@ -403,3 +448,6 @@ Similar to Point Analysis: "Compare: Areas / Months"
 - Tailwind CSS for styling (replaced inline styles for loading messages)
 - No comments in code
 - Follow React best practices: hooks, useCallback, useRef for performance
+
+### Analytics
+- Track "Index changed" event with current_index data when index dropdown changes

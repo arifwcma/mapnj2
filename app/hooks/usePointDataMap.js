@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { monthKey, parseMonthKey } from "@/app/lib/dateUtils"
 
-export default function usePointDataMap(point, rectangleBounds, cloudTolerance, pointType = "", requestTracker = null) {
+export default function usePointDataMap(point, rectangleBounds, cloudTolerance, pointType = "", requestTracker = null, selectedIndex = "NDVI") {
     const [dataMap, setDataMap] = useState(new Map())
     const dataMapRef = useRef(new Map())
     const fetchingMonthsRef = useRef(new Set())
@@ -18,11 +18,12 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             lon: pointLon.toString(),
             year: year.toString(),
             month: month.toString(),
-            cloud: cloudTolerance.toString()
+            cloud: cloudTolerance.toString(),
+            index: selectedIndex
         })
 
         try {
-            const url = `/api/ndvi/point/month?${params.toString()}`
+            const url = `/api/index/point/month?${params.toString()}`
             const response = await fetch(url)
 
             if (!response.ok) {
@@ -32,10 +33,10 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             const data = await response.json()
             return data
         } catch (error) {
-            console.error(`[HOOK] usePointDataMap - Error fetching NDVI for ${year}-${month}:`, error)
-            return { year, month, ndvi: null }
+            console.error(`[HOOK] usePointDataMap - Error fetching ${selectedIndex} for ${year}-${month}:`, error)
+            return { year, month, value: null }
         }
-    }, [cloudTolerance])
+    }, [cloudTolerance, selectedIndex])
 
     const reset = useCallback(() => {
         const emptyMap = new Map()
@@ -113,8 +114,9 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
                 
                 setDataMap(prev => {
                     const newMap = new Map(prev)
-                    if (result && result.ndvi !== null && result.ndvi !== undefined) {
-                        newMap.set(key, result.ndvi)
+                    const value = result?.value ?? result?.ndvi
+                    if (value !== null && value !== undefined) {
+                        newMap.set(key, value)
                     } else {
                         newMap.set(key, null)
                     }

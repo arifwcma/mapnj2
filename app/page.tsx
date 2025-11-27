@@ -7,6 +7,7 @@ import AnalysisModeSelector from "@/app/components/AnalysisModeSelector"
 import CompareModeSelector from "@/app/components/CompareModeSelector"
 import AreaSelectionPrompt from "@/app/components/AreaSelectionPrompt"
 import CloudToleranceDropdown from "@/app/components/CloudToleranceDropdown"
+import IndexSelector from "@/app/components/IndexSelector"
 import ShareButton from "@/app/components/ShareButton"
 import PointsModePanel from "@/app/components/PointsModePanel"
 import PointMonthsModePanel from "@/app/components/PointMonthsModePanel"
@@ -15,6 +16,7 @@ import AreaMonthsModePanel from "@/app/components/AreaMonthsModePanel"
 import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
 import { getInitialVisibleRange } from "@/app/lib/rangeUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { serializeState, deserializeState } from "@/app/lib/shareUtils"
@@ -32,6 +34,7 @@ function PageContent() {
     const [analysisMode, setAnalysisMode] = useState<"point" | "area">("point")
     const [compareMode, setCompareMode] = useState<"points" | "areas" | "months">("points")
     const [cloudTolerance, setCloudTolerance] = useState(DEFAULT_CLOUD_TOLERANCE)
+    const [selectedIndex, setSelectedIndex] = useState(DEFAULT_INDEX)
     const [selectedPoints, setSelectedPoints] = useState<Array<{ id: string, lat: number, lon: number }>>([])
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
     const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
@@ -108,6 +111,7 @@ function PageContent() {
                             if (state.analysisMode) setAnalysisMode(state.analysisMode)
                             if (state.compareMode) setCompareMode(state.compareMode)
                             if (state.cloudTolerance !== undefined) setCloudTolerance(state.cloudTolerance)
+                            if (state.selectedIndex) setSelectedIndex(state.selectedIndex)
                             if (state.selectedPoints) setSelectedPoints(state.selectedPoints)
                             if (state.selectedPoint) setSelectedPoint(state.selectedPoint)
                             if (state.selectedAreas) setSelectedAreas(state.selectedAreas)
@@ -178,6 +182,7 @@ function PageContent() {
             analysisMode,
             compareMode,
             cloudTolerance,
+            selectedIndex,
             selectedPoints,
             selectedPoint,
             selectedAreas: selectedAreas.map(area => ({
@@ -221,7 +226,7 @@ function PageContent() {
             console.error('Error saving share:', error)
             return null
         }
-    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange, pointsYAxisRange, areasYAxisRange, pointMonthsYAxisRange, areaMonthsYAxisRange, currentZoom, mapBounds, pointSnapshotsOpen, areaSnapshotsOpen])
+    }, [basemap, analysisMode, compareMode, cloudTolerance, selectedIndex, selectedPoints, selectedPoint, selectedAreas, selectedYear, selectedMonth, pointMonthsSelectedMonths, areaMonthsSelectedMonths, pointsVisibleRange, areasVisibleRange, pointsYAxisRange, areasYAxisRange, pointMonthsYAxisRange, areaMonthsYAxisRange, currentZoom, mapBounds, pointSnapshotsOpen, areaSnapshotsOpen])
     
     const handleSharePointSnapshots = useCallback(async () => {
         return handleShare(true, false)
@@ -287,7 +292,7 @@ function PageContent() {
         isImageAvailable
     } = useNdviData()
     
-    const { loadAreaNdvi } = useAreaNdvi(selectedYear, selectedMonth, cloudTolerance, setSelectedAreas)
+    const { loadAreaNdvi } = useAreaNdvi(selectedYear, selectedMonth, cloudTolerance, setSelectedAreas, selectedIndex)
     
     const cloudToleranceRef = useRef(cloudTolerance)
     const cloudDebounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -350,6 +355,12 @@ function PageContent() {
         }, DEBOUNCE_DELAYS.CLOUD_TOLERANCE)
     }
     
+    const handleIndexChange = (newIndex: string) => {
+        setSelectedIndex(newIndex)
+        trackEvent("Index changed", {
+            current_index: newIndex
+        })
+    }
     
     const handleBasemapChange = useCallback((newBasemap: string) => {
         const previousBasemap = basemap
@@ -903,6 +914,11 @@ function PageContent() {
                     onCloudChange={handleCloudChange}
                 />
                 
+                <IndexSelector
+                    selectedIndex={selectedIndex}
+                    onIndexChange={handleIndexChange}
+                />
+                
                 {((rectangleBounds && !(analysisMode === "area" && compareMode === "areas")) || (analysisMode === "point" && compareMode === "months" && selectedPoint.lat !== null && selectedPoint.lon !== null)) && (
                     <a
                         href="#"
@@ -1138,6 +1154,7 @@ function PageContent() {
                             setFocusPointIndex(index)
                             setTimeout(() => setFocusPointIndex(null), 100)
                         }}
+                        selectedIndex={selectedIndex}
                     />
                 )}
                 
@@ -1151,6 +1168,7 @@ function PageContent() {
                         setSelectedMonths={setPointMonthsSelectedMonths}
                         yAxisRange={pointMonthsYAxisRange}
                         setYAxisRange={setPointMonthsYAxisRange}
+                        selectedIndex={selectedIndex}
                     />
                 )}
                 
@@ -1193,6 +1211,7 @@ function PageContent() {
                             setFocusAreaIndex(index)
                             setTimeout(() => setFocusAreaIndex(null), 100)
                         }}
+                        selectedIndex={selectedIndex}
                     />
                 )}
                 
@@ -1209,6 +1228,7 @@ function PageContent() {
                         onShareAreaSnapshots={handleShareAreaSnapshots}
                         areaSnapshotsOpen={areaSnapshotsOpen}
                         setAreaSnapshotsOpen={setAreaSnapshotsOpen}
+                        selectedIndex={selectedIndex}
                     />
                 )}
             </div>

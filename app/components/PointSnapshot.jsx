@@ -1,10 +1,11 @@
 "use client"
 import { useState } from "react"
-import { getNdviColor } from "@/app/lib/ndviColorUtils"
+import { getIndexColor } from "@/app/lib/indexColorUtils"
+import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
 
-export default function PointSnapshot({ ndvi, size = 40 }) {
+export default function PointSnapshot({ ndvi, size = 40, indexName = DEFAULT_INDEX }) {
     const [showPopup, setShowPopup] = useState(false)
-    const color = getNdviColor(ndvi)
+    const color = getIndexColor(ndvi)
     
     if (ndvi === null || ndvi === undefined) {
         return null
@@ -23,7 +24,7 @@ export default function PointSnapshot({ ndvi, size = 40 }) {
                     display: "inline-block"
                 }}
                 onClick={() => setShowPopup(true)}
-                title={`NDVI: ${ndvi !== null ? ndvi.toFixed(2) : 'N/A'}`}
+                title={`${indexName}: ${ndvi !== null ? ndvi.toFixed(2) : 'N/A'}`}
             />
             {showPopup && (
                 <>
@@ -54,7 +55,7 @@ export default function PointSnapshot({ ndvi, size = 40 }) {
                         }}
                     >
                         <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
-                            NDVI Snapshot
+                            {indexName} Snapshot
                         </div>
                         <div
                             style={{
@@ -67,7 +68,7 @@ export default function PointSnapshot({ ndvi, size = 40 }) {
                             }}
                         />
                         <div style={{ textAlign: "center", marginBottom: "10px" }}>
-                            NDVI: {ndvi !== null ? ndvi.toFixed(2) : 'N/A'}
+                            {indexName}: {ndvi !== null ? ndvi.toFixed(2) : 'N/A'}
                         </div>
                         <button
                             onClick={() => setShowPopup(false)}
@@ -90,4 +91,3 @@ export default function PointSnapshot({ ndvi, size = 40 }) {
         </div>
     )
 }
-

@@ -39,7 +39,7 @@ function calculateAspectRatio(area) {
     return 4/3
 }
 
-export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibleRange, selectedMonths = null, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen }) {
+export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibleRange, selectedMonths = null, onShare, isOpen: externalIsOpen, setIsOpen: setExternalIsOpen, selectedIndex = "NDVI" }) {
     const [showPopup, setShowPopup] = useState(false)
     const [shareLoading, setShareLoading] = useState(false)
     const [shareUrl, setShareUrl] = useState("")
@@ -113,10 +113,11 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                     cloud: cloudTolerance.toString(),
                     geometry: geometry,
                     thumbnail: "true",
-                    dimensions: "1024"
+                    dimensions: "1024",
+                    index: selectedIndex
                 }
                 
-                fetch(`/api/ndvi/average`, {
+                fetch(`/api/index/average`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -420,7 +421,7 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                                                             <div style={{ position: "relative", width: "180px", margin: "0 auto" }}>
                                                                 <img
                                                                     src={tileUrl}
-                                                                    alt={`NDVI ${year} ${MONTH_NAMES_FULL[month - 1]} - ${area.label}`}
+                                                                    alt={`${selectedIndex} ${year} ${MONTH_NAMES_FULL[month - 1]} - ${area.label}`}
                                                                     style={{
                                                                         width: "100%",
                                                                         height: "auto",

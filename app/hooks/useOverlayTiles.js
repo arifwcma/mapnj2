@@ -1,15 +1,16 @@
 import { useState, useCallback, useRef } from "react"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
 import { bboxToString } from "@/app/lib/bboxUtils"
+import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
 
 export function useOverlayTiles() {
-    const [ndviTileUrl, setNdviTileUrl] = useState(null)
+    const [indexTileUrl, setIndexTileUrl] = useState(null)
     const [rgbTileUrl, setRgbTileUrl] = useState(null)
-    const [overlayType, setOverlayType] = useState("NDVI")
+    const [overlayType, setOverlayType] = useState("INDEX")
     const [overlayLoading, setOverlayLoading] = useState(false)
     const loadingRef = useRef(false)
 
-    const loadOverlayTile = useCallback(async (bbox, cloud, year, month, overlay, geometry = null) => {
+    const loadOverlayTile = useCallback(async (bbox, cloud, year, month, overlay, geometry = null, indexName = DEFAULT_INDEX) => {
         if (!bbox || loadingRef.current || !year || !month) {
             return
         }
@@ -22,24 +23,24 @@ export function useOverlayTiles() {
             const dateRange = getMonthDateRange(year, month)
             const geometryParam = geometry ? `&geometry=${encodeURIComponent(JSON.stringify(geometry))}` : ""
             
-            if (overlay === "NDVI") {
-                const tileResponse = await fetch(`/api/ndvi/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloud}${geometryParam}`)
-                if (!tileResponse.ok) throw new Error("Failed to get NDVI tile")
+            if (overlay === "INDEX" || overlay === "NDVI") {
+                const tileResponse = await fetch(`/api/index/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloud}&index=${indexName}${geometryParam}`)
+                if (!tileResponse.ok) throw new Error("Failed to get index tile")
                 const tileData = await tileResponse.json()
-                setNdviTileUrl(tileData.tileUrl)
+                setIndexTileUrl(tileData.tileUrl)
                 setRgbTileUrl(null)
             } else if (overlay === "RGB") {
                 const tileResponse = await fetch(`/api/rgb/average?start=${dateRange.start}&end=${dateRange.end}&bbox=${bboxStr}&cloud=${cloud}${geometryParam}`)
                 if (!tileResponse.ok) throw new Error("Failed to get RGB tile")
                 const tileData = await tileResponse.json()
                 setRgbTileUrl(tileData.tileUrl)
-                setNdviTileUrl(null)
+                setIndexTileUrl(null)
             } else {
-                setNdviTileUrl(null)
+                setIndexTileUrl(null)
                 setRgbTileUrl(null)
             }
         } catch (err) {
-            setNdviTileUrl(null)
+            setIndexTileUrl(null)
             setRgbTileUrl(null)
         } finally {
             setOverlayLoading(false)
@@ -48,12 +49,13 @@ export function useOverlayTiles() {
     }, [])
 
     const clearTiles = useCallback(() => {
-        setNdviTileUrl(null)
+        setIndexTileUrl(null)
         setRgbTileUrl(null)
     }, [])
 
     return {
-        ndviTileUrl,
+        ndviTileUrl: indexTileUrl,
+        indexTileUrl,
         rgbTileUrl,
         overlayType,
         overlayLoading,
@@ -62,4 +64,3 @@ export function useOverlayTiles() {
         clearTiles
     }
 }
-

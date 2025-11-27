@@ -55,7 +55,8 @@ export default function AreaMonthsModePanel({
     setYAxisRange,
     onShareAreaSnapshots,
     areaSnapshotsOpen,
-    setAreaSnapshotsOpen
+    setAreaSnapshotsOpen,
+    selectedIndex = "NDVI"
 }) {
     const requestTracker = useRequestTracker()
     const [dataMap, setDataMap] = useState(null)
@@ -306,7 +307,8 @@ export default function AreaMonthsModePanel({
                         selectedMonths={sortedMonths}
                         onShare={onShareAreaSnapshots}
                         isOpen={areaSnapshotsOpen}
-                    setIsOpen={setAreaSnapshotsOpen}
+                        setIsOpen={setAreaSnapshotsOpen}
+                        selectedIndex={selectedIndex}
                     />
                 </div>
             )}
@@ -316,7 +318,7 @@ export default function AreaMonthsModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Month</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>{selectedIndex} (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
                         </tr>
@@ -378,7 +380,7 @@ export default function AreaMonthsModePanel({
                             })
                         }}
                     />
-                    <NdviLegend />
+                    <NdviLegend indexName={selectedIndex} />
                 </>
             )}
             

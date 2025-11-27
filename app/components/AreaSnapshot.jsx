@@ -82,7 +82,7 @@ function calculateAspectRatio(area) {
     return Math.max(0.5, Math.min(2.0, aspectRatio))
 }
 
-export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, visibleRange, areaIndex, onSnapshotClick }) {
+export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, visibleRange, areaIndex, onSnapshotClick, selectedIndex = "NDVI" }) {
     const [showPopup, setShowPopup] = useState(false)
     const [tileUrls, setTileUrls] = useState({})
     const [loading, setLoading] = useState({})
@@ -137,7 +137,8 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                 cloud: cloudTolerance.toString(),
                 geometry: geometry,
                 thumbnail: "true",
-                dimensions: "1024"
+                dimensions: "1024",
+                index: selectedIndex
             }
             
             let bodyString
@@ -150,7 +151,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                 return
             }
             
-            fetch(`/api/ndvi/average`, {
+            fetch(`/api/index/average`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -374,7 +375,7 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                                             <div style={{ position: "relative", width: "100%" }}>
                                                 <img
                                                     src={tileUrl}
-                                                    alt={`NDVI ${year} ${MONTH_NAMES_FULL[month - 1]}`}
+                                                    alt={`${selectedIndex} ${year} ${MONTH_NAMES_FULL[month - 1]}`}
                                                     style={{
                                                         width: "100%",
                                                         height: "auto",

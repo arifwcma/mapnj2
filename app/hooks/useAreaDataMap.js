@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { monthKey, parseMonthKey } from "@/app/lib/dateUtils"
 
-export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, areaId = "", requestTracker = null) {
+export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, areaId = "", requestTracker = null, selectedIndex = "NDVI") {
     const [dataMap, setDataMap] = useState(new Map())
     const dataMapRef = useRef(new Map())
     const fetchingMonthsRef = useRef(new Set())
@@ -41,14 +41,15 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
         const geometryStr = JSON.stringify(geometryToUse)
 
         try {
-            const url = `/api/ndvi/area/month`
+            const url = `/api/index/area/month`
             
             const requestBody = {
                 geometry: geometryToUse,
                 year: year.toString(),
                 month: month.toString(),
                 bbox: bboxStr,
-                cloud: cloudTolerance.toString()
+                cloud: cloudTolerance.toString(),
+                index: selectedIndex
             }
             
             let bodyString
@@ -88,10 +89,10 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
             const data = await response.json()
             return data
         } catch (error) {
-            console.error(`Error fetching area NDVI for ${year}-${month}:`, error)
-            return { year, month, ndvi: null }
+            console.error(`Error fetching area ${selectedIndex} for ${year}-${month}:`, error)
+            return { year, month, value: null }
         }
-    }, [area.bounds, rectangleBounds, cloudTolerance])
+    }, [area.bounds, rectangleBounds, cloudTolerance, selectedIndex])
 
     const reset = useCallback(() => {
         const emptyMap = new Map()
@@ -174,8 +175,9 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
                 
                 setDataMap(prev => {
                     const newMap = new Map(prev)
-                    if (result) {
-                        newMap.set(key, result.ndvi)
+                    const value = result?.value ?? result?.ndvi
+                    if (value !== null && value !== undefined) {
+                        newMap.set(key, value)
                     } else {
                         newMap.set(key, null)
                     }

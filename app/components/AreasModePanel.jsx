@@ -62,7 +62,8 @@ export default function AreasModePanel({
     onShareAreaSnapshots,
     areaSnapshotsOpen,
     setAreaSnapshotsOpen,
-    onFocusArea
+    onFocusArea,
+    selectedIndex = "NDVI"
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -322,6 +323,7 @@ export default function AreasModePanel({
                     onShare={onShareAreaSnapshots}
                     isOpen={areaSnapshotsOpen}
                     setIsOpen={setAreaSnapshotsOpen}
+                    selectedIndex={selectedIndex}
                 />
             )}
             
@@ -330,7 +332,7 @@ export default function AreasModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>{selectedIndex} (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
                         </tr>
@@ -471,7 +473,7 @@ export default function AreasModePanel({
                             })
                         }}
                     />
-                    <NdviLegend />
+                    <NdviLegend indexName={selectedIndex} />
                 </>
             )}
             

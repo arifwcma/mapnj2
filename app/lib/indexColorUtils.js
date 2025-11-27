@@ -1,8 +1,4 @@
-const NDVI_VIS_CONFIG = {
-    min: -1,
-    max: 1,
-    palette: ["darkred", "orangered", "red", "yellow", "darkgreen"]
-}
+import { INDEX_VIS_CONFIG } from "@/app/lib/indexConfig"
 
 function colorNameToHex(colorName) {
     const colorMap = {
@@ -46,12 +42,12 @@ function interpolateColor(color1, color2, factor) {
     return rgbToHex(r, g, b)
 }
 
-export function getNdviColor(ndvi, min = NDVI_VIS_CONFIG.min, max = NDVI_VIS_CONFIG.max, palette = NDVI_VIS_CONFIG.palette) {
-    if (ndvi === null || ndvi === undefined) {
+export function getIndexColor(value, min = INDEX_VIS_CONFIG.min, max = INDEX_VIS_CONFIG.max, palette = INDEX_VIS_CONFIG.palette) {
+    if (value === null || value === undefined) {
         return "#808080"
     }
     
-    const clampedValue = Math.max(min, Math.min(max, ndvi))
+    const clampedValue = Math.max(min, Math.min(max, value))
     const normalizedValue = (clampedValue - min) / (max - min)
     
     const numColors = palette.length
@@ -66,10 +62,10 @@ export function getNdviColor(ndvi, min = NDVI_VIS_CONFIG.min, max = NDVI_VIS_CON
     return interpolateColor(color1, color2, factor)
 }
 
-export function getNdviVisConfig() {
-    return { ...NDVI_VIS_CONFIG }
+export function getIndexVisConfig() {
+    return { ...INDEX_VIS_CONFIG }
 }
 
-export function getNdviColorPalette() {
-    return [...NDVI_VIS_CONFIG.palette]
+export function getIndexColorPalette() {
+    return [...INDEX_VIS_CONFIG.palette]
 }

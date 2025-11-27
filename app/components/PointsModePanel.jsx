@@ -72,7 +72,8 @@ export default function PointsModePanel({
     onSharePointSnapshots,
     pointSnapshotsOpen,
     setPointSnapshotsOpen,
-    onFocusPoint
+    onFocusPoint,
+    selectedIndex = "NDVI"
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -338,6 +339,7 @@ export default function PointsModePanel({
                     onShare={onSharePointSnapshots}
                     isOpen={pointSnapshotsOpen}
                     setIsOpen={setPointSnapshotsOpen}
+                    selectedIndex={selectedIndex}
                 />
             )}
             
@@ -346,7 +348,7 @@ export default function PointsModePanel({
                     <thead>
                         <tr style={{ borderBottom: "2px solid #ccc" }}>
                             <th style={{ padding: "8px", textAlign: "left" }}>Marker</th>
-                            <th style={{ padding: "8px", textAlign: "left" }}>NDVI (avg)</th>
+                            <th style={{ padding: "8px", textAlign: "left" }}>{selectedIndex} (avg)</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Snapshot</th>
                             <th style={{ padding: "8px", textAlign: "left" }}>Remove</th>
                         </tr>
@@ -378,7 +380,7 @@ export default function PointsModePanel({
                                     {averageNdvi !== null ? averageNdvi.toFixed(2) : "N/A"}
                                 </td>
                                 <td style={{ padding: "8px" }}>
-                                    <PointSnapshot ndvi={currentNdvi} size={30} />
+                                    <PointSnapshot ndvi={currentNdvi} size={30} indexName={selectedIndex} />
                                 </td>
                                 <td style={{ padding: "8px" }}>
                                     <button
@@ -477,7 +479,7 @@ export default function PointsModePanel({
                             })
                         }}
                     />
-                    <NdviLegend />
+                    <NdviLegend indexName={selectedIndex} />
                 </>
             )}
             

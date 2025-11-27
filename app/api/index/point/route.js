@@ -1,21 +1,30 @@
 import { NextResponse } from "next/server"
-import { getNdviAtPoint } from "@/app/lib/earthengineUtils"
+import { getIndexAtPoint } from "@/app/lib/earthengineUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
+import { DEFAULT_INDEX, isValidIndex } from "@/app/lib/indexConfig"
 
 export async function GET(request) {
-    console.log("[API] GET /api/ndvi/point - Request received")
     const { searchParams } = new URL(request.url)
-    console.log("[API] /api/ndvi/point - Params:", { lat: searchParams.get("lat"), lon: searchParams.get("lon"), start: searchParams.get("start"), end: searchParams.get("end"), cloud: searchParams.get("cloud") })
     const lat = searchParams.get("lat")
     const lon = searchParams.get("lon")
     const start = searchParams.get("start")
     const end = searchParams.get("end")
     const cloudParam = searchParams.get("cloud")
+    const indexParam = searchParams.get("index")
+    
     const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
+    const indexName = indexParam || DEFAULT_INDEX
 
     if (!lat || !lon || !start || !end) {
         return NextResponse.json(
             { error: "Missing required parameters: lat, lon, start, or end" },
+            { status: 400 }
+        )
+    }
+
+    if (!isValidIndex(indexName)) {
+        return NextResponse.json(
+            { error: `Invalid index: ${indexName}` },
             { status: 400 }
         )
     }
@@ -38,21 +47,17 @@ export async function GET(request) {
     }
 
     try {
-        console.log("API: Getting NDVI at point", { lat: latNum, lon: lonNum, start, end, cloud })
-        const ndvi = await getNdviAtPoint(latNum, lonNum, start, end, null, cloud)
-        console.log("API: NDVI retrieved:", ndvi)
-        
-        return NextResponse.json({ ndvi, lat: latNum, lon: lonNum })
+        const value = await getIndexAtPoint(latNum, lonNum, start, end, cloud, indexName)
+        return NextResponse.json({ value, index: indexName })
     } catch (error) {
-        const errorMessage = error.message || error.toString() || ""
-        if (errorMessage.includes("No images found") || errorMessage.includes("No NDVI value found")) {
-            return NextResponse.json({ ndvi: null, lat: latNum, lon: lonNum })
+        const errorMessage = error?.message || error?.toString() || "Unknown error"
+        if (errorMessage.includes("No images found")) {
+            return NextResponse.json({ value: null, index: indexName })
         }
-        if (errorMessage.includes("Invalid")) {
-            return NextResponse.json({ error: errorMessage }, { status: 400 })
-        }
-        console.error("Error getting NDVI at point:", error)
-        return NextResponse.json({ error: errorMessage || "Failed to get NDVI at point" }, { status: 500 })
+        return NextResponse.json(
+            { error: errorMessage },
+            { status: 500 }
+        )
     }
 }
 
