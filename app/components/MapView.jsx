@@ -418,7 +418,7 @@ function PointClickHandler({ isActive, onPointClick }) {
 const EMPTY_POINTS_ARRAY = /** @type {Array<{ id: string, lat: number, lon: number }>} */ ([])
 const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], label: string, boundsSource: 'rectangle' | 'field' }>} */ ([])
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, indexTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null), copyCoordinateMode = false, goToXYPosition = /** @type {null | [number, number]} */ (null), onGoToXYComplete = () => {}, selectedIndex = "NDVI" }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, indexTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null), copyCoordinateMode = false, goToXYPosition = /** @type {null | [number, number]} */ (null), onGoToXYComplete = () => {}, selectedIndex = "NDVI", selectedYear = null, selectedMonth = null, cloudTolerance = 50 }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     const [boundaryBounds, setBoundaryBounds] = useState(null)
@@ -532,14 +532,12 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 </>
             )}
             {analysisMode === "area" && (compareMode === "areas" || compareMode === "months") && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area, idx) => {
-                console.log(`[MapView] Rendering area ${idx}: id=${area.id}, overlayType=${overlayType}, indexTileUrl=${area.indexTileUrl ? 'SET' : 'NULL'}, bounds=${area.bounds ? 'SET' : 'NULL'}, selectedIndex=${selectedIndex}`)
                 const elements = []
                 
                 if (overlayType === "INDEX" && area.indexTileUrl && area.bounds) {
-                    console.log(`[MapView] Adding overlay for area ${idx} (${area.id}) with tileUrl:`, area.indexTileUrl.substring(0, 50))
                     elements.push(
                         <NdviOverlay 
-                            key={`index-${area.id}-${area.indexTileUrl}-${selectedIndex}`} 
+                            key={`index-${area.id}-${selectedIndex}-${selectedYear}-${selectedMonth}-${cloudTolerance}-${area.indexTileUrl}`} 
                             tileUrl={area.indexTileUrl} 
                             bounds={area.bounds} 
                         />
@@ -548,7 +546,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 if (overlayType === "RGB" && area.rgbTileUrl && area.bounds) {
                     elements.push(
                         <NdviOverlay 
-                            key={`rgb-${area.id}-${area.rgbTileUrl}`} 
+                            key={`rgb-${area.id}-${selectedYear}-${selectedMonth}-${cloudTolerance}-${area.rgbTileUrl}`} 
                             tileUrl={area.rgbTileUrl} 
                             bounds={area.bounds} 
                         />
@@ -581,10 +579,10 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 return elements.length > 0 ? elements : null
             })}
             {analysisMode !== "area" && indexTileUrl && rectangleBounds && overlayType === "INDEX" && (
-                <NdviOverlay key={`index-${basemap}-${indexTileUrl}-${selectedIndex}`} tileUrl={indexTileUrl} bounds={rectangleBounds} />
+                <NdviOverlay key={`index-${basemap}-${selectedIndex}-${selectedYear}-${selectedMonth}-${cloudTolerance}-${indexTileUrl}`} tileUrl={indexTileUrl} bounds={rectangleBounds} />
             )}
             {analysisMode !== "area" && rgbTileUrl && rectangleBounds && overlayType === "RGB" && (
-                <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
+                <NdviOverlay key={`rgb-${basemap}-${selectedYear}-${selectedMonth}-${cloudTolerance}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
             )}
             {selectedPoints && selectedPoints.length > 0 && selectedPoints.map((point, index) => (
                 <IndexedMarker
