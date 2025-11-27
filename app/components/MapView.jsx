@@ -294,40 +294,6 @@ function GoToXYHandler({ position, onComplete }) {
     return null
 }
 
-function MinZoomSetter({ boundaryBounds }) {
-    const map = useMap()
-    
-    useEffect(() => {
-        if (!map || !boundaryBounds) {
-            return
-        }
-        
-        const calculateMinZoom = () => {
-            try {
-                const L = require("leaflet")
-                const bounds = L.latLngBounds(
-                    boundaryBounds[0],
-                    boundaryBounds[1]
-                )
-                const minZoom = map.getBoundsZoom(bounds, true)
-                map.setMinZoom(minZoom)
-            } catch (e) {
-                console.error("[MinZoomSetter] Error calculating minZoom:", e)
-            }
-        }
-        
-        calculateMinZoom()
-        
-        map.on("resize", calculateMinZoom)
-        
-        return () => {
-            map.off("resize", calculateMinZoom)
-        }
-    }, [map, boundaryBounds])
-    
-    return null
-}
-
 function ZoomTracker({ onZoomChange }) {
     const map = useMap()
     const onZoomChangeRef = useRef(onZoomChange)
@@ -492,7 +458,6 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             maxBounds={boundaryBounds || undefined}
             maxBoundsViscosity={1.0}
         >
-            {boundaryBounds && <MinZoomSetter boundaryBounds={boundaryBounds} />}
             <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
             <MapRestore initialZoom={initialZoom} initialBounds={initialBounds} onZoomChange={onZoomChange} onMapBoundsChange={onMapBoundsChange} />
