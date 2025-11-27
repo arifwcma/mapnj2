@@ -844,11 +844,11 @@ function PageContent() {
     }, [clearNdvi, analysisMode, compareMode, selectedPoint])
     
     useEffect(() => {
-        console.log("[Overlay useEffect] Triggered - analysisMode:", analysisMode, "compareMode:", compareMode, "selectedAreas.length:", selectedAreas.length, "selectedIndex:", selectedIndex, "selectedYear:", selectedYear, "selectedMonth:", selectedMonth)
+        console.log("[Overlay useEffect] Triggered - analysisMode:", analysisMode, "compareMode:", compareMode, "selectedAreas.length:", selectedAreas.length, "selectedIndex:", selectedIndex, "selectedYear:", selectedYear, "selectedMonth:", selectedMonth, "isDrawing:", isDrawing)
         
         if (analysisMode === "area" && (compareMode === "areas" || compareMode === "months")) {
-            if (isDrawing || fieldSelectionMode || selectedAreas.length === 0) {
-                console.log("[Overlay useEffect] Skipping - isDrawing:", isDrawing, "fieldSelectionMode:", fieldSelectionMode, "selectedAreas.length:", selectedAreas.length)
+            if (isDrawing || selectedAreas.length === 0) {
+                console.log("[Overlay useEffect] Skipping - isDrawing:", isDrawing, "selectedAreas.length:", selectedAreas.length)
                 return
             }
             console.log("[Overlay useEffect] Loading overlays for", selectedAreas.length, "areas")
@@ -863,7 +863,7 @@ function PageContent() {
         } else if (analysisMode !== "area" && !rectangleBounds) {
             clearNdvi()
         }
-    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, isDrawing, fieldSelectionMode, rectangleBounds, boundsSource, selectedFieldFeature, selectedIndex, selectedAreas.length, loadAreaNdvi, loadNdviData, clearNdvi])
+    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, isDrawing, rectangleBounds, boundsSource, selectedFieldFeature, selectedIndex, selectedAreas.length, loadAreaNdvi, loadNdviData, clearNdvi])
     
     useEffect(() => {
         document.title = `Wimmera ${selectedIndex}`

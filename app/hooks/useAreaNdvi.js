@@ -6,18 +6,18 @@ import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
 
 export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance, setSelectedAreas, selectedIndex = DEFAULT_INDEX) {
     const loadAreaNdvi = useCallback(async (area) => {
-        let year = selectedYear
-        let month = selectedMonth
+        console.log("[useAreaNdvi] loadAreaNdvi called for area:", area?.id, "closure values - year:", selectedYear, "month:", selectedMonth)
         
-        if (!year || !month) {
-            const current = getCurrentMonth()
-            year = current.year
-            month = current.month
-            console.log("[useAreaNdvi] Year/month were null, defaulting to current:", year, month)
+        const current = getCurrentMonth()
+        const year = selectedYear || current.year
+        const month = selectedMonth || current.month
+        
+        if (selectedYear !== year || selectedMonth !== month) {
+            console.log("[useAreaNdvi] Using fallback current month:", year, month)
         }
         
-        if (!area.bounds) {
-            console.log("[useAreaNdvi] No area.bounds, skipping load for area:", area.id)
+        if (!area || !area.bounds) {
+            console.log("[useAreaNdvi] No area or area.bounds, skipping load for area:", area?.id)
             return
         }
         
