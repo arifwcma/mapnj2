@@ -221,7 +221,7 @@ export default function AreaMonthsModePanel({
         return {
             labels,
             datasets: [{
-                label: "NDVI",
+                label: selectedIndex,
                 data: values,
                 borderColor: "rgb(0, 123, 255)",
                 backgroundColor: "rgba(0, 123, 255, 0.1)",

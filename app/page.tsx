@@ -547,6 +547,16 @@ function PageContent() {
         lastAreaAddRef.current = { bounds, time: now }
         
         if (analysisMode === "area" && compareMode === "areas") {
+            const geometryKey = JSON.stringify(feature?.geometry || bounds)
+            const isDuplicate = selectedAreas.some(area => {
+                const existingGeometryKey = JSON.stringify(area.geometry?.geometry || area.bounds)
+                return existingGeometryKey === geometryKey
+            })
+            
+            if (isDuplicate) {
+                return
+            }
+            
             let newArea: typeof selectedAreas[0] | null = null
             setSelectedAreas(prev => {
                 newArea = {
@@ -656,6 +666,16 @@ function PageContent() {
                 return
             }
             lastAreaAddRef.current = { bounds: currentBounds, time: now }
+            
+            const boundsKey = JSON.stringify(currentBounds)
+            const isDuplicate = selectedAreas.some(area => {
+                const existingBoundsKey = JSON.stringify(area.bounds)
+                return existingBoundsKey === boundsKey && area.boundsSource === 'rectangle'
+            })
+            
+            if (isDuplicate) {
+                return
+            }
             
             let newArea: typeof selectedAreas[0] | null = null
             setSelectedAreas(prev => {
@@ -845,6 +865,33 @@ function PageContent() {
             clearNdvi()
         }
     }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, mapBounds, selectedPoints.length, selectedIndex])
+    
+    useEffect(() => {
+        if (analysisMode === "area" && compareMode === "areas") {
+            if (isDrawing || fieldSelectionMode || !selectedYear || !selectedMonth) {
+                return
+            }
+            selectedAreas.forEach(area => {
+                if (area.bounds) {
+                    loadAreaNdvi(area)
+                }
+            })
+        } else if (analysisMode === "area" && compareMode === "months") {
+            if (isDrawing || fieldSelectionMode || !selectedYear || !selectedMonth) {
+                return
+            }
+            if (selectedAreas.length > 0 && selectedAreas[0]?.bounds) {
+                loadAreaNdvi(selectedAreas[0])
+            }
+        } else if (rectangleBounds && overlayType === "INDEX") {
+            const geometry = boundsSource === 'field' ? selectedFieldFeature : null
+            loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry, selectedIndex)
+        }
+    }, [selectedIndex, analysisMode, compareMode, isDrawing, fieldSelectionMode, selectedYear, selectedMonth, selectedAreas, loadAreaNdvi, rectangleBounds, overlayType, boundsSource, selectedFieldFeature, loadNdviData, cloudTolerance])
+    
+    useEffect(() => {
+        document.title = `Wimmera ${selectedIndex}`
+    }, [selectedIndex])
     
     const isPointClickMode = analysisMode === "point" && compareMode === "points"
     const isPointSelectMode = analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null
@@ -1104,6 +1151,7 @@ function PageContent() {
                     selectedAreas={selectedAreas}
                     analysisMode={analysisMode}
                     compareMode={compareMode}
+                    selectedIndex={selectedIndex}
                     onPointClick={handlePointClick}
                     fieldSelectionMode={fieldSelectionMode}
                     fieldsData={fieldsData}
