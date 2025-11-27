@@ -1,6 +1,6 @@
 "use client"
 import dynamic from "next/dynamic"
-import { useEffect, useRef, useLayoutEffect, useState } from "react"
+import { useEffect, useRef, useLayoutEffect, useState, useCallback } from "react"
 import { useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import BoundaryLayer from "./BoundaryLayer"
@@ -347,6 +347,42 @@ function ZoomTracker({ onZoomChange }) {
     return null
 }
 
+function SelectedAreaBorder({ areaId, data, onRefReady }) {
+    const ref = useRef(null)
+    
+    useEffect(() => {
+        if (ref.current && onRefReady) {
+            onRefReady(areaId, ref.current)
+        }
+    }, [areaId, onRefReady])
+    
+    return (
+        <GeoJSON 
+            ref={ref}
+            data={data}
+            style={{ color: "#22c55e", weight: 3, fillOpacity: 0, opacity: 1 }}
+        />
+    )
+}
+
+function SelectedAreaBorderRect({ areaId, bounds, onRefReady }) {
+    const ref = useRef(null)
+    
+    useEffect(() => {
+        if (ref.current && onRefReady) {
+            onRefReady(areaId, ref.current)
+        }
+    }, [areaId, onRefReady])
+    
+    return (
+        <Rectangle 
+            ref={ref}
+            bounds={bounds}
+            pathOptions={{ color: "#22c55e", weight: 3, fillOpacity: 0, opacity: 1 }}
+        />
+    )
+}
+
 function CrosshairCursor() {
     const map = useMap()
     
@@ -422,6 +458,26 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     const [boundaryBounds, setBoundaryBounds] = useState(null)
+    const selectedBorderRefs = useRef({})
+    
+    const onSelectedBorderRefReady = useCallback((areaId, ref) => {
+        selectedBorderRefs.current[areaId] = ref
+    }, [])
+    
+    const bringSelectedBordersToFront = useCallback(() => {
+        Object.values(selectedBorderRefs.current).forEach(ref => {
+            const leafletElement = ref?.leafletElement || ref
+            if (leafletElement && typeof leafletElement.bringToFront === 'function') {
+                leafletElement.bringToFront()
+            }
+        })
+    }, [])
+    
+    useEffect(() => {
+        if (selectedAreas.length > 0) {
+            bringSelectedBordersToFront()
+        }
+    }, [selectedAreas, bringSelectedBordersToFront])
     
     useEffect(() => {
         if (error) {
@@ -556,21 +612,23 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 if (area.bounds) {
                     if (area.boundsSource === 'field' && area.geometry) {
                         elements.push(
-                            <GeoJSON 
+                            <SelectedAreaBorder
                                 key={`border-${area.id}`}
+                                areaId={area.id}
                                 data={{
                                     type: "FeatureCollection",
                                     features: [area.geometry]
                                 }}
-                                style={{ color: "#22c55e", weight: 3, fillOpacity: 0, opacity: 1 }}
+                                onRefReady={onSelectedBorderRefReady}
                             />
                         )
                     } else {
                         elements.push(
-                            <Rectangle 
+                            <SelectedAreaBorderRect
                                 key={`border-${area.id}`}
+                                areaId={area.id}
                                 bounds={area.bounds}
-                                pathOptions={{ color: "#22c55e", weight: 3, fillOpacity: 0, opacity: 1 }}
+                                onRefReady={onSelectedBorderRefReady}
                             />
                         )
                     }
@@ -624,6 +682,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 boundsSource={boundsSource}
                 onFieldClick={onFieldClick}
                 currentZoom={currentZoom}
+                onMouseOut={bringSelectedBordersToFront}
             />
             {focusPointIndex !== null && focusPointIndex >= 0 && focusPointIndex < selectedPoints.length && (
                 <PanToLocation position={[selectedPoints[focusPointIndex].lat, selectedPoints[focusPointIndex].lon]} />

@@ -67,7 +67,8 @@ export default function FieldsLayer({
     fieldsLoading, 
     boundsSource,
     onFieldClick,
-    currentZoom
+    currentZoom,
+    onMouseOut
 }) {
     const map = useMap()
     const layerRef = useRef(null)
@@ -113,6 +114,11 @@ export default function FieldsLayer({
             mouseout: (e) => {
                 const layer = e.target
                 layer.setStyle(FIELDS_STYLE)
+                if (onMouseOut) {
+                    setTimeout(() => {
+                        onMouseOut()
+                    }, 0)
+                }
             },
             click: (e) => {
                 e.originalEvent.stopPropagation()
