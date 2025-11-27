@@ -1,6 +1,6 @@
 "use client"
 import dynamic from "next/dynamic"
-import { useEffect, useRef, useLayoutEffect } from "react"
+import { useEffect, useRef, useLayoutEffect, useState } from "react"
 import { useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import BoundaryLayer from "./BoundaryLayer"
@@ -294,6 +294,40 @@ function GoToXYHandler({ position, onComplete }) {
     return null
 }
 
+function MinZoomSetter({ boundaryBounds }) {
+    const map = useMap()
+    
+    useEffect(() => {
+        if (!map || !boundaryBounds) {
+            return
+        }
+        
+        const calculateMinZoom = () => {
+            try {
+                const L = require("leaflet")
+                const bounds = L.latLngBounds(
+                    boundaryBounds[0],
+                    boundaryBounds[1]
+                )
+                const minZoom = map.getBoundsZoom(bounds, true)
+                map.setMinZoom(minZoom)
+            } catch (e) {
+                console.error("[MinZoomSetter] Error calculating minZoom:", e)
+            }
+        }
+        
+        calculateMinZoom()
+        
+        map.on("resize", calculateMinZoom)
+        
+        return () => {
+            map.off("resize", calculateMinZoom)
+        }
+    }, [map, boundaryBounds])
+    
+    return null
+}
+
 function ZoomTracker({ onZoomChange }) {
     const map = useMap()
     const onZoomChangeRef = useRef(onZoomChange)
@@ -401,6 +435,7 @@ const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: 
 export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null), copyCoordinateMode = false, goToXYPosition = /** @type {null | [number, number]} */ (null), onGoToXYComplete = undefined }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
+    const [boundaryBounds, setBoundaryBounds] = useState(null)
     
     useEffect(() => {
         if (error) {
@@ -410,6 +445,18 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
         }
         return () => setStatusMessage(null)
     }, [error, setStatusMessage])
+    
+    useEffect(() => {
+        if (boundary) {
+            const L = require("leaflet")
+            const layer = new L.GeoJSON(boundary)
+            const bounds = layer.getBounds()
+            setBoundaryBounds([
+                [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
+                [bounds.getNorthEast().lat, bounds.getNorthEast().lng]
+            ])
+        }
+    }, [boundary])
     
     const getBasemapTileUrl = () => {
         return basemap === "satellite" 
@@ -438,7 +485,14 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     const mapZoom = initialZoom !== null && initialZoom !== undefined ? initialZoom : MAP_ZOOM
     
     return (
-        <MapContainer center={mapCenter} zoom={mapZoom} style={MAP_STYLE}>
+        <MapContainer 
+            center={mapCenter} 
+            zoom={mapZoom} 
+            style={MAP_STYLE}
+            maxBounds={boundaryBounds || undefined}
+            maxBoundsViscosity={1.0}
+        >
+            {boundaryBounds && <MinZoomSetter boundaryBounds={boundaryBounds} />}
             <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
             <MapRestore initialZoom={initialZoom} initialBounds={initialBounds} onZoomChange={onZoomChange} onMapBoundsChange={onMapBoundsChange} />
