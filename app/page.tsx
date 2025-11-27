@@ -173,7 +173,7 @@ function PageContent() {
         if (!selectedAreas || selectedAreas.length === 0) {
             setAreaMonthsSelectedMonths([])
         }
-    }, [selectedAreas])
+    }, [selectedAreas.length])
     
     const handleShare = useCallback(async (openPointSnapshots = false, openAreaSnapshots = false) => {
         const state = {
@@ -597,7 +597,7 @@ function PageContent() {
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
-            if (selectedYear && selectedMonth && newArea) {
+            if (newArea) {
                 loadAreaNdvi(newArea)
             }
         } else if (analysisMode === "area" && compareMode === "months") {
@@ -635,6 +635,7 @@ function PageContent() {
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
             setFieldSelectionMode(false)
+            loadAreaNdvi(newArea)
         }
     }, [analysisMode, compareMode, selectedAreas.length, setBounds, selectedYear, selectedMonth, loadAreaNdvi])
     
@@ -719,7 +720,7 @@ function PageContent() {
                     center_lon: centerLon
                 })
             }, 0)
-            if (selectedYear && selectedMonth && newArea) {
+            if (newArea) {
                 loadAreaNdvi(newArea)
             }
         } else if (analysisMode === "area" && compareMode === "months" && currentBounds) {
@@ -772,6 +773,7 @@ function PageContent() {
                     max_lng: maxLng
                 })
             }, 0)
+            loadAreaNdvi(newArea)
         }
         finalizeRectangle()
         setBoundsSource('rectangle')
@@ -779,7 +781,7 @@ function PageContent() {
         if (analysisMode === "area" && compareMode === "areas") {
             startDrawing()
         }
-    }, [finalizeRectangle, analysisMode, compareMode, currentBounds, selectedAreas.length, selectedYear, selectedMonth, loadAreaNdvi, startDrawing])
+    }, [finalizeRectangle, analysisMode, compareMode, currentBounds, selectedAreas.length, loadAreaNdvi, startDrawing])
     
     const handleReset = useCallback(() => {
         resetRectangle()
@@ -842,52 +844,26 @@ function PageContent() {
     }, [clearNdvi, analysisMode, compareMode, selectedPoint])
     
     useEffect(() => {
-        if (analysisMode === "area" && compareMode === "areas") {
-            if (isDrawing || fieldSelectionMode) {
+        console.log("[Overlay useEffect] Triggered - analysisMode:", analysisMode, "compareMode:", compareMode, "selectedAreas.length:", selectedAreas.length, "selectedIndex:", selectedIndex, "selectedYear:", selectedYear, "selectedMonth:", selectedMonth)
+        
+        if (analysisMode === "area" && (compareMode === "areas" || compareMode === "months")) {
+            if (isDrawing || fieldSelectionMode || selectedAreas.length === 0) {
+                console.log("[Overlay useEffect] Skipping - isDrawing:", isDrawing, "fieldSelectionMode:", fieldSelectionMode, "selectedAreas.length:", selectedAreas.length)
                 return
             }
-            if (selectedAreas.length > 0 && selectedYear && selectedMonth) {
-                selectedAreas.forEach(area => {
-                    loadAreaNdvi(area)
-                })
-            }
-        } else if (analysisMode === "area" && compareMode === "months") {
-            if (isDrawing || fieldSelectionMode) {
-                return
-            }
-            if (selectedAreas.length > 0 && selectedAreas[0] && selectedYear && selectedMonth) {
-                loadAreaNdvi(selectedAreas[0])
-            }
-        } else if (rectangleBounds) {
-                const geometry = boundsSource === 'field' ? selectedFieldFeature : null
-                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry, selectedIndex)
-        } else {
-            clearNdvi()
-        }
-    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, mapBounds, selectedPoints.length, selectedIndex])
-    
-    useEffect(() => {
-        if (analysisMode === "area" && compareMode === "areas") {
-            if (isDrawing || fieldSelectionMode || !selectedYear || !selectedMonth) {
-                return
-            }
+            console.log("[Overlay useEffect] Loading overlays for", selectedAreas.length, "areas")
             selectedAreas.forEach(area => {
                 if (area.bounds) {
                     loadAreaNdvi(area)
                 }
             })
-        } else if (analysisMode === "area" && compareMode === "months") {
-            if (isDrawing || fieldSelectionMode || !selectedYear || !selectedMonth) {
-                return
-            }
-            if (selectedAreas.length > 0 && selectedAreas[0]?.bounds) {
-                loadAreaNdvi(selectedAreas[0])
-            }
-        } else if (rectangleBounds && overlayType === "INDEX") {
+        } else if (analysisMode !== "area" && rectangleBounds && overlayType === "INDEX") {
             const geometry = boundsSource === 'field' ? selectedFieldFeature : null
             loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry, selectedIndex)
+        } else if (analysisMode !== "area" && !rectangleBounds) {
+            clearNdvi()
         }
-    }, [selectedIndex, analysisMode, compareMode, isDrawing, fieldSelectionMode, selectedYear, selectedMonth, selectedAreas, loadAreaNdvi, rectangleBounds, overlayType, boundsSource, selectedFieldFeature, loadNdviData, cloudTolerance])
+    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, isDrawing, fieldSelectionMode, rectangleBounds, boundsSource, selectedFieldFeature, selectedIndex, selectedAreas.length, loadAreaNdvi, loadNdviData, clearNdvi])
     
     useEffect(() => {
         document.title = `Wimmera ${selectedIndex}`

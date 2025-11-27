@@ -43,7 +43,10 @@ async function handleRequest(request) {
     const cloud = cloudParam ? parseFloat(cloudParam) : DEFAULT_CLOUD_TOLERANCE
     const indexName = indexParam || DEFAULT_INDEX
 
+    console.log("[API /api/index/average] Request params:", { start, end, bbox: bbox?.substring?.(0, 50), cloud, indexName, thumbnail: thumbnailParam, hasGeometry: !!geometryParam })
+
     if (!start || !end || !bbox) {
+        console.log("[API /api/index/average] Missing required params - start:", start, "end:", end, "bbox:", !!bbox)
         return NextResponse.json(
             { error: "Missing required parameters: start, end, or bbox" },
             { status: 400 }
@@ -83,14 +86,19 @@ async function handleRequest(request) {
     try {
         if (thumbnailParam === "true" || thumbnailParam === true) {
             const dims = dimensions ? parseInt(dimensions, 10) : 1024
+            console.log("[API /api/index/average] Fetching thumbnail for index:", indexName)
             const thumbUrl = await getAverageIndexThumbnail(start, end, bbox, cloud, geometry, dims, indexName)
+            console.log("[API /api/index/average] Thumbnail result:", thumbUrl ? "SUCCESS" : "NULL")
             return NextResponse.json({ thumbUrl, index: indexName })
         } else {
+            console.log("[API /api/index/average] Fetching tile for index:", indexName)
             const tileUrl = await getAverageIndexTile(start, end, bbox, cloud, geometry, indexName)
+            console.log("[API /api/index/average] Tile result:", tileUrl ? "SUCCESS" : "NULL")
             return NextResponse.json({ tileUrl, index: indexName })
         }
     } catch (error) {
         const errorMessage = error?.message || error?.toString() || "Unknown error"
+        console.log("[API /api/index/average] Error:", errorMessage)
         if (errorMessage.includes("No images found")) {
             return NextResponse.json({ tileUrl: null, thumbUrl: null, index: indexName, error: "No images found" })
         }

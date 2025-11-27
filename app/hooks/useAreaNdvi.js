@@ -1,17 +1,33 @@
 import { useCallback } from "react"
 import { bboxToString } from "@/app/lib/bboxUtils"
 import { getMonthDateRange } from "@/app/lib/dateUtils"
+import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
 
 export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance, setSelectedAreas, selectedIndex = DEFAULT_INDEX) {
     const loadAreaNdvi = useCallback(async (area) => {
-        if (!selectedYear || !selectedMonth || !area.bounds) {
+        let year = selectedYear
+        let month = selectedMonth
+        
+        if (!year || !month) {
+            const current = getCurrentMonth()
+            year = current.year
+            month = current.month
+            console.log("[useAreaNdvi] Year/month were null, defaulting to current:", year, month)
+        }
+        
+        if (!area.bounds) {
+            console.log("[useAreaNdvi] No area.bounds, skipping load for area:", area.id)
             return
         }
         
+        console.log("[useAreaNdvi] Loading overlay for area:", area.id, "year:", year, "month:", month, "index:", selectedIndex)
+        
         try {
             const bboxStr = bboxToString(area.bounds)
-            const dateRange = getMonthDateRange(selectedYear, selectedMonth)
+            const dateRange = getMonthDateRange(year, month)
+            
+            console.log("[useAreaNdvi] Fetching from API - dateRange:", dateRange, "bbox:", bboxStr.substring(0, 50))
             
             let tileResponse
             if (area.geometry) {
@@ -40,7 +56,7 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
                 const isNoDataError = errorMessage.includes("No images found")
                 
                 if (!isNoDataError) {
-                    console.error("Failed to load index for area:", area.id, errorMessage)
+                    console.error("[useAreaNdvi] Failed to load index for area:", area.id, errorMessage)
                 }
                 
                 setSelectedAreas(prev => prev.map(a => 
@@ -54,13 +70,15 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
             const tileData = await tileResponse.json()
             const tileUrl = tileData.tileUrl || null
             
+            console.log("[useAreaNdvi] API response for area:", area.id, "tileUrl:", tileUrl ? "SUCCESS" : "NULL")
+            
             setSelectedAreas(prev => prev.map(a => 
                 a.id === area.id 
                     ? { ...a, indexTileUrl: tileUrl }
                     : a
             ))
         } catch (err) {
-            console.error("Error loading index for area:", area.id, err)
+            console.error("[useAreaNdvi] Error loading index for area:", area.id, err)
         }
     }, [selectedYear, selectedMonth, cloudTolerance, setSelectedAreas, selectedIndex])
     

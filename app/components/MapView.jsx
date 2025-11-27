@@ -279,6 +279,26 @@ function PanToLocation({ position }) {
     return null
 }
 
+function MaxBoundsSetter({ bounds }) {
+    const map = useMap()
+    
+    useEffect(() => {
+        if (map && bounds) {
+            try {
+                const L = require("leaflet")
+                const latLngBounds = L.latLngBounds(bounds)
+                map.setMaxBounds(latLngBounds)
+            } catch (err) {
+                console.error("Error setting maxBounds:", err)
+            }
+        } else if (map) {
+            map.setMaxBounds(null)
+        }
+    }, [map, bounds])
+    
+    return null
+}
+
 function GoToXYHandler({ position, onComplete }) {
     const map = useMap()
     useEffect(() => {
@@ -414,13 +434,23 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
     
     useEffect(() => {
         if (boundary) {
-            const L = require("leaflet")
-            const layer = new L.GeoJSON(boundary)
-            const bounds = layer.getBounds()
-            setBoundaryBounds([
-                [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
-                [bounds.getNorthEast().lat, bounds.getNorthEast().lng]
-            ])
+            try {
+                const L = require("leaflet")
+                const layer = new L.GeoJSON(boundary)
+                const bounds = layer.getBounds()
+                if (bounds && bounds.isValid && bounds.isValid()) {
+                    const sw = bounds.getSouthWest()
+                    const ne = bounds.getNorthEast()
+                    setBoundaryBounds([
+                        [sw.lat, sw.lng],
+                        [ne.lat, ne.lng]
+                    ])
+                }
+            } catch (err) {
+                console.error("Error calculating boundary bounds:", err)
+            }
+        } else {
+            setBoundaryBounds(null)
         }
     }, [boundary])
     
@@ -455,9 +485,9 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             center={mapCenter} 
             zoom={mapZoom} 
             style={MAP_STYLE}
-            maxBounds={boundaryBounds || undefined}
             maxBoundsViscosity={1.0}
         >
+            <MaxBoundsSetter bounds={boundaryBounds} />
             <MapResize indexTileUrl={indexTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
             <MapRestore initialZoom={initialZoom} initialBounds={initialBounds} onZoomChange={onZoomChange} onMapBoundsChange={onMapBoundsChange} />
@@ -501,7 +531,8 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     <ZoomToRectangle bounds={rectangleBounds} />
                 </>
             )}
-            {analysisMode === "area" && (compareMode === "areas" || compareMode === "months") && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area) => {
+            {analysisMode === "area" && (compareMode === "areas" || compareMode === "months") && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area, idx) => {
+                console.log(`[MapView] Rendering area ${idx}: overlayType=${overlayType}, indexTileUrl=${area.indexTileUrl ? 'SET' : 'NULL'}, bounds=${area.bounds ? 'SET' : 'NULL'}`)
                 if (overlayType === "INDEX" && area.indexTileUrl && area.bounds) {
                     return (
                         <NdviOverlay 
@@ -523,7 +554,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 return null
             })}
             {analysisMode !== "area" && indexTileUrl && rectangleBounds && overlayType === "INDEX" && (
-                <NdviOverlay key={`index-${basemap}-${indexTileUrl}`} tileUrl={indexTileUrl} bounds={rectangleBounds} />
+                <NdviOverlay key={`index-${basemap}-${indexTileUrl}-${selectedIndex}`} tileUrl={indexTileUrl} bounds={rectangleBounds} />
             )}
             {analysisMode !== "area" && rgbTileUrl && rectangleBounds && overlayType === "RGB" && (
                 <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />
