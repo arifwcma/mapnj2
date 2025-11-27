@@ -21,8 +21,8 @@ import ChartNavigation from "./ChartNavigation"
 
 registerChartJS()
 
-function PointMonthsDataWrapper({ point, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
-    const dataMap = usePointDataMap(point, rectangleBounds, cloudTolerance, "POINT_MONTHS", requestTracker)
+function PointMonthsDataWrapper({ point, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady, selectedIndex }) {
+    const dataMap = usePointDataMap(point, rectangleBounds, cloudTolerance, "POINT_MONTHS", requestTracker, selectedIndex)
     const mapSize = dataMap?.dataMap?.size ?? 0
     const previousSizeRef = useRef(-1)
     const dataMapRef = useRef(null)
@@ -250,6 +250,7 @@ export default function PointMonthsModePanel({
                 cloudTolerance={cloudTolerance}
                 requestTracker={requestTracker}
                 onDataMapReady={handleDataMapReady}
+                selectedIndex={selectedIndex}
             />
             
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>

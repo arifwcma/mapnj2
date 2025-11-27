@@ -7,6 +7,7 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
     const fetchingMonthsRef = useRef(new Set())
     const previousPointRef = useRef(null)
     const previousCloudToleranceRef = useRef(cloudTolerance)
+    const previousIndexRef = useRef(selectedIndex)
 
     const fetchSingleMonth = useCallback(async (year, month, pointLat, pointLon, pointType = "") => {
         if (!pointLat || !pointLon) {
@@ -73,7 +74,12 @@ export default function usePointDataMap(point, rectangleBounds, cloudTolerance, 
             reset()
             previousCloudToleranceRef.current = cloudTolerance
         }
-    }, [point?.lat, point?.lon, cloudTolerance, reset])
+
+        if (previousIndexRef.current !== selectedIndex) {
+            reset()
+            previousIndexRef.current = selectedIndex
+        }
+    }, [point?.lat, point?.lon, cloudTolerance, selectedIndex, reset])
 
     const fetchMissingMonths = useCallback(async (monthKeys) => {
         if (!point || point.lat === null || point.lon === null) {

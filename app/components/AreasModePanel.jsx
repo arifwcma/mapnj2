@@ -23,8 +23,8 @@ import { trackEvent } from "@/app/lib/analytics"
 
 registerChartJS()
 
-function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
-    const { dataMap, fetchMissingMonths } = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker)
+function AreaDataWrapper({ area, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady, selectedIndex }) {
+    const { dataMap, fetchMissingMonths } = useAreaDataMap(area, rectangleBounds, cloudTolerance, `AREA_${index}`, requestTracker, selectedIndex)
     const dataMapSizeRef = useRef(0)
     const dataMapRef = useRef({ dataMap, fetchMissingMonths })
     
@@ -306,6 +306,7 @@ export default function AreasModePanel({
                     cloudTolerance={cloudTolerance}
                     requestTracker={requestTracker}
                     onDataMapReady={handleDataMapReady}
+                    selectedIndex={selectedIndex}
                 />
             ))}
             

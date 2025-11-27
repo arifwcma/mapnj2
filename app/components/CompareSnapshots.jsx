@@ -131,9 +131,9 @@ export default function CompareSnapshots({ selectedAreas, cloudTolerance, visibl
                         return await res.json()
                     })
                     .then(data => {
-                        if (data.imageUrl) {
-                            setTileUrls(prev => ({ ...prev, [key]: data.imageUrl }))
-                        } else if (data.imageUrl === null) {
+                        if (data.thumbUrl) {
+                            setTileUrls(prev => ({ ...prev, [key]: data.thumbUrl }))
+                        } else if (data.thumbUrl === null) {
                             setTileUrls(prev => ({ ...prev, [key]: null }))
                         }
                         setLoading(prev => ({ ...prev, [key]: false }))

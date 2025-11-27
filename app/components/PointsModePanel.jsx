@@ -23,8 +23,8 @@ import { trackEvent } from "@/app/lib/analytics"
 
 registerChartJS()
 
-function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
-    const { dataMap, fetchMissingMonths } = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker)
+function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady, selectedIndex }) {
+    const { dataMap, fetchMissingMonths } = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker, selectedIndex)
     const dataMapRef = useRef(dataMap)
     const lastReportedSerializedRef = useRef(null)
     const fetchMissingMonthsRef = useRef(fetchMissingMonths)
@@ -322,6 +322,7 @@ export default function PointsModePanel({
                     cloudTolerance={cloudTolerance}
                     requestTracker={requestTracker}
                     onDataMapReady={handleDataMapReady}
+                    selectedIndex={selectedIndex}
                 />
             ))}
             

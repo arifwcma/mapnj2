@@ -8,6 +8,7 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
     const fetchingMonthsRef = useRef(new Set())
     const previousAreaRef = useRef(null)
     const previousCloudToleranceRef = useRef(cloudTolerance)
+    const previousIndexRef = useRef(selectedIndex)
 
     const fetchSingleMonth = useCallback(async (year, month, areaGeometry, areaId = "") => {
         const boundsToUse = rectangleBounds || (area.bounds ? area.bounds : null)
@@ -129,7 +130,12 @@ export default function useAreaDataMap(area, rectangleBounds, cloudTolerance, ar
             reset()
             previousCloudToleranceRef.current = cloudTolerance
         }
-    }, [area?.id, area?.geometry, area?.bounds, cloudTolerance, reset])
+
+        if (previousIndexRef.current !== selectedIndex) {
+            reset()
+            previousIndexRef.current = selectedIndex
+        }
+    }, [area?.id, area?.geometry, area?.bounds, cloudTolerance, selectedIndex, reset])
 
     const fetchMissingMonths = useCallback(async (monthKeys) => {
         if (!area || (!area.geometry && !area.bounds)) {

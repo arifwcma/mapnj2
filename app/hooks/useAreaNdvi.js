@@ -45,7 +45,7 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
                 
                 setSelectedAreas(prev => prev.map(a => 
                     a.id === area.id 
-                        ? { ...a, ndviTileUrl: null, indexTileUrl: null }
+                        ? { ...a, indexTileUrl: null }
                         : a
                 ))
                 return
@@ -56,7 +56,7 @@ export default function useAreaNdvi(selectedYear, selectedMonth, cloudTolerance,
             
             setSelectedAreas(prev => prev.map(a => 
                 a.id === area.id 
-                    ? { ...a, ndviTileUrl: tileUrl, indexTileUrl: tileUrl }
+                    ? { ...a, indexTileUrl: tileUrl }
                     : a
             ))
         } catch (err) {

@@ -81,7 +81,7 @@ function StaticMarker({ position, children }) {
     )
 }
 
-function MapResize({ ndviTileUrl, rgbTileUrl }) {
+function MapResize({ indexTileUrl, rgbTileUrl }) {
     const map = useMap()
     useEffect(() => {
         if (map) {
@@ -89,7 +89,7 @@ function MapResize({ ndviTileUrl, rgbTileUrl }) {
                 map.invalidateSize()
             }, 100)
         }
-    }, [map, ndviTileUrl, rgbTileUrl])
+    }, [map, indexTileUrl, rgbTileUrl])
     return null
 }
 
@@ -396,9 +396,9 @@ function PointClickHandler({ isActive, onPointClick }) {
 }
 
 const EMPTY_POINTS_ARRAY = /** @type {Array<{ id: string, lat: number, lon: number }>} */ ([])
-const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field' }>} */ ([])
+const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], label: string, boundsSource: 'rectangle' | 'field' }>} */ ([])
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null), copyCoordinateMode = false, goToXYPosition = /** @type {null | [number, number]} */ (null), onGoToXYComplete = () => {} }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, indexTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null), copyCoordinateMode = false, goToXYPosition = /** @type {null | [number, number]} */ (null), onGoToXYComplete = () => {} }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     const [boundaryBounds, setBoundaryBounds] = useState(null)
@@ -458,7 +458,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
             maxBounds={boundaryBounds || undefined}
             maxBoundsViscosity={1.0}
         >
-            <MapResize ndviTileUrl={ndviTileUrl} rgbTileUrl={rgbTileUrl} />
+            <MapResize indexTileUrl={indexTileUrl} rgbTileUrl={rgbTileUrl} />
             <FixMarkerIcon />
             <MapRestore initialZoom={initialZoom} initialBounds={initialBounds} onZoomChange={onZoomChange} onMapBoundsChange={onMapBoundsChange} />
             {onZoomChange && <ZoomTracker onZoomChange={onZoomChange} />}
@@ -483,29 +483,6 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 />
             )}
             {currentBounds && <Rectangle bounds={currentBounds} pathOptions={RECTANGLE_STYLE} />}
-            {analysisMode === "area" && selectedAreas.map((area, index) => {
-                if (area.boundsSource === 'field' && area.geometry) {
-                    return (
-                        <GeoJSON
-                            key={area.id}
-                            data={{
-                                type: "FeatureCollection",
-                                features: [area.geometry]
-                            }}
-                            style={{ color: area.color, fillOpacity: 0, weight: 2 }}
-                        />
-                    )
-                } else if (area.boundsSource === 'rectangle') {
-                    return (
-                        <Rectangle
-                            key={area.id}
-                            bounds={area.bounds}
-                            pathOptions={{ color: area.color, fillOpacity: 0, weight: 2 }}
-                        />
-                    )
-                }
-                return null
-            })}
             {analysisMode === "point" && rectangleBounds && boundsSource !== 'field' && (
                 <>
                     <Rectangle bounds={rectangleBounds} pathOptions={RECTANGLE_BORDER_STYLE} />
@@ -525,11 +502,11 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 </>
             )}
             {analysisMode === "area" && (compareMode === "areas" || compareMode === "months") && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area) => {
-                if (overlayType === "NDVI" && area.ndviTileUrl && area.bounds) {
+                if (overlayType === "INDEX" && area.indexTileUrl && area.bounds) {
                     return (
                         <NdviOverlay 
-                            key={`ndvi-${area.id}-${area.ndviTileUrl}`} 
-                            tileUrl={area.ndviTileUrl} 
+                            key={`index-${area.id}-${area.indexTileUrl}`} 
+                            tileUrl={area.indexTileUrl} 
                             bounds={area.bounds} 
                         />
                     )
@@ -545,8 +522,8 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 }
                 return null
             })}
-            {analysisMode !== "area" && ndviTileUrl && rectangleBounds && overlayType === "NDVI" && (
-                <NdviOverlay key={`ndvi-${basemap}-${ndviTileUrl}`} tileUrl={ndviTileUrl} bounds={rectangleBounds} />
+            {analysisMode !== "area" && indexTileUrl && rectangleBounds && overlayType === "INDEX" && (
+                <NdviOverlay key={`index-${basemap}-${indexTileUrl}`} tileUrl={indexTileUrl} bounds={rectangleBounds} />
             )}
             {analysisMode !== "area" && rgbTileUrl && rectangleBounds && overlayType === "RGB" && (
                 <NdviOverlay key={`rgb-${basemap}-${rgbTileUrl}`} tileUrl={rgbTileUrl} bounds={rectangleBounds} />

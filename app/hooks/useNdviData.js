@@ -101,7 +101,6 @@ export default function useNdviData() {
     }, [])
 
     return {
-        ndviTileUrl: overlayTiles.ndviTileUrl,
         indexTileUrl: overlayTiles.indexTileUrl,
         rgbTileUrl: overlayTiles.rgbTileUrl,
         overlayType: overlayTiles.overlayType,

@@ -54,7 +54,6 @@ export function useOverlayTiles() {
     }, [])
 
     return {
-        ndviTileUrl: indexTileUrl,
         indexTileUrl,
         rgbTileUrl,
         overlayType,

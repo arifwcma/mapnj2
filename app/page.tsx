@@ -13,7 +13,6 @@ import PointsModePanel from "@/app/components/PointsModePanel"
 import PointMonthsModePanel from "@/app/components/PointMonthsModePanel"
 import AreasModePanel from "@/app/components/AreasModePanel"
 import AreaMonthsModePanel from "@/app/components/AreaMonthsModePanel"
-import { getColorForIndex } from "@/app/lib/colorUtils"
 import { getCurrentMonth } from "@/app/lib/monthUtils"
 import { DEFAULT_CLOUD_TOLERANCE } from "@/app/lib/config"
 import { DEFAULT_INDEX } from "@/app/lib/indexConfig"
@@ -37,7 +36,7 @@ function PageContent() {
     const [selectedIndex, setSelectedIndex] = useState(DEFAULT_INDEX)
     const [selectedPoints, setSelectedPoints] = useState<Array<{ id: string, lat: number, lon: number }>>([])
     const [selectedPoint, setSelectedPoint] = useState<{ lat: number | null, lon: number | null }>({ lat: null, lon: null })
-    const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field', ndviTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
+    const [selectedAreas, setSelectedAreas] = useState<Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], label: string, boundsSource: 'rectangle' | 'field', indexTileUrl?: string | null, rgbTileUrl?: string | null }>>([])
     const [fieldSelectionMode, setFieldSelectionMode] = useState(false)
     const [boundsSource, setBoundsSource] = useState<'rectangle' | 'field' | null>(null)
     const [selectedFieldFeature, setSelectedFieldFeature] = useState<any>(null)
@@ -189,7 +188,6 @@ function PageContent() {
                 id: area.id,
                 geometry: area.geometry,
                 bounds: area.bounds,
-                color: area.color,
                 label: area.label,
                 boundsSource: area.boundsSource
             })),
@@ -283,7 +281,7 @@ function PageContent() {
     } = useRectangleDraw()
     
     const {
-        ndviTileUrl,
+        indexTileUrl,
         rgbTileUrl,
         overlayType,
         loadNdviData,
@@ -549,22 +547,21 @@ function PageContent() {
         lastAreaAddRef.current = { bounds, time: now }
         
         if (analysisMode === "area" && compareMode === "areas") {
-            const newArea = {
-                id: `area_${Date.now()}_${Math.random()}`,
-                geometry: feature,
-                bounds: bounds,
-                color: getColorForIndex(selectedAreas.length),
-                label: `Area ${selectedAreas.length + 1}`,
-                boundsSource: 'field' as const,
-                ndviTileUrl: null,
-                rgbTileUrl: null
-            }
-            const areaIndex = selectedAreas.length
-            const totalAreas = areaIndex + 1
-            
+            let newArea: typeof selectedAreas[0] | null = null
             setSelectedAreas(prev => {
+                newArea = {
+                    id: `area_${Date.now()}_${Math.random()}`,
+                    geometry: feature,
+                    bounds: bounds,
+                    label: `Area ${prev.length + 1}`,
+                    boundsSource: 'field' as const,
+                    indexTileUrl: null,
+                    rgbTileUrl: null
+                }
                 return [...prev, newArea]
             })
+            const areaIndex = selectedAreas.length
+            const totalAreas = areaIndex + 1
             
             setTimeout(() => {
                 const now = Date.now()
@@ -590,7 +587,7 @@ function PageContent() {
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
-            if (selectedYear && selectedMonth) {
+            if (selectedYear && selectedMonth && newArea) {
                 loadAreaNdvi(newArea)
             }
         } else if (analysisMode === "area" && compareMode === "months") {
@@ -598,10 +595,9 @@ function PageContent() {
                 id: `area_${Date.now()}_${Math.random()}`,
                 geometry: feature,
                 bounds: bounds,
-                color: getColorForIndex(0),
                 label: `Area 1`,
                 boundsSource: 'field' as const,
-                ndviTileUrl: null,
+                indexTileUrl: null,
                 rgbTileUrl: null
             }
             setSelectedAreas([newArea])
@@ -661,22 +657,21 @@ function PageContent() {
             }
             lastAreaAddRef.current = { bounds: currentBounds, time: now }
             
-            const newArea = {
-                id: `area_${Date.now()}_${Math.random()}`,
-                geometry: null,
-                bounds: currentBounds,
-                color: getColorForIndex(selectedAreas.length),
-                label: `Area ${selectedAreas.length + 1}`,
-                boundsSource: 'rectangle' as const,
-                ndviTileUrl: null,
-                rgbTileUrl: null
-            }
-            const areaIndex = selectedAreas.length
-            const totalAreas = areaIndex + 1
-            
+            let newArea: typeof selectedAreas[0] | null = null
             setSelectedAreas(prev => {
+                newArea = {
+                    id: `area_${Date.now()}_${Math.random()}`,
+                    geometry: null,
+                    bounds: currentBounds,
+                    label: `Area ${prev.length + 1}`,
+                    boundsSource: 'rectangle' as const,
+                    indexTileUrl: null,
+                    rgbTileUrl: null
+                }
                 return [...prev, newArea]
             })
+            const areaIndex = selectedAreas.length
+            const totalAreas = areaIndex + 1
             
             setTimeout(() => {
                 const now = Date.now()
@@ -704,7 +699,7 @@ function PageContent() {
                     center_lon: centerLon
                 })
             }, 0)
-            if (selectedYear && selectedMonth) {
+            if (selectedYear && selectedMonth && newArea) {
                 loadAreaNdvi(newArea)
             }
         } else if (analysisMode === "area" && compareMode === "months" && currentBounds) {
@@ -726,10 +721,9 @@ function PageContent() {
                 id: `area_${Date.now()}_${Math.random()}`,
                 geometry: null,
                 bounds: currentBounds,
-                color: getColorForIndex(0),
                 label: `Area 1`,
                 boundsSource: 'rectangle' as const,
-                ndviTileUrl: null,
+                indexTileUrl: null,
                 rgbTileUrl: null
             }
             setSelectedAreas([newArea])
@@ -846,11 +840,11 @@ function PageContent() {
             }
         } else if (rectangleBounds) {
                 const geometry = boundsSource === 'field' ? selectedFieldFeature : null
-                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry)
+                loadNdviData(rectangleBounds, cloudTolerance, null, null, overlayType, geometry, selectedIndex)
         } else {
             clearNdvi()
         }
-    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, mapBounds, selectedPoints.length])
+    }, [selectedYear, selectedMonth, cloudTolerance, overlayType, analysisMode, compareMode, selectedAreas.length, isDrawing, fieldSelectionMode, loadAreaNdvi, rectangleBounds, boundsSource, selectedFieldFeature, loadNdviData, clearNdvi, mapBounds, selectedPoints.length, selectedIndex])
     
     const isPointClickMode = analysisMode === "point" && compareMode === "points"
     const isPointSelectMode = analysisMode === "point" && compareMode === "months" && selectedPoint.lat === null && selectedPoint.lon === null
@@ -1099,7 +1093,7 @@ function PageContent() {
                     onStart={setStart}
                     onUpdate={updateBounds}
                     onEnd={handleFinalize}
-                    ndviTileUrl={isImageAvailable() ? ndviTileUrl : null}
+                    indexTileUrl={isImageAvailable() ? indexTileUrl : null}
                     rgbTileUrl={isImageAvailable() ? rgbTileUrl : null}
                     overlayType={overlayType}
                     basemap={basemap}

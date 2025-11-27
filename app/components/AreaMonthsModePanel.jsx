@@ -23,9 +23,9 @@ import ChartNavigation from "./ChartNavigation"
 
 registerChartJS()
 
-function AreaMonthsDataWrapper({ area, cloudTolerance, requestTracker, onDataMapReady }) {
+function AreaMonthsDataWrapper({ area, cloudTolerance, requestTracker, onDataMapReady, selectedIndex }) {
     const rectangleBounds = area?.bounds || null
-    const dataMap = useAreaDataMap(area, rectangleBounds, cloudTolerance, "AREA_MONTHS", requestTracker)
+    const dataMap = useAreaDataMap(area, rectangleBounds, cloudTolerance, "AREA_MONTHS", requestTracker, selectedIndex)
     const mapSize = dataMap?.dataMap?.size ?? 0
     const previousSizeRef = useRef(-1)
     const dataMapRef = useRef(null)
@@ -270,6 +270,7 @@ export default function AreaMonthsModePanel({
                 cloudTolerance={cloudTolerance}
                 requestTracker={requestTracker}
                 onDataMapReady={handleDataMapReady}
+                selectedIndex={selectedIndex}
             />
             
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>

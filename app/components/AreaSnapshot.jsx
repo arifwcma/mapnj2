@@ -189,9 +189,9 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                     }
                 })
                 .then(data => {
-                    if (data.imageUrl) {
-                        setTileUrls(prev => ({ ...prev, [key]: data.imageUrl }))
-                    } else if (data.imageUrl === null) {
+                    if (data.thumbUrl) {
+                        setTileUrls(prev => ({ ...prev, [key]: data.thumbUrl }))
+                    } else if (data.thumbUrl === null) {
                         setTileUrls(prev => ({ ...prev, [key]: null }))
                     } else if (data.error) {
                         console.error(`Error fetching snapshot for ${year}-${month}:`, data.error)
