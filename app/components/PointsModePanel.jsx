@@ -19,29 +19,40 @@ import PointSnapshot from "./PointSnapshot"
 import ComparePointSnapshots from "./ComparePointSnapshots"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
+import { trackEvent } from "@/app/lib/analytics"
 
 registerChartJS()
 
 function PointDataWrapper({ point, index, rectangleBounds, cloudTolerance, requestTracker, onDataMapReady }) {
     const { dataMap, fetchMissingMonths } = usePointDataMap(point, rectangleBounds, cloudTolerance, `POINT_${index}`, requestTracker)
-    const dataMapSizeRef = useRef(0)
     const dataMapRef = useRef(dataMap)
+    const lastReportedSerializedRef = useRef(null)
+    const fetchMissingMonthsRef = useRef(fetchMissingMonths)
+    const hasInitializedRef = useRef(false)
+    
+    useEffect(() => {
+        fetchMissingMonthsRef.current = fetchMissingMonths
+    }, [fetchMissingMonths])
     
     useEffect(() => {
         dataMapRef.current = dataMap
-    }, [dataMap])
-    
-    useEffect(() => {
-        const currentSize = dataMap?.size || 0
-        if (currentSize !== dataMapSizeRef.current) {
-            dataMapSizeRef.current = currentSize
-            onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths })
+        
+        const serializeMap = (map) => {
+            if (!map || map.size === 0) return ""
+            return Array.from(map.entries())
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([k, v]) => `${k}:${v}`)
+                .join("|")
         }
-    }, [index, dataMap?.size, fetchMissingMonths, onDataMapReady])
-    
-    useEffect(() => {
-        onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths })
-    }, [index, onDataMapReady])
+        
+        const currentSerialized = serializeMap(dataMap)
+        
+        if (!hasInitializedRef.current || currentSerialized !== lastReportedSerializedRef.current) {
+            lastReportedSerializedRef.current = currentSerialized
+            hasInitializedRef.current = true
+            onDataMapReady(index, { dataMap: dataMapRef.current, fetchMissingMonths: fetchMissingMonthsRef.current })
+        }
+    }, [index, dataMap, onDataMapReady])
     
     return null
 }
@@ -60,7 +71,8 @@ export default function PointsModePanel({
     setYAxisRange,
     onSharePointSnapshots,
     pointSnapshotsOpen,
-    setPointSnapshotsOpen
+    setPointSnapshotsOpen,
+    onFocusPoint
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -76,9 +88,25 @@ export default function PointsModePanel({
         updateRangeForMonth,
         canGoLeft,
         canGoRight,
-        handleLeftArrow,
-        handleRightArrow
+        handleLeftArrow: originalHandleLeftArrow,
+        handleRightArrow: originalHandleRightArrow
     } = useVisibleRange(selectedYear, selectedMonth, visibleRange, setVisibleRange)
+    
+    const handleLeftArrow = useCallback(() => {
+        originalHandleLeftArrow()
+        trackEvent("Chart arrow clicked", {
+            feature: "Point-Points",
+            arrow: "left"
+        })
+    }, [originalHandleLeftArrow])
+    
+    const handleRightArrow = useCallback(() => {
+        originalHandleRightArrow()
+        trackEvent("Chart arrow clicked", {
+            feature: "Point-Points",
+            arrow: "right"
+        })
+    }, [originalHandleRightArrow])
     
     useEffect(() => {
         pointDataMapsRef.current = pointDataMaps
@@ -327,18 +355,22 @@ export default function PointsModePanel({
                         {tableData.map(({ point, index, averageNdvi, currentNdvi }) => (
                             <tr key={point.id} style={{ borderBottom: "1px solid #eee" }}>
                                 <td style={{ padding: "8px" }}>
-                                    <div style={{
-                                        width: "20px",
-                                        height: "20px",
-                                        border: `2px solid ${getColorForIndex(index)}`,
-                                        borderRadius: "50%",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontWeight: "bold",
-                                        color: getColorForIndex(index),
-                                        backgroundColor: "white"
-                                    }}>
+                                    <div 
+                                        onClick={() => onFocusPoint && onFocusPoint(index)}
+                                        style={{
+                                            width: "20px",
+                                            height: "20px",
+                                            border: `2px solid ${getColorForIndex(index)}`,
+                                            borderRadius: "50%",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontWeight: "bold",
+                                            color: getColorForIndex(index),
+                                            backgroundColor: "white",
+                                            cursor: "pointer"
+                                        }}
+                                    >
                                         {index + 1}
                                     </div>
                                 </td>
@@ -435,7 +467,15 @@ export default function PointsModePanel({
                         onLeftClick={handleLeftArrow}
                         onRightClick={handleRightArrow}
                         yAxisRange={yAxisRange}
-                        onYAxisToggle={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
+                        onYAxisToggle={() => {
+                            const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                            const arrowDirection = yAxisRange === "0-1" ? "down" : "up"
+                            setYAxisRange(newRange)
+                            trackEvent("Chart arrow clicked", {
+                                feature: "Point-Points",
+                                arrow: arrowDirection
+                            })
+                        }}
                     />
                     <NdviLegend />
                 </>

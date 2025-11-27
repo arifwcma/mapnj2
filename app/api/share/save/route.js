@@ -7,6 +7,7 @@ export async function POST(request) {
         const state = await request.json()
         const token = randomUUID()
         saveShare(token, state)
+        
         return NextResponse.json({ token })
     } catch (error) {
         console.error('Error saving share:', error)

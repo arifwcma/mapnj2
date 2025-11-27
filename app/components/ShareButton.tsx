@@ -1,19 +1,33 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { trackEvent } from "@/app/lib/analytics"
 
-export default function ShareButton({ onShare }) {
+interface ShareButtonProps {
+    onShare: () => Promise<string | null | undefined>
+    feature?: string | null
+    total_objects?: number
+}
+
+export default function ShareButton({ onShare, feature = null, total_objects = 0 }: ShareButtonProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [shareUrl, setShareUrl] = useState("")
     const [copied, setCopied] = useState(false)
     const [loading, setLoading] = useState(false)
-    const urlInputRef = useRef(null)
+    const urlInputRef = useRef<HTMLInputElement>(null)
 
     const handleShareClick = async () => {
         setIsOpen(true)
         setLoading(true)
         setShareUrl("")
         setCopied(false)
+        
+        if (feature != null) {
+            trackEvent("Shared", {
+                feature: feature,
+                total_objects: total_objects
+            })
+        }
         
         try {
             const token = await onShare()

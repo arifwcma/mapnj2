@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useLayoutEffect } from "react"
+import { useEffect, useLayoutEffect, useRef } from "react"
 import { FIELD_SELECTION_MIN_ZOOM } from "@/app/lib/config"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { useStatusMessage } from "./StatusMessage"
@@ -14,6 +14,16 @@ export default function AreaSelectionPrompt({
     currentZoom,
     fieldsData
 }) {
+    const onSelectParcelRef = useRef(onSelectParcel)
+    const onDrawRectangleRef = useRef(onDrawRectangle)
+    const onCancelRef = useRef(onCancel)
+    
+    useLayoutEffect(() => {
+        onSelectParcelRef.current = onSelectParcel
+        onDrawRectangleRef.current = onDrawRectangle
+        onCancelRef.current = onCancel
+    })
+
     const getMessage = () => {
         if (isDrawing) {
             return MESSAGES.AREA_DRAW_RECTANGLE
@@ -53,7 +63,7 @@ export default function AreaSelectionPrompt({
                             return (
                                 <button 
                                     key={idx}
-                                    onClick={onSelectParcel} 
+                                    onClick={() => onSelectParcelRef.current?.()} 
                                     style={{
                                         background: "none",
                                         border: "none",
@@ -78,7 +88,7 @@ export default function AreaSelectionPrompt({
                             return (
                                 <button 
                                     key={idx}
-                                    onClick={onDrawRectangle} 
+                                    onClick={() => onDrawRectangleRef.current?.()} 
                                     style={{
                                         background: "none",
                                         border: "none",
@@ -109,7 +119,7 @@ export default function AreaSelectionPrompt({
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
                     <div>{message}</div>
                     <button 
-                        onClick={onCancel} 
+                        onClick={() => onCancelRef.current?.()} 
                         style={{
                             background: "none",
                             border: "none",
@@ -134,8 +144,13 @@ export default function AreaSelectionPrompt({
         } else {
             setDirectionalMessage(null)
         }
-        return () => setDirectionalMessage(null)
-    }, [isSelectionMode, message, isLoadingMessage, onSelectParcel, onDrawRectangle, onCancel, setDirectionalMessage])
+    }, [isSelectionMode, message, isLoadingMessage, setDirectionalMessage])
+    
+    useEffect(() => {
+        return () => {
+            setDirectionalMessage(null)
+        }
+    }, [])
 
     return (
         <div className="text-sm text-gray-800 mb-4">

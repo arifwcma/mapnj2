@@ -41,6 +41,7 @@ export async function GET(request) {
         console.log("API: Getting NDVI at point", { lat: latNum, lon: lonNum, start, end, cloud })
         const ndvi = await getNdviAtPoint(latNum, lonNum, start, end, null, cloud)
         console.log("API: NDVI retrieved:", ndvi)
+        
         return NextResponse.json({ ndvi, lat: latNum, lon: lonNum })
     } catch (error) {
         const errorMessage = error.message || error.toString() || ""

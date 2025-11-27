@@ -19,6 +19,7 @@ import AreaSnapshot from "./AreaSnapshot"
 import CompareSnapshots from "./CompareSnapshots"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
+import { trackEvent } from "@/app/lib/analytics"
 
 registerChartJS()
 
@@ -60,7 +61,8 @@ export default function AreasModePanel({
     setYAxisRange,
     onShareAreaSnapshots,
     areaSnapshotsOpen,
-    setAreaSnapshotsOpen
+    setAreaSnapshotsOpen,
+    onFocusArea
 }) {
     const requestTracker = useRequestTracker()
     const { toastMessage, toastKey, showToast, hideToast } = useToast()
@@ -76,9 +78,25 @@ export default function AreasModePanel({
         updateRangeForMonth,
         canGoLeft,
         canGoRight,
-        handleLeftArrow,
-        handleRightArrow
+        handleLeftArrow: originalHandleLeftArrow,
+        handleRightArrow: originalHandleRightArrow
     } = useVisibleRange(selectedYear, selectedMonth, visibleRange, setVisibleRange)
+    
+    const handleLeftArrow = useCallback(() => {
+        originalHandleLeftArrow()
+        trackEvent("Chart arrow clicked", {
+            feature: "Area-Areas",
+            arrow: "left"
+        })
+    }, [originalHandleLeftArrow])
+    
+    const handleRightArrow = useCallback(() => {
+        originalHandleRightArrow()
+        trackEvent("Chart arrow clicked", {
+            feature: "Area-Areas",
+            arrow: "right"
+        })
+    }, [originalHandleRightArrow])
     
     const handleDataMapReady = useCallback((index, dataMap) => {
         setAreaDataMaps(prev => {
@@ -321,18 +339,22 @@ export default function AreasModePanel({
                         {tableData.map(({ area, index, averageNdvi, currentNdvi }) => (
                             <tr key={area.id} style={{ borderBottom: "1px solid #eee" }}>
                                 <td style={{ padding: "8px" }}>
-                                    <div style={{
-                                        width: "20px",
-                                        height: "20px",
-                                        border: `2px solid ${getColorForIndex(index)}`,
-                                        borderRadius: "50%",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontWeight: "bold",
-                                        color: getColorForIndex(index),
-                                        backgroundColor: "white"
-                                    }}>
+                                    <div 
+                                        onClick={() => onFocusArea && onFocusArea(index)}
+                                        style={{
+                                            width: "20px",
+                                            height: "20px",
+                                            border: `2px solid ${getColorForIndex(index)}`,
+                                            borderRadius: "50%",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontWeight: "bold",
+                                            color: getColorForIndex(index),
+                                            backgroundColor: "white",
+                                            cursor: "pointer"
+                                        }}
+                                    >
                                         {index + 1}
                                     </div>
                                 </td>
@@ -344,6 +366,12 @@ export default function AreasModePanel({
                                         area={area}
                                         cloudTolerance={cloudTolerance}
                                         visibleRange={effectiveVisibleRange}
+                                        areaIndex={index}
+                                        onSnapshotClick={(index) => {
+                                            trackEvent("Area-Areas - snapshot viewed", {
+                                                area_index: index
+                                            })
+                                        }}
                                     />
                                 </td>
                                 <td style={{ padding: "8px" }}>
@@ -433,7 +461,15 @@ export default function AreasModePanel({
                         onLeftClick={handleLeftArrow}
                         onRightClick={handleRightArrow}
                         yAxisRange={yAxisRange}
-                        onYAxisToggle={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
+                        onYAxisToggle={() => {
+                            const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                            const arrowDirection = yAxisRange === "0-1" ? "down" : "up"
+                            setYAxisRange(newRange)
+                            trackEvent("Chart arrow clicked", {
+                                feature: "Area-Areas",
+                                arrow: arrowDirection
+                            })
+                        }}
                     />
                     <NdviLegend />
                 </>

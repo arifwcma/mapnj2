@@ -95,6 +95,7 @@ async function handleRequest(request) {
         try {
             const ndvi = await getAverageNdviForArea(dateRange.start, dateRange.end, bbox, cloudNum, geometry)
             console.log(`[API] /api/ndvi/area/month - Success for ${yearNum}-${monthNum}:`, { ndvi })
+            
             return NextResponse.json({
                 year: yearNum,
                 month: monthNum,

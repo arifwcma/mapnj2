@@ -82,7 +82,7 @@ function calculateAspectRatio(area) {
     return Math.max(0.5, Math.min(2.0, aspectRatio))
 }
 
-export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, visibleRange }) {
+export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, visibleRange, areaIndex, onSnapshotClick }) {
     const [showPopup, setShowPopup] = useState(false)
     const [tileUrls, setTileUrls] = useState({})
     const [loading, setLoading] = useState({})
@@ -264,7 +264,12 @@ export default function AreaSnapshot({ area, rectangleBounds, cloudTolerance, vi
                     color: "#007bff",
                     padding: "4px 8px"
                 }}
-                onClick={() => setShowPopup(true)}
+                onClick={() => {
+                    setShowPopup(true)
+                    if (onSnapshotClick && areaIndex !== undefined) {
+                        onSnapshotClick(areaIndex)
+                    }
+                }}
                 title="View snapshots"
             >
                 👁️

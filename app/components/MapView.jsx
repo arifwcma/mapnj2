@@ -1,6 +1,6 @@
 "use client"
 import dynamic from "next/dynamic"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useLayoutEffect } from "react"
 import { useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import BoundaryLayer from "./BoundaryLayer"
@@ -171,9 +171,14 @@ function MapRestore({ initialZoom, initialBounds, onZoomChange, onMapBoundsChang
 
 function MapBoundsTracker({ onBoundsChange }) {
     const map = useMap()
+    const onBoundsChangeRef = useRef(onBoundsChange)
+    
+    useLayoutEffect(() => {
+        onBoundsChangeRef.current = onBoundsChange
+    })
     
     useEffect(() => {
-        if (!map || !onBoundsChange) return
+        if (!map) return
         
         const updateBounds = () => {
             try {
@@ -184,7 +189,7 @@ function MapBoundsTracker({ onBoundsChange }) {
                     [sw.lat, sw.lng],
                     [ne.lat, ne.lng]
                 ]
-                onBoundsChange(boundsArray)
+                onBoundsChangeRef.current?.(boundsArray)
             } catch (e) {
                 console.error("[MapBoundsTracker] Error getting bounds:", e)
             }
@@ -204,16 +209,21 @@ function MapBoundsTracker({ onBoundsChange }) {
             map.off("zoomend", updateBounds)
             map.off("load", updateBounds)
         }
-    }, [map, onBoundsChange])
+    }, [map])
     
     return null
 }
 
 function FieldSelectionBoundsUpdater({ fieldSelectionMode, onBoundsChange }) {
     const map = useMap()
+    const onBoundsChangeRef = useRef(onBoundsChange)
+    
+    useLayoutEffect(() => {
+        onBoundsChangeRef.current = onBoundsChange
+    })
     
     useEffect(() => {
-        if (!fieldSelectionMode || !map || !onBoundsChange) {
+        if (!fieldSelectionMode || !map) {
             return
         }
         
@@ -229,7 +239,7 @@ function FieldSelectionBoundsUpdater({ fieldSelectionMode, onBoundsChange }) {
                     [sw.lat, sw.lng],
                     [ne.lat, ne.lng]
                 ]
-                onBoundsChange(boundsArray)
+                onBoundsChangeRef.current?.(boundsArray)
             } catch (e) {
                 console.error("[FieldSelectionBoundsUpdater] Error getting bounds:", e)
             }
@@ -244,7 +254,7 @@ function FieldSelectionBoundsUpdater({ fieldSelectionMode, onBoundsChange }) {
             map.off("moveend", updateBounds)
             map.off("zoomend", updateBounds)
         }
-    }, [fieldSelectionMode, map, onBoundsChange])
+    }, [fieldSelectionMode, map])
     
     return null
 }
@@ -259,22 +269,37 @@ function ZoomToRectangle({ bounds }) {
     return null
 }
 
+function PanToLocation({ position }) {
+    const map = useMap()
+    useEffect(() => {
+        if (position && map) {
+            map.panTo(position)
+        }
+    }, [position, map])
+    return null
+}
+
 function ZoomTracker({ onZoomChange }) {
     const map = useMap()
+    const onZoomChangeRef = useRef(onZoomChange)
+    
+    useLayoutEffect(() => {
+        onZoomChangeRef.current = onZoomChange
+    })
     
     useEffect(() => {
-        if (!map || !onZoomChange) {
+        if (!map) {
             return
         }
         
         const handleZoomEnd = () => {
             const zoom = map.getZoom()
-            onZoomChange(zoom)
+            onZoomChangeRef.current?.(zoom)
         }
         
         const timeout = setTimeout(() => {
             const initialZoom = map.getZoom()
-            onZoomChange(initialZoom)
+            onZoomChangeRef.current?.(initialZoom)
             map.on("zoomend", handleZoomEnd)
         }, 500)
         
@@ -282,22 +307,27 @@ function ZoomTracker({ onZoomChange }) {
             clearTimeout(timeout)
             map.off("zoomend", handleZoomEnd)
         }
-    }, [map, onZoomChange])
+    }, [map])
     
     return null
 }
 
 function PointClickHandler({ isActive, onPointClick }) {
     const map = useMap()
+    const onPointClickRef = useRef(onPointClick)
+    
+    useLayoutEffect(() => {
+        onPointClickRef.current = onPointClick
+    })
     
     useEffect(() => {
-        if (!map || !isActive || !onPointClick) {
+        if (!map || !isActive) {
             return
         }
         
         const handleClick = (e) => {
             const { lat, lng } = e.latlng
-            onPointClick(lat, lng)
+            onPointClickRef.current?.(lat, lng)
         }
         
         map.on("click", handleClick)
@@ -305,7 +335,7 @@ function PointClickHandler({ isActive, onPointClick }) {
         return () => {
             map.off("click", handleClick)
         }
-    }, [map, isActive, onPointClick])
+    }, [map, isActive])
     
     return null
 }
@@ -313,7 +343,7 @@ function PointClickHandler({ isActive, onPointClick }) {
 const EMPTY_POINTS_ARRAY = /** @type {Array<{ id: string, lat: number, lon: number }>} */ ([])
 const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field' }>} */ ([])
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null) }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null) }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     
@@ -487,6 +517,14 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 onFieldClick={onFieldClick}
                 currentZoom={currentZoom}
             />
+            {focusPointIndex !== null && focusPointIndex >= 0 && focusPointIndex < selectedPoints.length && (
+                <PanToLocation position={[selectedPoints[focusPointIndex].lat, selectedPoints[focusPointIndex].lon]} />
+            )}
+            {focusAreaIndex !== null && focusAreaIndex >= 0 && focusAreaIndex < selectedAreas.length && (() => {
+                const area = selectedAreas[focusAreaIndex]
+                const center = getAreaCenter(area)
+                return center ? <PanToLocation position={[center.lat, center.lon]} /> : null
+            })()}
         </MapContainer>
     )
 }

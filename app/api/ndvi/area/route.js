@@ -41,6 +41,7 @@ export async function GET(request) {
         console.log("API: Getting average NDVI for area", { start, end, bbox, cloud })
         const ndvi = await getAverageNdviForArea(start, end, bbox, cloud, geometry)
         console.log("API: Average NDVI retrieved:", ndvi)
+        
         return NextResponse.json({ ndvi })
     } catch (error) {
         const errorMessage = error.message || error.toString() || ""

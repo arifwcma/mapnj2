@@ -12,10 +12,12 @@ import { MONTH_NAMES_FULL, TOAST_DURATION } from "@/app/lib/config"
 import { MESSAGES } from "@/app/lib/messageConstants"
 import { getCurrentMonth, getAllAvailableMonths } from "@/app/lib/monthUtils"
 import { getColorForIndex } from "@/app/lib/colorUtils"
+import { trackEvent } from "@/app/lib/analytics"
 import ChartLoadingMessage from "./ChartLoadingMessage"
 import PointSnapshot from "./PointSnapshot"
 import NdviLegend from "./NdviLegend"
 import ToastMessage from "./ToastMessage"
+import ChartNavigation from "./ChartNavigation"
 
 registerChartJS()
 
@@ -91,7 +93,10 @@ export default function PointMonthsModePanel({
     
     const handleRemoveMonth = useCallback((year, month) => {
         setSelectedMonths(prev => prev.filter(m => !(m.year === year && m.month === month)))
-    }, [])
+        trackEvent("Point-Months - month removed", {
+            month: `${year}-${month}`
+        })
+    }, [setSelectedMonths])
     
     const addMonth = useCallback((year, month) => {
         const key = monthKey(year, month)
@@ -132,6 +137,14 @@ export default function PointMonthsModePanel({
         const success = addMonth(selectedYear, selectedMonth)
         
         if (success) {
+            if (selectedPoint && selectedPoint.lat !== null && selectedPoint.lon !== null) {
+                trackEvent("Point - month added", {
+                    lat: selectedPoint.lat,
+                    lon: selectedPoint.lon,
+                    month: `${selectedYear}-${selectedMonth}`
+                })
+            }
+            
             const allMonths = getAllAvailableMonths()
             const excludedKeys = new Set(selectedMonths.map(m => monthKey(m.year, m.month)))
             excludedKeys.add(addedKey)
@@ -144,7 +157,7 @@ export default function PointMonthsModePanel({
                 onMonthChange(nextAvailable.year, nextAvailable.month)
             }
         }
-    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange])
+    }, [selectedYear, selectedMonth, selectedMonths, addMonth, onMonthChange, selectedPoint])
     
     const handleMonthDropdownChange = useCallback((year, month) => {
         setSelectedYear(year)
@@ -308,24 +321,21 @@ export default function PointMonthsModePanel({
                     <div style={{ width: "100%", height: "350px", marginTop: "20px" }}>
                         <Line data={chartData} options={chartOptions} />
                     </div>
-                    <div style={{ position: "relative", marginTop: "10px" }}>
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "0 10px" }}>
-                            <button
-                                onClick={() => setYAxisRange(prev => prev === "0-1" ? "-1-1" : "0-1")}
-                                style={{
-                                    padding: "8px 16px",
-                                    cursor: "pointer",
-                                    backgroundColor: "white",
-                                    color: "#333",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "8px",
-                                    fontWeight: "500"
-                                }}
-                            >
-                                {yAxisRange === "0-1" ? "↓" : "↑"}
-                            </button>
-                        </div>
-                    </div>
+                    <ChartNavigation
+                        canGoLeft={() => false}
+                        canGoRight={() => false}
+                        onLeftClick={() => {}}
+                        onRightClick={() => {}}
+                        yAxisRange={yAxisRange}
+                        onYAxisToggle={() => {
+                            const newRange = yAxisRange === "0-1" ? "-1-1" : "0-1"
+                            setYAxisRange(newRange)
+                            trackEvent("Chart arrow clicked", {
+                                feature: "Point-Months",
+                                arrow: yAxisRange === "0-1" ? "down" : "up"
+                            })
+                        }}
+                    />
                     <NdviLegend />
                 </>
             )}
