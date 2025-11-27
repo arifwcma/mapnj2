@@ -279,6 +279,21 @@ function PanToLocation({ position }) {
     return null
 }
 
+function GoToXYHandler({ position, onComplete }) {
+    const map = useMap()
+    useEffect(() => {
+        if (position && map) {
+            map.panTo(position)
+            if (onComplete) {
+                setTimeout(() => {
+                    onComplete()
+                }, 100)
+            }
+        }
+    }, [position, map, onComplete])
+    return null
+}
+
 function ZoomTracker({ onZoomChange }) {
     const map = useMap()
     const onZoomChangeRef = useRef(onZoomChange)
@@ -306,6 +321,46 @@ function ZoomTracker({ onZoomChange }) {
         return () => {
             clearTimeout(timeout)
             map.off("zoomend", handleZoomEnd)
+        }
+    }, [map])
+    
+    return null
+}
+
+function CrosshairCursor() {
+    const map = useMap()
+    
+    useEffect(() => {
+        if (!map) {
+            return
+        }
+        
+        const container = map.getContainer()
+        container.style.cursor = "crosshair"
+        container.style.setProperty("cursor", "crosshair", "important")
+        
+        const styleId = "leaflet-copy-coordinate-cursor"
+        let styleEl = document.getElementById(styleId)
+        if (!styleEl) {
+            styleEl = document.createElement("style")
+            styleEl.id = styleId
+            styleEl.textContent = `
+                .leaflet-container.leaflet-copy-coordinate,
+                .leaflet-container.leaflet-copy-coordinate *,
+                .leaflet-container.leaflet-copy-coordinate svg,
+                .leaflet-container.leaflet-copy-coordinate svg *,
+                .leaflet-container.leaflet-copy-coordinate path {
+                    cursor: crosshair !important;
+                }
+            `
+            document.head.appendChild(styleEl)
+        }
+        container.classList.add("leaflet-copy-coordinate")
+        
+        return () => {
+            container.style.cursor = ""
+            container.style.removeProperty("cursor")
+            container.classList.remove("leaflet-copy-coordinate")
         }
     }, [map])
     
@@ -343,7 +398,7 @@ function PointClickHandler({ isActive, onPointClick }) {
 const EMPTY_POINTS_ARRAY = /** @type {Array<{ id: string, lat: number, lon: number }>} */ ([])
 const EMPTY_AREAS_ARRAY = /** @type {Array<{ id: string, geometry: any, bounds: [[number, number], [number, number]], color: string, label: string, boundsSource: 'rectangle' | 'field' }>} */ ([])
 
-export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null) }) {
+export default function MapView({ isDrawing, rectangleBounds, currentBounds, onStart, onUpdate, onEnd, onReset = undefined, ndviTileUrl, rgbTileUrl, overlayType, basemap = "street", isPointClickMode = false, isPointSelectMode = false, onPointClick, selectedPoint = /** @type {null | { lat: number | null, lon: number | null }} */ (null), selectedPoints = EMPTY_POINTS_ARRAY, fieldSelectionMode = false, fieldsData = null, fieldsLoading = false, boundsSource = /** @type {null | 'rectangle' | 'field'} */ (null), selectedFieldFeature = null, onFieldClick, currentZoom, onZoomChange, selectedAreas = EMPTY_AREAS_ARRAY, analysisMode = "point", compareMode = "points", onMapBoundsChange, initialZoom = /** @type {null | number} */ (null), initialBounds = /** @type {null | [[number, number], [number, number]]} */ (null), focusPointIndex = /** @type {null | number} */ (null), focusAreaIndex = /** @type {null | number} */ (null), copyCoordinateMode = false, goToXYPosition = /** @type {null | [number, number]} */ (null), onGoToXYComplete = undefined }) {
     const { boundary, loading, error } = useBoundary()
     const { setStatusMessage } = useStatusMessage()
     
@@ -397,7 +452,8 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     attribution={attribution}
                 />
             )}
-            {!isDrawing && !fieldSelectionMode && <PointClickHandler isActive={isPointClickMode || isPointSelectMode} onPointClick={onPointClick || (() => {})} />}
+            {!isDrawing && !fieldSelectionMode && <PointClickHandler isActive={isPointClickMode || isPointSelectMode || copyCoordinateMode} onPointClick={onPointClick || (() => {})} />}
+            {copyCoordinateMode && <CrosshairCursor />}
             {boundary && <BoundaryLayer data={boundary} />}
             {isDrawing && (
                 <RectangleDrawHandler
@@ -525,6 +581,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 const center = getAreaCenter(area)
                 return center ? <PanToLocation position={[center.lat, center.lon]} /> : null
             })()}
+            {goToXYPosition && <GoToXYHandler position={goToXYPosition} onComplete={onGoToXYComplete} />}
         </MapContainer>
     )
 }

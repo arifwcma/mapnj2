@@ -56,6 +56,10 @@ function PageContent() {
     const [areaSnapshotsOpen, setAreaSnapshotsOpen] = useState(false)
     const [focusPointIndex, setFocusPointIndex] = useState<number | null>(null)
     const [focusAreaIndex, setFocusAreaIndex] = useState<number | null>(null)
+    const [copyCoordinateMode, setCopyCoordinateMode] = useState(false)
+    const [goToXYOpen, setGoToXYOpen] = useState(false)
+    const [goToXYInput, setGoToXYInput] = useState("")
+    const [goToXYPosition, setGoToXYPosition] = useState<[number, number] | null>(null)
     
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -356,7 +360,66 @@ function PageContent() {
         })
     }, [basemap])
     
+    const handleCoordinateCopy = useCallback((lat: number, lon: number) => {
+        const coordString = `${lat},${lon}`
+        trackEvent("Coordinate copied", {
+            lat,
+            lon
+        })
+        setCopyCoordinateMode(false)
+        navigator.clipboard.writeText(coordString).then(() => {
+            alert(`Coordinate copied to clipboard: ${coordString}`)
+        }).catch(() => {
+            alert(`Coordinate copied to clipboard: ${coordString}`)
+        })
+    }, [])
+    
+    const handleGoToXY = useCallback(() => {
+        const input = goToXYInput.trim()
+        if (!input) {
+            return
+        }
+        
+        const parts = input.split(",").map(s => s.trim())
+        if (parts.length !== 2) {
+            alert("Invalid format. Please use: lat,lon")
+            return
+        }
+        
+        const lat = parseFloat(parts[0])
+        const lon = parseFloat(parts[1])
+        
+        if (isNaN(lat) || isNaN(lon)) {
+            alert("Invalid coordinates. Please enter valid numbers.")
+            return
+        }
+        
+        if (lat < -90 || lat > 90) {
+            alert("Latitude must be between -90 and 90.")
+            return
+        }
+        
+        if (lon < -180 || lon > 180) {
+            alert("Longitude must be between -180 and 180.")
+            return
+        }
+        
+        trackEvent("Go to XY", {
+            lat,
+            lon
+        })
+        
+        setGoToXYPosition([lat, lon])
+        setGoToXYOpen(false)
+        setGoToXYInput("")
+    }, [goToXYInput])
+    
     const handlePointClick = useCallback((lat: number, lon: number) => {
+        if (copyCoordinateMode) {
+            handleCoordinateCopy(lat, lon)
+            return
+        }
+        
         const now = Date.now()
         if (lastPointClickRef.current && 
             Math.abs(lastPointClickRef.current.lat - lat) < 0.0001 && 
@@ -387,7 +450,7 @@ function PageContent() {
                 lon
             })
         }
-    }, [analysisMode, compareMode, selectedPoints.length])
+    }, [analysisMode, compareMode, selectedPoints.length, copyCoordinateMode, handleCoordinateCopy])
     
     const handleRemovePoint = useCallback((index: number) => {
         const now = Date.now()
@@ -864,7 +927,155 @@ function PageContent() {
                 )}
             </div>
             
-            <div style={{ width: "60%", height: "100vh" }}>
+            <div style={{ width: "60%", height: "100vh", position: "relative" }}>
+                <div style={{
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
+                    zIndex: 1000,
+                    backgroundColor: "white",
+                    padding: "5px 10px",
+                    borderRadius: "4px",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "5px"
+                }}>
+                    <a
+                        href="#"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            setCopyCoordinateMode(!copyCoordinateMode)
+                        }}
+                        style={{
+                            color: "#0066cc",
+                            textDecoration: "none",
+                            cursor: "pointer"
+                        }}
+                    >
+                        {copyCoordinateMode ? "Cancel" : "Copy coordinate"}
+                    </a>
+                    <a
+                        href="#"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            setGoToXYOpen(true)
+                        }}
+                        style={{
+                            color: "#0066cc",
+                            textDecoration: "none",
+                            cursor: "pointer"
+                        }}
+                    >
+                        Go to XY
+                    </a>
+                </div>
+                {goToXYOpen && (
+                    <>
+                        <div
+                            style={{
+                                position: "fixed",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: "rgba(0,0,0,0.5)",
+                                zIndex: 9999
+                            }}
+                            onClick={() => {
+                                setGoToXYOpen(false)
+                                setGoToXYInput("")
+                            }}
+                        />
+                        <div
+                            style={{
+                                position: "fixed",
+                                top: "50%",
+                                left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                backgroundColor: "white",
+                                borderRadius: "8px",
+                                padding: "20px",
+                                zIndex: 10000,
+                                boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
+                                minWidth: "300px"
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                                <h3 style={{ margin: 0 }}>Go to XY</h3>
+                                <button
+                                    onClick={() => {
+                                        setGoToXYOpen(false)
+                                        setGoToXYInput("")
+                                    }}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        fontSize: "20px",
+                                        cursor: "pointer",
+                                        padding: "0",
+                                        width: "24px",
+                                        height: "24px",
+                                        lineHeight: "24px"
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                value={goToXYInput}
+                                onChange={(e) => setGoToXYInput(e.target.value)}
+                                placeholder="-36.7319,142.2037"
+                                style={{
+                                    width: "100%",
+                                    padding: "8px",
+                                    marginBottom: "15px",
+                                    border: "1px solid #ccc",
+                                    borderRadius: "4px",
+                                    boxSizing: "border-box"
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && goToXYInput.trim()) {
+                                        handleGoToXY()
+                                    }
+                                }}
+                            />
+                            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                                <button
+                                    onClick={() => {
+                                        setGoToXYOpen(false)
+                                        setGoToXYInput("")
+                                    }}
+                                    style={{
+                                        padding: "8px 16px",
+                                        border: "1px solid #ccc",
+                                        borderRadius: "4px",
+                                        backgroundColor: "white",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleGoToXY}
+                                    disabled={!goToXYInput.trim()}
+                                    style={{
+                                        padding: "8px 16px",
+                                        border: "1px solid #ccc",
+                                        borderRadius: "4px",
+                                        backgroundColor: goToXYInput.trim() ? "#0066cc" : "#ccc",
+                                        color: "white",
+                                        cursor: goToXYInput.trim() ? "pointer" : "not-allowed"
+                                    }}
+                                >
+                                    Go
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
                 <MapView
                     isDrawing={isDrawing}
                     rectangleBounds={rectangleBounds}
@@ -900,6 +1111,9 @@ function PageContent() {
                     initialBounds={restoredBounds}
                     focusPointIndex={focusPointIndex}
                     focusAreaIndex={focusAreaIndex}
+                    copyCoordinateMode={copyCoordinateMode}
+                    goToXYPosition={goToXYPosition}
+                    onGoToXYComplete={() => setGoToXYPosition(null)}
                 />
             </div>
             
