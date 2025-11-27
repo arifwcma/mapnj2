@@ -347,7 +347,7 @@ function ZoomTracker({ onZoomChange }) {
     return null
 }
 
-function SelectedAreaBorder({ areaId, data, onRefReady }) {
+function SelectedAreaBorder({ areaId, data, onRefReady, color }) {
     const ref = useRef(null)
     
     useEffect(() => {
@@ -360,12 +360,12 @@ function SelectedAreaBorder({ areaId, data, onRefReady }) {
         <GeoJSON 
             ref={ref}
             data={data}
-            style={{ color: "#22c55e", weight: 3, fillOpacity: 0, opacity: 1 }}
+            style={{ color: color, weight: 3, fillOpacity: 0, opacity: 1 }}
         />
     )
 }
 
-function SelectedAreaBorderRect({ areaId, bounds, onRefReady }) {
+function SelectedAreaBorderRect({ areaId, bounds, onRefReady, color }) {
     const ref = useRef(null)
     
     useEffect(() => {
@@ -378,7 +378,7 @@ function SelectedAreaBorderRect({ areaId, bounds, onRefReady }) {
         <Rectangle 
             ref={ref}
             bounds={bounds}
-            pathOptions={{ color: "#22c55e", weight: 3, fillOpacity: 0, opacity: 1 }}
+            pathOptions={{ color: color, weight: 3, fillOpacity: 0, opacity: 1 }}
         />
     )
 }
@@ -610,6 +610,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 }
                 
                 if (area.bounds) {
+                    const borderColor = getColorForIndex(idx)
                     if (area.boundsSource === 'field' && area.geometry) {
                         elements.push(
                             <SelectedAreaBorder
@@ -620,6 +621,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                                     features: [area.geometry]
                                 }}
                                 onRefReady={onSelectedBorderRefReady}
+                                color={borderColor}
                             />
                         )
                     } else {
@@ -629,6 +631,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                                 areaId={area.id}
                                 bounds={area.bounds}
                                 onRefReady={onSelectedBorderRefReady}
+                                color={borderColor}
                             />
                         )
                     }
