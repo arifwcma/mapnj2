@@ -354,6 +354,7 @@ function PageContent() {
     }
     
     const handleIndexChange = (newIndex: string) => {
+        console.log("[handleIndexChange] Called - old:", selectedIndex, "new:", newIndex)
         setSelectedIndex(newIndex)
         trackEvent("Index changed", {
             current_index: newIndex
@@ -493,6 +494,7 @@ function PageContent() {
     }, [])
     
     const handleMonthChange = useCallback((year: number, month: number) => {
+        console.log("[handleMonthChange] Called - old year:", selectedYear, "old month:", selectedMonth, "new year:", year, "new month:", month)
         if (analysisMode === "point" && compareMode === "points") {
             trackEvent("Calendar month changed in Point-Points", {
                 current_calendar_month: `${year}-${month}`
@@ -504,7 +506,7 @@ function PageContent() {
         }
         setSelectedYear(year)
         setSelectedMonth(month)
-    }, [analysisMode, compareMode])
+    }, [analysisMode, compareMode, selectedYear, selectedMonth])
     
     const handleStartFieldSelection = useCallback(() => {
         if (isDrawing) {
@@ -557,20 +559,17 @@ function PageContent() {
                 return
             }
             
-            let newArea: typeof selectedAreas[0] | null = null
-            setSelectedAreas(prev => {
-                newArea = {
-                    id: `area_${Date.now()}_${Math.random()}`,
-                    geometry: feature,
-                    bounds: bounds,
-                    label: `Area ${prev.length + 1}`,
-                    boundsSource: 'field' as const,
-                    indexTileUrl: null,
-                    rgbTileUrl: null
-                }
-                return [...prev, newArea]
-            })
             const areaIndex = selectedAreas.length
+            const newArea = {
+                id: `area_${Date.now()}_${Math.random()}`,
+                geometry: feature,
+                bounds: bounds,
+                label: `Area ${areaIndex + 1}`,
+                boundsSource: 'field' as const,
+                indexTileUrl: null,
+                rgbTileUrl: null
+            }
+            setSelectedAreas(prev => [...prev, newArea])
             const totalAreas = areaIndex + 1
             
             setTimeout(() => {
@@ -597,9 +596,7 @@ function PageContent() {
             setBounds(bounds)
             setBoundsSource('field')
             setSelectedFieldFeature(feature)
-            if (newArea) {
-                loadAreaNdvi(newArea)
-            }
+            loadAreaNdvi(newArea)
         } else if (analysisMode === "area" && compareMode === "months") {
             const newArea = {
                 id: `area_${Date.now()}_${Math.random()}`,
@@ -678,20 +675,17 @@ function PageContent() {
                 return
             }
             
-            let newArea: typeof selectedAreas[0] | null = null
-            setSelectedAreas(prev => {
-                newArea = {
-                    id: `area_${Date.now()}_${Math.random()}`,
-                    geometry: null,
-                    bounds: currentBounds,
-                    label: `Area ${prev.length + 1}`,
-                    boundsSource: 'rectangle' as const,
-                    indexTileUrl: null,
-                    rgbTileUrl: null
-                }
-                return [...prev, newArea]
-            })
             const areaIndex = selectedAreas.length
+            const newArea = {
+                id: `area_${Date.now()}_${Math.random()}`,
+                geometry: null,
+                bounds: currentBounds,
+                label: `Area ${areaIndex + 1}`,
+                boundsSource: 'rectangle' as const,
+                indexTileUrl: null,
+                rgbTileUrl: null
+            }
+            setSelectedAreas(prev => [...prev, newArea])
             const totalAreas = areaIndex + 1
             
             setTimeout(() => {
@@ -720,9 +714,7 @@ function PageContent() {
                     center_lon: centerLon
                 })
             }, 0)
-            if (newArea) {
-                loadAreaNdvi(newArea)
-            }
+            loadAreaNdvi(newArea)
         } else if (analysisMode === "area" && compareMode === "months" && currentBounds) {
             const now = Date.now()
             if (lastAreaAddRef.current && 
@@ -843,17 +835,49 @@ function PageContent() {
         })
     }, [clearNdvi, analysisMode, compareMode, selectedPoint])
     
+    const prevIndexRef = useRef(selectedIndex)
+    const prevYearRef = useRef(selectedYear)
+    const prevMonthRef = useRef(selectedMonth)
+    const selectedAreasRef = useRef(selectedAreas)
+    
     useEffect(() => {
-        console.log("[Overlay useEffect] Triggered - analysisMode:", analysisMode, "compareMode:", compareMode, "selectedAreas.length:", selectedAreas.length, "selectedIndex:", selectedIndex, "selectedYear:", selectedYear, "selectedMonth:", selectedMonth, "isDrawing:", isDrawing)
+        selectedAreasRef.current = selectedAreas
+    }, [selectedAreas])
+    
+    useEffect(() => {
+        const indexChanged = prevIndexRef.current !== selectedIndex
+        const yearChanged = prevYearRef.current !== selectedYear
+        const monthChanged = prevMonthRef.current !== selectedMonth
+        const paramsChanged = indexChanged || yearChanged || monthChanged
+        
+        console.log("[Overlay useEffect] ===== START =====")
+        console.log("[Overlay useEffect] analysisMode:", analysisMode, "compareMode:", compareMode)
+        console.log("[Overlay useEffect] selectedAreas.length:", selectedAreas.length)
+        console.log("[Overlay useEffect] selectedIndex:", selectedIndex, "prev:", prevIndexRef.current, "changed:", indexChanged)
+        console.log("[Overlay useEffect] selectedYear:", selectedYear, "prev:", prevYearRef.current, "changed:", yearChanged)
+        console.log("[Overlay useEffect] selectedMonth:", selectedMonth, "prev:", prevMonthRef.current, "changed:", monthChanged)
+        console.log("[Overlay useEffect] paramsChanged:", paramsChanged)
+        console.log("[Overlay useEffect] isDrawing:", isDrawing)
+        
+        prevIndexRef.current = selectedIndex
+        prevYearRef.current = selectedYear
+        prevMonthRef.current = selectedMonth
         
         if (analysisMode === "area" && (compareMode === "areas" || compareMode === "months")) {
             if (isDrawing || selectedAreas.length === 0) {
-                console.log("[Overlay useEffect] Skipping - isDrawing:", isDrawing, "selectedAreas.length:", selectedAreas.length)
+                console.log("[Overlay useEffect] SKIPPING - isDrawing:", isDrawing, "length:", selectedAreas.length)
                 return
             }
-            console.log("[Overlay useEffect] Loading overlays for", selectedAreas.length, "areas")
-            selectedAreas.forEach(area => {
+            
+            console.log("[Overlay useEffect] Processing", selectedAreas.length, "areas")
+            
+            const areasToLoad = selectedAreasRef.current
+            console.log("[Overlay useEffect] Loading overlays for", areasToLoad.length, "areas", paramsChanged ? "(PARAMS CHANGED - forcing reload)" : "")
+            
+            areasToLoad.forEach((area, idx) => {
+                console.log(`[Overlay useEffect] Area ${idx}: id=${area.id}, bounds=${area.bounds ? 'SET' : 'NULL'}, currentTileUrl=${area.indexTileUrl ? 'SET' : 'NULL'}`)
                 if (area.bounds) {
+                    console.log(`[Overlay useEffect] Calling loadAreaNdvi for area ${idx} (${area.id})`)
                     loadAreaNdvi(area)
                 }
             })

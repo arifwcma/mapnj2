@@ -532,9 +532,12 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                 </>
             )}
             {analysisMode === "area" && (compareMode === "areas" || compareMode === "months") && selectedAreas && selectedAreas.length > 0 && selectedAreas.map((area, idx) => {
-                console.log(`[MapView] Rendering area ${idx}: overlayType=${overlayType}, indexTileUrl=${area.indexTileUrl ? 'SET' : 'NULL'}, bounds=${area.bounds ? 'SET' : 'NULL'}`)
+                console.log(`[MapView] Rendering area ${idx}: id=${area.id}, overlayType=${overlayType}, indexTileUrl=${area.indexTileUrl ? 'SET' : 'NULL'}, bounds=${area.bounds ? 'SET' : 'NULL'}, selectedIndex=${selectedIndex}`)
+                const elements = []
+                
                 if (overlayType === "INDEX" && area.indexTileUrl && area.bounds) {
-                    return (
+                    console.log(`[MapView] Adding overlay for area ${idx} (${area.id}) with tileUrl:`, area.indexTileUrl.substring(0, 50))
+                    elements.push(
                         <NdviOverlay 
                             key={`index-${area.id}-${area.indexTileUrl}-${selectedIndex}`} 
                             tileUrl={area.indexTileUrl} 
@@ -543,7 +546,7 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                     )
                 }
                 if (overlayType === "RGB" && area.rgbTileUrl && area.bounds) {
-                    return (
+                    elements.push(
                         <NdviOverlay 
                             key={`rgb-${area.id}-${area.rgbTileUrl}`} 
                             tileUrl={area.rgbTileUrl} 
@@ -551,7 +554,31 @@ export default function MapView({ isDrawing, rectangleBounds, currentBounds, onS
                         />
                     )
                 }
-                return null
+                
+                if (area.bounds) {
+                    if (area.boundsSource === 'field' && area.geometry) {
+                        elements.push(
+                            <GeoJSON 
+                                key={`border-${area.id}`}
+                                data={{
+                                    type: "FeatureCollection",
+                                    features: [area.geometry]
+                                }}
+                                style={{ color: "#22c55e", weight: 3, fillOpacity: 0, opacity: 1 }}
+                            />
+                        )
+                    } else {
+                        elements.push(
+                            <Rectangle 
+                                key={`border-${area.id}`}
+                                bounds={area.bounds}
+                                pathOptions={{ color: "#22c55e", weight: 3, fillOpacity: 0, opacity: 1 }}
+                            />
+                        )
+                    }
+                }
+                
+                return elements.length > 0 ? elements : null
             })}
             {analysisMode !== "area" && indexTileUrl && rectangleBounds && overlayType === "INDEX" && (
                 <NdviOverlay key={`index-${basemap}-${indexTileUrl}-${selectedIndex}`} tileUrl={indexTileUrl} bounds={rectangleBounds} />
