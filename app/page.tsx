@@ -369,6 +369,43 @@ function PageContent() {
         })
     }, [basemap])
     
+    const copyToClipboard = useCallback((text: string): Promise<boolean> => {
+        // Try modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text)
+                .then(() => true)
+                .catch(() => {
+                    // Fallback to older method if Clipboard API fails
+                    return fallbackCopyToClipboard(text)
+                })
+        }
+        // Fallback to older method if Clipboard API is not available
+        return Promise.resolve(fallbackCopyToClipboard(text))
+    }, [])
+
+    const fallbackCopyToClipboard = useCallback((text: string): boolean => {
+        try {
+            // Create a temporary textarea element
+            const textarea = document.createElement('textarea')
+            textarea.value = text
+            textarea.style.position = 'fixed'
+            textarea.style.left = '-999999px'
+            textarea.style.top = '-999999px'
+            document.body.appendChild(textarea)
+            textarea.focus()
+            textarea.select()
+            
+            // Try execCommand (older method, works in more contexts)
+            const successful = document.execCommand('copy')
+            document.body.removeChild(textarea)
+            
+            return successful
+        } catch (err) {
+            console.error('Fallback copy failed:', err)
+            return false
+        }
+    }, [])
+
     const handleCoordinateCopy = useCallback((lat: number, lon: number) => {
         const coordString = `${lat},${lon}`
         trackEvent("Coordinate copied", {
@@ -376,12 +413,18 @@ function PageContent() {
             lon
         })
         setCopyCoordinateMode(false)
-        navigator.clipboard.writeText(coordString).then(() => {
-            alert(`Coordinate copied to clipboard: ${coordString}`)
+        copyToClipboard(coordString).then((success) => {
+            if (success) {
+                alert(`Coordinate copied to clipboard: ${coordString}`)
+            } else {
+                // If copy failed, show the coordinate so user can manually copy
+                alert(`Coordinate: ${coordString}\n\nPlease copy manually if clipboard copy failed.`)
+            }
         }).catch(() => {
-            alert(`Coordinate copied to clipboard: ${coordString}`)
+            // Final fallback - show coordinate for manual copy
+            alert(`Coordinate: ${coordString}\n\nPlease copy manually if clipboard copy failed.`)
         })
-    }, [])
+    }, [copyToClipboard])
     
     const handleGoToXY = useCallback(() => {
         const input = goToXYInput.trim()
